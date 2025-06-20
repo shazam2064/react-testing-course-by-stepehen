@@ -503,7 +503,120 @@ await user.keyboard("jane@jane.com");
 
 ### Lecture 16. Simulating User Events
 
-In this lecture, we learned how to simulate user events wwin React Testing Library using the `user-event` library. Key points covered include:
-1. **User Event Simulation**:
-   - The `user-event` library allows us to simulate user interactions like clicks, typing, and more.
-   - It provides a more realistic simulation compared to the built-in `fireEvent`.
+In this lecture, we learned how to simulate user events in React Testing Library using the `user-event` library. Key points covered include:
+
+**User Event Simulation**:
+- The `user-event` library allows us to simulate user interactions like clicks, typing, and more.
+- It provides a more realistic simulation compared to the built-in `fireEvent`.
+
+1. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file and modify the second test to simulate user events:
+
+```javascript
+test('it calls onUserAdd when the form is submitted', async () => {
+    // Try to render the UserForm component
+    render(<UserForm />);
+
+    // Find the two inputs
+    const [nameInput, emailInput] = screen.getAllByRole('textbox');
+
+    // Simulate typing in the inputs
+    await user.click(nameInput);
+    await user.keyboard('jane');
+
+    await user.click(emailInput);
+    await user.keyboard('jane@doe.com');
+    
+    // We will finish the code in next lecture
+});
+```
+
+**Explanation:**
+1. Rendering the Component:  
+The render function mounts the UserForm component for testing.
+
+2. Querying Elements:  
+- screen.getAllByRole('textbox') retrieves all input elements with the role textbox.
+- The destructuring [nameInput, emailInput] assigns the first and second input elements to variables.
+
+3. Simulating User Events:  
+- user.click(nameInput) simulates a user clicking on the name input field.
+- user.keyboard('jane') simulates typing the name "jane" into the input field.
+- Similarly, user.click(emailInput) and user.keyboard('jane@doe.com') simulate typing the email.
+
+**Note:**
+This is not the best implementation as it does not verify if the onUserAdd function
+is called with the correct arguments. We will fix this in a later lecture to ensure the test properly validates the behavior of the component.
+
+
+### Lecture 17. Recording Function Calls
+
+Let's wrap up the test we started in the previous lecture by verifying that the `onUserAdd` function is called with the correct arguments when the form is submitted.
+
+1. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file and modify the second test to include the `onUserAdd` function and verify its calls:
+    - If you run the test now, you will see it fails that is because we haven't passed our props
+    - We can fix it by adding it to the render
+        ```javascript
+        // Try to render the UserForm component
+            render(<UserForm onUserAdd={() => {}}/>);
+        ```
+   - Still we need to make sure it gets called with email/name
+   - So we can add this code above the render to fix that
+       ```javascript
+       // Not the best implementation
+       const argList = [];
+       const callback = (...args) => {
+           argList.push(args);
+       };
+       
+       // Try to render the UserForm component
+       render(<UserForm onUserAdd={callback}/>);
+       ```
+   - Now we can finish the test by adding the following code at the bottom:
+       ```js
+       // Assert that the callback was called with the correct arguments
+       expect(argList).toHaveLength(1);
+       expect(argList[0][0]).toEqual({name: 'jane', email: 'jane@doe.com' });
+       ```
+     
+2. If we run the test now, it should pass.
+   - Here is the full code btw:
+        ```js
+        test('it calls onUserAdd when the form is submitted', async () => {
+            // Not the best implementation
+            const argList = [];
+            const callback = (...args) => {
+                argList.push(args);
+            };
+        
+            // Try to render the UserForm component
+            render(<UserForm onUserAdd={callback}/>);
+        
+            // Find the two inputs
+            const [nameInput, emailInput] = screen.getAllByRole('textbox');
+        
+            // Simulate typing in the inputs
+            user.click(nameInput);
+            user.keyboard('jane');
+        
+            user.click(emailInput);
+            user.keyboard('jane@doe.com');
+        
+            // Find the button and click it
+            const button = screen.getByRole('button');
+            user.click(button);
+        
+            // Assert that the callback was called with the correct arguments
+            expect(argList).toHaveLength(1);
+            expect(argList[0][0]).toEqual({name: 'jane', email: 'jane@doe.com' });
+        });
+        ```
+     
+### Lecture 18. Introducing Mock Functions
+
+A mock function is a function that records its calls and allows you to make assertions about how it was called.
+In this lecture, we learned about mock functions in Jest and how they can be used to test component interactions. Key points covered include:
+
+- In english, `mock` means to imitate or simulate something.
+- Fake function that doesn't do anything
+- Records whenever it gets called, and the arguments it was called with.
+
