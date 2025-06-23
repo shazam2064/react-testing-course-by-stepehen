@@ -13,17 +13,14 @@ test('it shows two inputs and a button', () => {
 });
 
 test('it calls onUserAdd when the form is submitted', async () => {
-    // Not the best implementation
-    const argList = [];
-    const callback = (...args) => {
-        argList.push(args);
-    };
+    const mock = jest.fn();
 
     // Try to render the UserForm component
-    render(<UserForm onUserAdd={callback}/>);
+    render(<UserForm onUserAdd={mock}/>);
 
     // Find the two inputs
-    const [nameInput, emailInput] = screen.getAllByRole('textbox');
+    const nameInput = screen.getByRole('textbox', { name: /name/i });
+    const emailInput = screen.getByRole('textbox', { name: /email/i });
 
     // Simulate typing in the inputs
     user.click(nameInput);
@@ -37,6 +34,21 @@ test('it calls onUserAdd when the form is submitted', async () => {
     user.click(button);
 
     // Assert that the callback was called with the correct arguments
-    expect(argList).toHaveLength(1);
-    expect(argList[0][0]).toEqual({name: 'jane', email: 'jane@doe.com' });
+    expect(mock).toHaveBeenCalled();
+    expect(mock).toHaveBeenCalledWith({name: 'jane', email: 'jane@doe.com'});
+});
+
+test('render one row per user', async () => {
+   // Render the component
+   const users = [
+       {name: 'jane', email: 'jane@jane.com'},
+       {name: 'sam', email: 'sam@sam.com'}
+   ];
+    render(<UserList users={users}/>);
+
+    // Find the table rows
+    const rows = within(screen.getByTestId('users')).getAllByRole('row');
+
+    // Assert that there are two rows in the table body
+    expect(rows).toHaveLength(2);
 });
