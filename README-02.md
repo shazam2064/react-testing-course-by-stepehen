@@ -620,3 +620,212 @@ In this lecture, we learned about mock functions in Jest and how they can be use
 - Fake function that doesn't do anything
 - Records whenever it gets called, and the arguments it was called with.
 
+1. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file and modify the second test to use a mock function:
+    - Import `jest.fn()` from Jest to create a mock function.
+    - Replace the `callback` function with a mock function.
+    - Use the mock function in the `onUserAdd` prop of the `UserForm` component.
+        ```javascript
+        test('it calls onUserAdd when the form is submitted', async () => {
+            // Create a mock function for the callback
+            const mock = jest.fn();
+        
+            // Render the UserForm component with the mock function as a prop
+            render(<UserForm onUserAdd={mock} />);
+        
+            // Find the two inputs
+            const [nameInput, emailInput] = screen.getAllByRole('textbox');
+        
+            // Simulate typing in the inputs
+            await user.click(nameInput);
+            await user.keyboard('jane');
+        
+            await user.click(emailInput);
+            await user.keyboard('jane@doe.com');
+        
+            // Find the button and click it
+            const button = screen.getByRole('button', { name: /add user/i });
+            await user.click(button);
+        
+            // Assert that the mock function was called with the correct arguments
+            expect(mock).toHaveBeenCalledTimes(1);
+            expect(mock).toHaveBeenCalledWith({ name: 'jane', email: 'jane@doe.com' });
+        });
+        ```
+
+2. If we run the test now, it should pass.
+   - The mock function records the calls made to it and allows us to make assertions about how it was called.
+   - This is a powerful feature of Jest that helps us test component interactions without relying on actual implementations.
+
+This implementation is cleaner, more readable, and leverages Jest's built-in features for testing function calls.
+
+
+### Lecture 19. Querying Elements by Labels
+In this lecture, we learn how to query elements by their labels in React Testing Library.
+
+**Understanding Labels**:
+ - Labels are important for accessibility and help users understand the purpose of form elements.
+ - In React, labels can be associated with inputs using the `htmlFor` attribute.
+
+1. Open the [UserForm.js](./2users/src/UserForm.js) file.
+    - We had previously used these labels before so no changes are needed.
+        ```js
+        <div>
+           <label htmlFor="name">Name:</label>
+           <input
+                   type="text"
+                   id="name"
+                   name="name"
+                   value={name}
+                   onChange={(e) => setName(e.target.value)}
+                   required
+           />
+        </div>
+        ```
+    - The takeaway here is that this labels help us query the elements in our tests.
+    - For example functions like these are now available to us:
+        ```js
+        screen.getByLabelText('Name:');
+        screen.getByRole('textbox', { name: /entermail/i });
+        ```
+   - Note: don't make any changes, this is just an example.
+      
+2. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file.
+    - We will add a new test to check if the label is associated with the input.
+    - Modify the following code where we find the two inputs:
+        ```js
+        const nameInput = screen.getByRole('textbox', { name: /name/i });
+        const emailInput = screen.getByRole('textbox', { name: /email/i });
+        ```
+
+Now the test will check if the inputs are correctly associated with their labels.
+This makes the tests more readable and ensures that the form elements are accessible.
+
+### Lecture 20. Testing the User List
+
+In this lecture, we will write tests for the `UserList` component to ensure it correctly displays the list of users.
+
+**Most Important Parts of UserList**:
+- Shows one line per user.
+- Shows the correct name and email for each user.
+
+1. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file.
+    - We will add a new test for the `UserList` component.
+    - Import the `UserList` component at the top:
+        ```javascript
+        import UserList from "./UserList";
+        ```
+    - Add the following test to check if the `UserList` renders correctly:
+        ```js
+        test('render one row per user', async () => {
+           // Render the component
+           const users = [
+              {name: 'jane', email: 'jane@jane.com'},
+              {name: 'sam', email: 'sam@sam.com'}
+           ];
+           render(<UserList users={users}/>);
+        
+           // Find the table rows
+        
+           // Assert that there are two rows in the table body
+        });
+        ```
+
+We will pause right here for now and continue on the next lecture.
+
+### Lecture 21. Getting Help with Query Functions
+
+In this lecture, we will learn how to get help with query functions in React Testing Library.
+- Memorizing all the query functions to find elements + roles is hard.
+- To get help with finding a particular element, you can use this helper function
+    ```javascript
+    screen.logTestingPlaygroundURL();
+    ```
+- Takes the HTML currently rendered by your component and creates a link to view that HTML in the Testing Playground tool.
+- Testing Playground helps you write queries (functions to find elements).
+
+1. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file.
+    - Add the following line at the end of the file:
+        ```javascript
+        screen.logTestingPlaygroundURL();
+        ```
+    - This will log a URL to the console that you can click to open the Testing Playground tool.
+
+2. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+    - You will see a URL in the console output.
+    - Click on the URL to open the Testing Playground tool in your browser.
+    - The page should look like this
+    - ![Testing Playground](./images/README-02-images/img05-chrome-dLlMw8.png)
+
+3. Once in the webpage click on the element you want to query.
+    - For example, click on the first row of the table.
+    - The tool will show you the query functions you can use to find that element.
+    - You can copy the query function and use it in your tests.q
+    - ![Testing Playground Query](./images/README-02-images/img06-chrome-SbR42Q.png)
+
+4. Open back up the [UserForm.test.js](./2users/src/UserForm.test.js) file.
+    - Get rid of the `screen.logTestingPlaygroundURL();` line.
+    - Replace the `// Find the table rows` comment with the query function you copied from the Testing Playground tool.
+        ```javascript
+        const rows = screen.getAllByRole('row');
+        ```
+    - Change the `// Assert that there are two rows in the table body` comment to:
+        ```javascript
+        expect(rows).toHaveLength(2);
+        ```
+      
+5. Run the tests again:
+    ```bash
+    npm run test
+    ```
+   - The test should fail, but we will fix it in the next lecture.
+
+### Lecture 22. Query Function Escape Hatches
+In this lecture, we will learn about query function escape hatches in React Testing Library.
+- Sometimes, the query functions provided by React Testing Library may not work as expected.
+- In such cases, you can use the `querySelector` method to find elements directly in the DOM.
+- This is not recommended as a first choice, but it can be useful in certain situations.
+
+1. Open the [UserList.js](./2users/src/UserList.js) file.
+    - We will add a `data-testid` attribute to the table element to make it easier to query.
+    - Modify the `<tbody>` element to include `data-testid="users"`:
+        ```javascript
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody data-testid="users">
+                {renderedUsers}
+            </tbody>
+        </table>
+        ```
+
+2. Open the [UserForm.test.js](./2users/src/UserForm.test.js) file.
+    - We will modify the test we wrote in the previous lecture to use `querySelector`.
+    - Import `within` from `@testing-library/react` at the top:
+        ```javascript
+        import { render, screen, within } from "@testing-library/react";
+        ```
+    - Replace the `const rows = screen.getAllByRole('row');` line with:
+        ```javascript
+        const rows = within(screen.getByTestId('users')).getAllByRole('row');
+        ```
+    - This will select all the table rows in the table body.
+    - However, modifying the component to make it more testable is often not a good idea.
+
+Lecture 23. Another Query Function Fallback
+In this lecture, we explored another fallback approach for querying elements in React Testing Library by leveraging data-testid attributes and the within utility. This method is particularly useful when standard query functions do not work as expected.  Key Points:  
+Adding data-testid Attributes:  
+To make elements easier to query, we can add data-testid attributes to specific elements in the component.
+Example: Adding data-testid="users" to the <tbody> element in the UserList component.
+Using within Utility:  
+The within utility allows us to scope queries to a specific part of the DOM.
+This is helpful when querying elements within a specific container.
+Code Changes:  
+Updated the UserList component to include a data-testid attribute.
+Modified the test to use within for querying rows inside the table body.
