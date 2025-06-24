@@ -818,14 +818,203 @@ In this lecture, we will learn about query function escape hatches in React Test
     - This will select all the table rows in the table body.
     - However, modifying the component to make it more testable is often not a good idea.
 
-Lecture 23. Another Query Function Fallback
-In this lecture, we explored another fallback approach for querying elements in React Testing Library by leveraging data-testid attributes and the within utility. This method is particularly useful when standard query functions do not work as expected.  Key Points:  
-Adding data-testid Attributes:  
-To make elements easier to query, we can add data-testid attributes to specific elements in the component.
-Example: Adding data-testid="users" to the <tbody> element in the UserList component.
-Using within Utility:  
-The within utility allows us to scope queries to a specific part of the DOM.
-This is helpful when querying elements within a specific container.
-Code Changes:  
-Updated the UserList component to include a data-testid attribute.
-Modified the test to use within for querying rows inside the table body.
+### Lecture 23. Another Query Function Fallback
+
+In this lecture, we will learn about another query function fallback in React Testing Library.
+- Sometimes, the query functions provided by React Testing Library may not work as expected.
+- In such cases, you can use the `querySelector` method to find elements directly in the DOM.
+
+1. Create the [UserList.test.js](./2users/src/UserList.test.js) file in the `src` folder:
+   - Add the following code to the file:
+       ```js
+       import { render, screen, within } from '@testing-library/react';
+       import UserList from './UserList';
+       
+       test('render one row per user', () => {
+           // Render the component
+           const users = [
+               { name: 'jane', email: 'jane@jane.com' },
+               { name: 'sam', email: 'sam@sam.com' },
+           ];
+           render(<UserList users={users} />);
+       
+           // Query the table body using data-testid
+           const rows = within(screen.getByTestId('users')).getAllByRole('row');
+       
+           // Assert that there are two rows in the table body
+           expect(rows).toHaveLength(2);
+       });
+       ```
+
+2. Open the [UserList.js](./2users/src/UserList.js) file.
+   - Make sure the `<tbody>` element has the `data-testid="users"` attribute:
+       ```javascript
+       <tbody data-testid="users">
+           {renderedUsers}
+       </tbody>
+       ```
+     
+3. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+    - The test should pass, confirming that the `UserList` component correctly renders one row per user.
+
+**Explanation:**  
+The data-testid attribute in the <tbody> element allows us to target the table body directly.
+The within utility scopes the query to the table body, ensuring only rows within that container are selected.
+
+### Lecture 24. Testing Table Contents
+
+In this lecture, we will learn how to test the contents of a table in React Testing Library.
+Let's continue with the second test we started in the previous lecture to check if the `UserList` component displays the correct name and email for each user.
+
+1. Open the [UserList.test.js](./2users/src/UserList.test.js) and add the following code:
+    - Now we may not have of the top of our head the query function to find the table cells, so we will use the Testing Playground tool.
+        ```js
+        test('render the email and name of each user', () => {
+           const users = [
+              { name: 'jane', email: 'jane@jane.com' },
+              { name: 'sam', email: 'sam@sam.com' },
+           ];
+           render(<UserList users={users} />);
+        
+           screen.logTestingPlaygroundURL();
+        });
+        ```
+    - After running the test and going to the link, click on `Jane` in the table.
+    - ![Testing Playground Query](./images/README-02-images/img07-chrome-CNjtXs.png)
+    - We are going to use the `getByRole` function to find the table cells.
+    - Update the code to look like this now:
+        ```js
+        test('render the email and name of each user', () => {
+           const users = [
+              { name: 'jane', email: 'jane@jane.com' },
+              { name: 'sam', email: 'sam@sam.com' },
+           ];
+           render(<UserList users={users} />);
+        
+           for (let user of users) {
+              const name = screen.getByRole('cell', { name: user.name });
+              const email = screen.getByRole('cell', { name: user.email });
+        
+              expect(name).toBeInTheDocument();
+              expect(email).toBeInTheDocument();
+           }
+        });
+        ```
+      
+2. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+   - The test should pass, confirming that the `UserList` component correctly displays the name and email of each user.
+
+### Lecture 25. Avoiding Before Each
+
+Although our test is all done, you may notice that both of our setups are very similar.
+Since we have a bit of duplication we can fix it by cutting down on the duplication.
+
+1. Open the [UserList.test.js](./2users/src/UserList.test.js) and modify the code to the following:
+    - Cut out the block code that renders the component and the users array.
+    - Put it within a function at the top of the tests.
+        ```js
+        function renderComponent() {
+           const users = [
+              { name: 'jane', email: 'jane@jane.com' },
+              { name: 'sam', email: 'sam@sam.com' },
+           ];
+           render(<UserList users={users} />);
+        
+           return {
+              users
+           };
+        }
+        ```
+    - Now we can use this function in both tests to render the component and get the users.
+        ```js
+        test('render one row per user', () => {
+           // Render the component
+           renderComponent(); // <--- This line
+        
+           // Find all the rows in the table
+           const rows = within(screen.getByTestId('users')).getAllByRole('row');
+        
+           // Assertion: correct number of rows in the table
+           expect(rows).toHaveLength(2);
+        });
+        
+        test('render the email and name of each user', () => {
+           const { users } = renderComponent();  // <--- This line too
+        
+           for (let user of users) {
+              const name = screen.getByRole('cell', { name: user.name });
+              const email = screen.getByRole('cell', { name: user.email });
+        
+              expect(name).toBeInTheDocument();
+              expect(email).toBeInTheDocument();
+           }
+        });
+        ```
+    - Although another approach would be to use `beforeEach` to render the component before each test, we are avoiding it here to keep the tests independent and avoid any side effects.
+    - Try to go for the example provided instead of using `beforeEach` 
+
+2. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+   - The tests should pass, confirming that the `UserList` component correctly renders one row per user and displays the name and email of each user.
+
+### Lecture 26. Reminder on Async Await and act Warnings
+
+This a reminder about adding async with an await in front of `user.click` and `user.keyboard` events similar to the earlier lecture here.
+The affected code in the upcoming lecture for App.test.js should now look like this:
+```javascript
+test('can receive a new user and show it on a list', async () => {
+// Rest of the code
+ 
+  await user.click(nameInput);
+  await user.keyboard('jane');
+  await user.click(emailInput);
+  await user.keyboard('jane@jane.com');
+ 
+  await user.click(button);
+ 
+// Rest of the code
+});
+```
+After this, the [Touch of Test Driven Development](https://www.udemy.com/course/react-testing-library-and-jest/learn/lecture/35701652#notes) lecture will add a test to UserForm.test.js which will also need the same refactor to use async await.
+Please refer to the attached zip code for both of these lectures for the completed and updated test code if necessary.
+
+### Lecture 27. Testing the whole app
+
+In this lecture, we will write a test for the `App.js` component to ensure it correctly integrates the `UserForm` and `UserList` components.
+
+1. Open the [App.test.js](./2users/src/App.test.js) and add the following code.
+    - Modify the test to the following:
+    ```js
+    import { render, screen } from '@testing-library/react';
+    import user from '@testing-library/user-event';
+    import App from './App';
+    
+    test('can receive new user and show it on a list', async () => {
+      render(<App />);
+    
+      const nameInput = screen.getByRole('textbox', {
+        name: /name/i
+      });
+        const emailInput = screen.getByRole('textbox', {
+            name: /email/i
+        });
+    
+      await user.click(nameInput);
+      await user.keyboard('jane');
+      await user.click(emailInput);
+      await user.keyboard('jane@jane.com');
+    
+      await user.click(button);
+    
+      screen.debug();
+    });
+    ```
+
