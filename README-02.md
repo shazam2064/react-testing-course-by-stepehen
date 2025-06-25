@@ -1006,6 +1006,7 @@ In this lecture, we will write a test for the `App.js` component to ensure it co
         const emailInput = screen.getByRole('textbox', {
             name: /email/i
         });
+        const button = screen.getByRole('button', { name: /add user/i });
     
       await user.click(nameInput);
       await user.keyboard('jane');
@@ -1017,4 +1018,85 @@ In this lecture, we will write a test for the `App.js` component to ensure it co
       screen.debug();
     });
     ```
+
+2. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+   - The test should pass, and since we are debugging the output, you should see the rendered output of the `App` component in the console.
+
+3. Open back up the [App.test.js](./2users/src/App.test.js).
+    - We will now add assertions to check if the user is added to the list.
+    - These assertions are the ones we saw through the `debug` output.
+    - Replace the `screen.debug();` line with the following:
+        ```js
+        const name = screen.getByRole('cell', { name: 'jane' });
+        const email = screen.getByRole('cell', { name: 'jane@jane.com' });
+        
+        expect(name).toBeInTheDocument();
+        expect(email).toBeInTheDocument();
+        ```
+      
+4. Run the tests again in the terminal:
+    ```bash
+    npm run test
+    ```
+   - The test should pass, confirming that the `App` component correctly integrates the `UserForm` and `UserList` components and displays the added user.
+
+### Lecture 28. A Touch of Test Driven Development
+
+In this lecture, we will practice Test Driven Development (TDD) by writing a test for the `UserForm` component before implementing the functionality.
+
+1. Open the [UserForm.test.js](./2users/src/UserForm.test.js) and add the following changes.
+   - Add a new test to check if the form is emptied after submission:
+   - Here is the code to add:
+       ```js
+       test('empties the two inputs when form is submitted', async () => {
+          render(<UserForm onUserAdd={() => {}} />);
+       
+          const nameInput = screen.getByRole('textbox', { name: /name/i });
+          const emailInput = screen.getByRole('textbox', { name: /email/i });
+          const button = screen.getByRole('button');
+       
+          await user.click(nameInput);
+          await user.keyboard('jane');
+          await user.click(emailInput);
+          await user.keyboard('jane@jane.com');
+       
+          await user.click(button);
+       
+          expect(nameInput).toHaveValue('');
+          expect(emailInput).toHaveValue('');
+       });
+       ```
+     
+2. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+   - The test should fail, as we haven't implemented the functionality to clear the inputs after submission.
+   - We will implement that in the next lecture.
+
+### Lecture 29. Feature Implementation
+
+In this lecture, we will implement the feature to clear the inputs in the `UserForm` component after submission.
+
+1. Open the [UserForm.js](./2users/src/UserForm.js) file.
+   - We will add the functionality to clear the inputs after the form is submitted.
+   - Modify the `handleSubmit` function to reset the `name` and `email` state variables:
+       ```js
+       const handleSubmit = (e) => {
+           e.preventDefault();
+           onUserAdd({ name, email });
+           setName(''); // <--- Add these lines
+           setEmail('');
+       };
+       ```
+     
+2. Run the tests in the terminal:
+    ```bash
+    npm run test
+    ```
+   - The test we wrote in the previous lecture should now pass, confirming that the inputs are cleared after submission.
+   - This now saves us time by not having to test it inside the browser too
 
