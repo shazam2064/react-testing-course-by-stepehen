@@ -38,17 +38,20 @@ test('it calls onUserAdd when the form is submitted', async () => {
     expect(mock).toHaveBeenCalledWith({name: 'jane', email: 'jane@doe.com'});
 });
 
-test('render one row per user', async () => {
-   // Render the component
-   const users = [
-       {name: 'jane', email: 'jane@jane.com'},
-       {name: 'sam', email: 'sam@sam.com'}
-   ];
-    render(<UserList users={users}/>);
+test('empties the two inputs when form is submitted', async () => {
+  render(<UserForm onUserAdd={() => {}} />);
 
-    // Find the table rows
-    const rows = within(screen.getByTestId('users')).getAllByRole('row');
+  const nameInput = screen.getByRole('textbox', { name: /name/i });
+  const emailInput = screen.getByRole('textbox', { name: /email/i });
+  const button = screen.getByRole('button');
 
-    // Assert that there are two rows in the table body
-    expect(rows).toHaveLength(2);
+  await user.click(nameInput);
+  await user.keyboard('jane');
+  await user.click(emailInput);
+  await user.keyboard('jane@jane.com');
+
+  await user.click(button);
+
+  expect(nameInput).toHaveValue('');
+  expect(emailInput).toHaveValue('');
 });
