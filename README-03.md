@@ -39,3 +39,85 @@ In this lecture, we will see how to run this playbook tool.
    - You can now use the app to explore the different query functions and matchers available in React Testing Library.
    - You can also edit it here and save your changes to the `roles-notes.js` file.
    - ![RTL Book](./images/README-03-images/img01-chrome-OnxTXd.png)
+
+## Overview: Selecting Elements in React Testing Library
+
+React Testing Library (RTL) provides robust tools for selecting elements in a way that prioritizes accessibility and flexibility. This overview highlights the key concepts and best practices for selecting elements using roles and accessible names.
+
+---
+
+### Selecting Elements by Role
+
+- **Preferred Method**: Using ARIA roles is the recommended way to select elements in RTL, as it aligns with accessibility standards.
+- **Implicit Roles**: Many HTML elements are automatically assigned roles (e.g., `<button>` → `button`, `<h1>` → `heading`).
+- **Flexibility**: Role-based selection allows for changes in component structure (e.g., switching from `<h1>` to `<h3>`) without breaking tests.
+
+**Example**:
+```javascript
+test('can find elements by role', () => {
+  render(<RoleExample />);
+  const roles = ['link', 'button', 'contentinfo', 'heading', 'banner', 'img', 'checkbox', 'spinbutton', 'radio', 'textbox', 'listitem', 'list'];
+  for (let role of roles) {
+    expect(screen.getByRole(role)).toBeInTheDocument();
+  }
+});
+```
+
+---
+
+### Selecting Elements by Accessible Name
+
+- **Accessible Names**: Derived from text content, `aria-label`, or associated `label` elements.
+- **Use Case**: When multiple elements of the same role exist, accessible names help target specific elements.
+
+**Example**:
+```javascript
+test('can select by accessible name', () => {
+  render(<AccessibleName />);
+  expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+});
+```
+
+---
+
+### Accessible Names for Inputs
+
+- **Void Elements**: Elements like `<input>` or `<img>` require special handling for accessible names.
+- **Labels**: Use `label` elements with `htmlFor` to associate inputs with accessible names.
+
+**Example**:
+```javascript
+test('shows an email and search input', () => {
+  render(<MoreNames />);
+  expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: /search/i })).toBeInTheDocument();
+});
+```
+
+---
+
+### Using `aria-label` for Custom Elements
+
+- **Custom Elements**: For elements like buttons with icons, use `aria-label` to define accessible names.
+- **Best Practice**: Ensures elements without visible text are still accessible.
+
+**Example**:
+```javascript
+test('find elements based on label', () => {
+  render(<IconButtons />);
+  expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+});
+```
+
+---
+
+### Summary
+
+- **Role-Based Selection**: Use `getByRole` for accessible and flexible tests.
+- **Accessible Names**: Leverage text content, `aria-label`, or `label` elements for precise selection.
+- **Best Practices**:
+   - Prefer roles over CSS selectors.
+   - Use accessible names for clarity and accessibility.
+   - Ensure tests align with user interactions and accessibility standards.
