@@ -26,7 +26,7 @@ So this RTL Book will help you to explore them all.
 | **Suffix**          | **Search Criteria**                                                    |
 |---------------------|-----------------------------------------------------------------------|
 | `ByRole`            | Finds elements based on their implicit or explicit ARIA role.        |
-| `ByLabelText`       | Finds form elements based on the text of their associated labels.     |
+| `ByLabelText`       | Finds form elements based on the text of their associated labels.     |e
 | `ByPlaceholderText` | Finds form elements based on their placeholder text.                 |
 | `ByText`            | Finds elements based on the text they contain.                       |
 | `ByDisplayValue`    | Finds elements based on their current value.                         |
