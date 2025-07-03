@@ -91,3 +91,75 @@ If you don't know anything about React Router or SWR, that's okay because MOST o
 - We are going to receive bug reports that sometimes provide... less information than we'd hope for.
 - Figure out how to find the relevant code + fix it.
 - Figure out how to write code to confirm the bug is fixed.
+
+### Lecture 56: A Process for Debugging
+
+#### **List of repositories should show the repositories main language**
+
+- **Steps to reproduce**: 
+  1. Enter a search term.
+  2. Press Enter
+  
+- **Expected Result**: 
+  1. Show search results.
+  2. Each repository shows # of stars, # issues, # of forks, and primary language used in the repo
+- **Actual Result**: 
+  1. Search results are visible.
+  2. Primary language of each repository is missing
+
+#### **The Bug Fixing Process**
+1. Find the relevant components in the codebase
+   - Use **React Developer Tools**
+   - Search the codebase for text/icons/classnames that the component is producing.
+   - If an error is being thrown, look at the stack trace.
+   - Ask another engineer.
+2. Figure out how the component is getting its data/state/props
+3. Use a debugger, console.log, or other debugging tools to inspect the data
+4. Implement a fix
+5. Test the fix
+
+### Lecture 57: Understanding Data Flowing into the Component
+
+This lecture focuses on understanding how data flows into the components of the `codesplain` project, particularly to identify and fix the bug where the primary language of repositories is missing in the search results.
+
+---
+
+#### **Steps to Explore the Codebase**
+1. **Identify the Relevant Component**:
+   - Use the React Developer Tools to inspect the component rendering the repository list.
+   - Look for the component responsible for displaying repository details (e.g., stars, issues, forks).
+
+2. **Trace the Data Flow**:
+   - Check how the repository data is fetched from the GitHub API.
+   - Look for the API call in the codebase (likely using Axios or SWR).
+   - Verify if the API response includes the `language` field for each repository.
+
+3. **Inspect Props and State**:
+   - Examine how the fetched data is passed as props or stored in the component's state.
+   - Ensure the `language` field is being passed correctly to the repository list component.
+
+4. **Debugging the Missing Data**:
+   - Use `console.log` or a debugger to inspect the API response and the props/state of the component.
+   - Confirm if the `language` field is missing in the API response or is not being passed to the component.
+
+---
+
+#### **Key Areas to Check**
+1. **API Call**:
+   - Verify the GitHub API endpoint being used (e.g., `https://api.github.com/search/repositories?q={query}`).
+   - Ensure the API response includes the `language` field for each repository.
+
+2. **Data Transformation**:
+   - Check if the data is being transformed or filtered before being passed to the component.
+   - Ensure the `language` field is not accidentally omitted during this process.
+
+3. **Component Rendering**:
+   - Inspect the repository list component to ensure it is rendering the `language` field correctly.
+   - Look for the JSX code responsible for displaying repository details.
+
+---
+
+#### **Next Steps**
+- Once the data flow is understood, implement a fix to ensure the `language` field is fetched, passed, and displayed correctly.
+- Write a test to confirm the fix and prevent regressions.
+
