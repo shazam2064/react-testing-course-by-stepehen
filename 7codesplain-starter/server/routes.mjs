@@ -159,7 +159,7 @@ const requireUser = (req, res, next) => {
   next();
 };
 
-routes.post('/api/explain', async (req, res) => {
+routes.post('/api/explain', requireUser, async (req, res) => {
   try {
     const { data } = await axios.post(
       process.env.UPSTREAM_API + '/api/explain',
