@@ -163,3 +163,138 @@ This lecture focuses on understanding how data flows into the components of the 
 - Once the data flow is understood, implement a fix to ensure the `language` field is fetched, passed, and displayed correctly.
 - Write a test to confirm the fix and prevent regressions.
 
+### Lecture 58. Developing a Test and a Fix
+
+This lecture focuses on identifying the bug in the `codesplain` project and implementing a test and fix for the missing primary language in the repository list.
+
+1. Open the [routes.mjs](./7codesplain-starter/server/routes.mjs)
+   - Update it to include new routes for fetching repository data.
+   - Ensure the API endpoint provides the `language` field in the response.
+   - Changing this line:
+       ```js
+       routes.post('/api/explain', async (req, res) => {
+       ```
+   - To this one
+       ```js
+       routes.post('/api/explain', requireUser, async (req, res) => {
+       ```
+
+2. Open the [RepositoriesSummary.js](./7codesplain-starter/src/components/repositories/RepositoriesSummary.js):
+   - Modify it to display the primary language of each repository.
+   - Added JSX to render the `language` field.
+       ```js
+       import { StarIcon } from '@primer/octicons-react';
+       
+       function RepositoriesSummary({ repository }) {
+         const { stargazers_count, open_issues, forks, language } = repository;
+       
+         return (
+           <div className="flex flex-row gap-4 text-gray-700">
+             <div>
+               <StarIcon aria-label="stars" size={16} /> {stargazers_count}
+             </div>
+             <div>{open_issues} issues need help</div>
+             <div>{forks} Forks</div>
+             <div>{language}</div>
+           </div>
+         );
+       }
+       
+       export default RepositoriesSummary;
+       ```
+
+3. Create the [RepositoriesSummary.test.js](./7codesplain-starter/src/components/repositories/RepositoriesSummary.js) within the repositories directory:
+   - New test added to verify the primary language is displayed correctly.
+   - Mock data includes the `language` field.
+   - The test will:
+       - Mock the API response to include the `language` field.
+       - Write assertions to check if the primary language is displayed.
+   - Add the following code to the `RepositoriesSummary.test.js` file: 
+       ```js
+       import { screen, render } from '@testing-library/react';
+       import RepositoriesSummary from './RepositoriesSummary';
+       
+       test('displays the primary language of the repository', () => {
+         const repository = {
+           language: 'Javascript',
+           stargazers_count: 5,
+           forks: 30,
+           open_issues: 1,
+         };
+         render(<RepositoriesSummary repository={repository} />);
+       
+         const language = screen.getByText('Javascript');
+       
+         expect(language).toBeInTheDocument();
+       });
+       ```
+
+### Lecture 59. Looping Over Assertions
+
+This lecture introduces looping over assertions to improve test readability and efficiency.
+
+1. Open the [RepositoriesSummary.test.js](./7codesplain-starter/src/components/repositories/RepositoriesSummary.js) within the repositories directory:
+   - New test added to verify the primary language is displayed correctly.
+   - Mock data includes the `language` field.
+   - The test will:
+      - Mock the API response to include the `language` field.
+      - Write assertions to check if the primary language is displayed.
+   - Add the following code to the `RepositoriesSummary.test.js` file:
+       ```js
+       import { screen, render } from '@testing-library/react';
+       import RepositoriesSummary from './RepositoriesSummary';
+    
+       test('displays the primary language of the repository', () => {
+         const repository = {
+           language: 'Javascript',
+           stargazers_count: 5,
+           forks: 30,
+           open_issues: 1,
+         };
+         render(<RepositoriesSummary repository={repository} />);
+    
+         const language = screen.getByText('Javascript');
+    
+         expect(language).toBeInTheDocument();
+       });
+       ```
+
+### Lecture 60. Flexible Queries Over Changes in the Commit Log
+
+#### **Overview**
+This lecture focuses on using flexible queries to make tests adaptable to UI changes.
+
+#### **Modified Files**
+1. **`RepositoriesSummary.test.js`**:
+   - Updated tests to use regex patterns for text matching.
+
+2. **`setupTests.js`**:
+   - Configured testing utilities for flexible queries.
+
+#### **Steps to Implement**
+1. Use regex patterns for case-insensitive matching.
+2. Leverage `screen.queryByText` for optional elements.
+
+#### **Code Example**
+```javascript
+mockRepositories.forEach((repo) => {
+  expect(screen.getByText(new RegExp(repo.name, 'i'))).toBeInTheDocument();
+  expect(screen.getByText(new RegExp(repo.language, 'i'))).toBeInTheDocument();
+});
+```
+
+---
+
+### Additional Notes on Modified Files
+
+1. **`EditorPanel.js`**:
+   - Updated to handle new repository data fields.
+   - Ensure the `language` field is passed correctly to child components.
+
+2. **`FileIcon.js`**:
+   - Added support for displaying icons based on file types.
+
+3. **`HomeRoute.js`**:
+   - Updated to include logic for fetching and displaying repository summaries.
+
+These changes ensure the bug is fixed and tests are robust against future UI updates.
