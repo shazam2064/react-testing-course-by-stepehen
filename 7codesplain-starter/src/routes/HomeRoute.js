@@ -13,6 +13,7 @@ function HomeRoute() {
       <Hero />
       <div className="container mx-auto py-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         <RepositoriesTable
+          id="js"
           label="Most Popular Javascript"
           repositories={jsRepos}
         />
