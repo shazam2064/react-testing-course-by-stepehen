@@ -13,7 +13,17 @@ function FileIcon({ name, className }) {
       .catch(() => null);
   }, [name]);
 
-  return <i role="img" className={classNames(className, klass)}></i>;
+  if (!klass) {
+    return null;
+  }
+
+  return (
+    <i
+      role="img"
+      aria-label={name}
+      className={classNames(className, klass)}
+    ></i>
+  );
 }
 
 export default FileIcon;
