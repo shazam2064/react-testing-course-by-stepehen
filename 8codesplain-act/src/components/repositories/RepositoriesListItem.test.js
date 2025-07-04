@@ -18,6 +18,8 @@ function renderComponent() {
   );
 }
 
-test('shows a link to the github homepage for this repository', () => {
+test('shows a link to the github homepage for this repository', async () => {
   renderComponent();
+
+  await screen.findByRole('img', { name: 'Javascript' });
 });
