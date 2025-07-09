@@ -331,3 +331,122 @@ From best to work her are the options to solve the `act` warning:
 
 ### Lecture 68. Module Mocks
 
+#### **Overview**
+This lecture introduces module mocks as a strategy to address the `act` warning caused by asynchronous state updates in the `FileIcon` component. By mocking the module responsible for fetching data, we can bypass the problematic behavior during tests.
+
+#### **Steps to Implement Module Mocks**
+1. **Mock the `@exuanbo/file-icons-js` Module**:
+   - Replace the actual implementation with a mock that resolves immediately.
+   - This avoids triggering asynchronous state updates during tests.
+
+2. **Update the Test Setup**:
+   - Use `jest.mock` to mock the module in the test file.
+
+#### **Code Example**
+**Mocking the Module in `RepositoriesListItem.test.js`**:
+```javascript
+jest.mock('@exuanbo/file-icons-js', () => ({
+  getClass: jest.fn(() => Promise.resolve('mock-icon-class')),
+}));
+```
+
+---
+
+### Lecture 69. Absolute Last-Ditch `act` Solution
+
+#### **Overview**
+If module mocks fail to resolve the `act` warning, the last resort is to manually wrap the asynchronous state updates in the `act` function.
+
+#### **Steps to Implement**
+1. **Wrap Updates in `act`**:
+   - Use `act` to control when the asynchronous updates are resolved.
+
+#### **Code Example**
+**Manually Wrapping Updates**:
+```javascript
+import { act } from 'react-dom/test-utils';
+
+test('handles asynchronous updates', async () => {
+  await act(async () => {
+    renderComponent();
+  });
+
+  const icon = await screen.findByRole('img', { name: 'Javascript' });
+  expect(icon).toHaveClass('mock-icon-class');
+});
+```
+
+---
+
+### Lecture 70. Checking the Link `href`
+
+#### **Overview**
+This lecture focuses on verifying the `href` attribute of the GitHub link rendered by the `RepositoriesListItem` component.
+
+#### **Steps to Implement**
+1. **Write Assertions for `href`**:
+   - Ensure the link points to the correct GitHub URL.
+
+#### **Code Example**
+**Testing the Link `href`**:
+```javascript
+test('checks the GitHub link href', async () => {
+  const { repository } = renderComponent();
+
+  const link = await screen.findByRole('link', { name: /github repository/i });
+  expect(link).toHaveAttribute('href', repository.html_url);
+});
+```
+
+---
+
+### Lecture 71. Implementing the Feature
+
+#### **Overview**
+This lecture covers the implementation of the feature to display the GitHub link and file icon in the `RepositoriesListItem` component.
+
+#### **Steps to Implement**
+1. **Update `RepositoriesListItem.js`**:
+   - Add logic to render the GitHub link and file icon.
+
+#### **Code Example**
+**Updated `RepositoriesListItem.js`**:
+```javascript
+<a
+  href={html_url}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-blue-500 hover:underline"
+>
+  View on GitHub
+</a>
+```
+
+---
+
+### Lecture 72. Checking the Icon and Link
+
+#### **Overview**
+This lecture focuses on verifying both the file icon and the GitHub link rendered by the `RepositoriesListItem` component.
+
+#### **Steps to Implement**
+1. **Test the File Icon**:
+   - Ensure the correct icon is displayed based on the repository language.
+
+2. **Test the GitHub Link**:
+   - Verify the link is rendered and points to the correct URL.
+
+#### **Code Example**
+**Testing the Icon and Link**:
+```javascript
+test('checks the file icon and GitHub link', async () => {
+  const { repository } = renderComponent();
+
+  const icon = await screen.findByRole('img', { name: repository.language });
+  expect(icon).toHaveClass('mock-icon-class');
+
+  const link = await screen.findByRole('link', { name: /github repository/i });
+  expect(link).toHaveAttribute('href', repository.html_url);
+});
+```
+
