@@ -190,7 +190,7 @@ This lecture focuses on verifying the state of the `HomeRoute` component after r
 
 #### **Steps to Inspect the Component State**
 
-1. **Setup the Test Environment**:
+1. **Set up the Test Environment**:
    - Ensure the `HomeRoute.test.js` file has the MSW server configured to intercept API requests and return mock data.
    - The mock server should simulate the `/api/repositories` endpoint, returning a list of repositories.
 
@@ -238,6 +238,320 @@ test('renders two links for each repository', async () => {
 - This approach verifies that the component correctly processes and displays the fetched data.
 
 
+### Lecture 79. Effective Request Testing
+
+This lecture focuses on testing the `HomeRoute` component to ensure it correctly handles data fetching and renders the expected output for multiple programming languages. The test verifies that the component dynamically displays links for repositories based on the mocked API response.
+
+#### **Key Changes in `HomeRoute.test.js`**
+
+1. **Testing Multiple Languages**:
+   - A list of programming languages (`javascript`, `typescript`, `rust`, `go`, `python`, `java`) is iterated over.
+   - For each language, the test ensures that two links are rendered, corresponding to the repositories returned by the mocked API.
+
+2. **Assertions for Each Language**:
+   - The test uses `findAllByRole` to locate links in the DOM.
+   - It verifies:
+      - The number of links rendered (`expect(links).toHaveLength(2)`).
+      - The text content of the links matches the expected repository names (e.g., `javascript_one`, `javascript_two`).
+      - The `href` attributes of the links point to the correct repository paths.
+
+3. **Pause Function**:
+   - A utility function (`pause`) is defined to introduce a delay, if needed, for debugging or simulating asynchronous behavior.
+
+---
+
+1. Open the [HomeRoute.test.js](./9codesplain-fetching/src/routes/HomeRoute.test.js) file in the `src/routes` directory.
+
+```javascript
+test('renders two links for each language', async () => {
+  const languages = [
+    'javascript',
+    'typescript',
+    'rust',
+    'go',
+    'python',
+    'java',
+  ];
+
+  for (let language of languages) {
+    const links = await screen.findAllByRole('link', {
+      name: new RegExp(`${language}_`),
+    });
+
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveTextContent(`${language}_one`);
+    expect(links[1]).toHaveTextContent(`${language}_two`);
+    expect(links[0]).toHaveAttribute('href', `/repositories/${language}_one`);
+    expect(links[1]).toHaveAttribute('href', `/repositories/${language}_two`);
+  }
+});
+
+const pause = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 100);
+  });
+```
+
+---
+
+#### **Key Points**
+- The test ensures that the `HomeRoute` component dynamically renders repository links for each language.
+- The use of `findAllByRole` and regular expressions allows for flexible and precise matching of elements.
+- The `pause` function is optional and can be used for debugging or simulating delays.
 
 
+
+### Lecture 80. An Issue with Fake Handlers
+
+This lecture discusses a common issue with using fake handlers in tests, particularly when testing components like `HomeRoute` that rely on dynamic API responses. The problem arises when the fake handlers do not fully mimic the behavior of the real API, leading to inconsistencies or missed edge cases in tests.
+
+#### **Key Points**
+
+1. **The Problem with Fake Handlers**:
+   - Fake handlers, such as those used with Mock Service Worker (MSW), simulate API responses.
+   - If the handlers are not carefully designed, they may fail to replicate the real API's behavior, causing tests to pass incorrectly or miss critical scenarios.
+
+2. **Dynamic Behavior in `HomeRoute.test.js`**:
+   - In `HomeRoute.test.js`, the handler dynamically generates repository data based on the `language` query parameter.
+   - If the handler logic is too simplistic or does not account for edge cases, it can lead to inaccurate test results.
+
+   **Example Issue**:
+   - The handler assumes the `language` query parameter is always present and valid.
+   - If the component sends an unexpected query or no query at all, the handler may not respond correctly, leading to false positives or test failures.
+
+3. **Improving Fake Handlers**:
+   - Ensure the handler logic closely mirrors the real API's behavior, including handling invalid or missing query parameters.
+   - Add error responses to test how the component handles failures.
+
+4. **Testing Edge Cases in `HomeRoute.test.js`**:
+   - Modify the handler to simulate scenarios like missing query parameters or invalid values.
+   - Add tests to verify the component's behavior in these cases.
+
+---
+
+The handler is updated to handle missing or invalid `language` query parameters:
+
+```javascript
+const handlers = [
+  rest.get('/api/repositories', (req, res, ctx) => {
+    const query = req.url.searchParams.get('q');
+    const language = query?.split('language:')[1];
+
+    if (!language) {
+      return res(
+        ctx.status(400),
+        ctx.json({ error: 'Language query parameter is required' })
+      );
+    }
+
+    return res(
+      ctx.json({
+        items: [
+          { id: 1, full_name: `${language}_one` },
+          { id: 2, full_name: `${language}_two` },
+        ],
+      })
+    );
+  }),
+];
+```
+
+---
+
+#### **New Test Cases in `HomeRoute.test.js`**
+
+Add tests to verify the component's behavior for missing or invalid query parameters:
+
+```javascript
+test('shows an error message when the language query is missing', async () => {
+  render(
+    <MemoryRouter>
+      <HomeRoute />
+    </MemoryRouter>
+  );
+
+  const errorMessage = await screen.findByText(/language query parameter is required/i);
+  expect(errorMessage).toBeInTheDocument();
+});
+```
+
+---
+
+#### **Key Takeaways**
+- Fake handlers must closely mimic the real API's behavior to ensure accurate and reliable tests.
+- Testing edge cases, such as missing or invalid query parameters, helps identify potential issues in the component's logic.
+- Updating the handler and adding new test cases improves the robustness of the `HomeRoute` component's tests.
+
+
+### Lecture 81. Easier Fake Routes - Here's the Goal
+
+#### **Overview**
+This lecture introduces a simplified approach to creating and managing fake routes for testing. The goal is to make the test setup more maintainable and reusable by centralizing the logic for handling API requests. This approach is particularly useful for components like `HomeRoute` that rely on dynamic API responses.
+
+---
+
+#### **Key Concepts**
+
+1. **Centralized Handlers**:
+   - Instead of defining handlers inline or duplicating logic across tests, create a centralized list of handlers.
+   - This makes it easier to update or extend the fake API behavior.
+
+2. **Dynamic Response Generation**:
+   - The handler dynamically generates responses based on query parameters, such as the `language` parameter in this example.
+   - This ensures the fake API behaves similarly to the real API.
+
+3. **Reusability**:
+   - The centralized handlers can be reused across multiple test files, reducing redundancy and improving consistency.
+
+---
+
+1. Open the [HomeRoute.test.js](./9codesplain-fetching/src/routes/HomeRoute.test.js) file in the `src/routes` directory.
+
+```javascript
+const handlers = [
+  rest.get('/api/repositories', (req, res, ctx) => {
+    const language = req.url.searchParams.get('q')?.split('language:')[1];
+
+    if (!language) {
+      return res(
+        ctx.status(400),
+        ctx.json({ error: 'Language query parameter is required' })
+      );
+    }
+
+    return res(
+      ctx.json({
+        items: [
+          { id: 1, full_name: `${language}_one` },
+          { id: 2, full_name: `${language}_two` },
+        ],
+      })
+    );
+  }),
+];
+```
+
+---
+
+#### **How It Works**
+
+1. **Intercepting Requests**:
+   - The `rest.get` method intercepts GET requests to `/api/repositories`.
+
+2. **Handling Query Parameters**:
+   - The handler extracts the `language` query parameter from the request URL.
+   - If the parameter is missing, it returns a `400 Bad Request` response with an error message.
+
+3. **Returning Mock Data**:
+   - If the `language` parameter is valid, the handler returns a JSON response with two mock repository items.
+
+---
+
+#### **Advantages**
+
+- **Simplified Test Setup**:
+   - By centralizing the handler logic, tests can focus on verifying component behavior without duplicating API logic.
+
+- **Improved Maintainability**:
+   - Changes to the fake API behavior only need to be made in one place.
+
+- **Realistic Testing**:
+   - The handler mimics the real API's behavior, including handling errors and dynamic responses.
+
+---
+
+#### **Key Takeaways**
+
+- Centralized fake routes make tests easier to manage and maintain.
+- Dynamic response generation ensures the fake API behaves realistically.
+- This approach improves test reliability and reduces duplication.
+
+### Lecture 82. Centralized Server Setup for Testing
+
+This lecture focuses on creating a centralized and reusable server setup for testing API interactions. By abstracting the server configuration into a separate file (`server.js`), we simplify the test setup and improve maintainability across the project.
+
+1. Create the [server.js](./9codesplain-fetching/src/test/server.js) file in the `test` directory.
+   - This file will contain the logic for setting up the Mock Service Worker (MSW) server with predefined handlers.
+       ```javascript
+       import { setupServer } from 'msw/node';
+       import { rest } from 'msw';
+       
+       export function createServer(handlerConfig) {
+         const handlers = handlerConfig.map((config) => {
+           return rest[config.method || 'get'](config.path, (req, res, ctx) => {
+             return res(ctx.json(config.res(req, res, ctx)));
+           });
+         });
+         const server = setupServer(...handlers);
+       
+         beforeAll(() => {
+           server.listen();
+         });
+         afterEach(() => {
+           server.resetHandlers();
+         });
+         afterAll(() => {
+           server.close();
+         });
+       }
+       ```
+
+     2. Open teh [HomeRoute.test.js](./9codesplain-fetching/src/routes/HomeRoute.test.js) file in the `src/routes` directory.
+         - Replace the existing server setup with the new centralized server configuration:
+        ```javascript
+        import { render, screen } from '@testing-library/react';
+         import { MemoryRouter } from 'react-router-dom';
+         import HomeRoute from './HomeRoute';
+         import { createServer } from '../test/server';
+      
+         createServer([
+             {
+               path: '/api/repositories',
+               res: (req) => {
+                 const language = req.url.searchParams.get('q').split('language:')[1];
+                 return {
+                   items: [
+                     { id: 1, full_name: `${language}_one` },
+                     { id: 2, full_name: `${language}_two` },
+                   ],
+                 };
+               },
+             },
+         ]);
+      
+         test('renders two links for each language', async () => {
+             render(
+               <MemoryRouter>
+                 <HomeRoute />
+               </MemoryRouter>
+             );
+      
+             const languages = ['javascript', 'typescript', 'rust', 'go', 'python', 'java'];
+             for (let language of languages) {
+               const links = await screen.findAllByRole('link', {
+                 name: new RegExp(`${language}_`),
+               });
+      
+               expect(links).toHaveLength(2);
+               expect(links[0]).toHaveTextContent(`${language}_one`);
+               expect(links[1]).toHaveTextContent(`${language}_two`);
+               expect(links[0]).toHaveAttribute('href', `/repositories/${language}_one`);
+               expect(links[1]).toHaveAttribute('href', `/repositories/${language}_two`);
+             }
+         });
+         ```
+
+#### **Advantages**
+
+- **Reusability**:
+   - The `createServer` function can be reused across multiple test files, reducing duplication.
+
+- **Simplified Test Files**:
+   - Test files focus on component behavior rather than server setup.
+
+- **Flexibility**:
+   - Supports dynamic response generation and multiple HTTP methods.
+
+- **Consistency**:
+   - Centralized server logic ensures consistent behavior across tests.
 
