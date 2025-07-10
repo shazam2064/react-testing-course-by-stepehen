@@ -30,3 +30,15 @@ afterEach(() => {
 afterAll(() => {
   server.close();
 });
+
+test('renders two links for each language', async () => {
+  render(
+    <MemoryRouter>
+      <HomeRoute />
+    </MemoryRouter>
+  );
+
+  // Loop over each language
+  // For each language, make sure we see two links
+  // Assert that the links have the appropriate full_name
+});
