@@ -1,0 +1,65 @@
+### Auth Sign up
+PUT http://localhost:3032/auth/signup
+Content-Type: application/json
+
+{
+  "email": "admin1@test.com",
+  "name": "User Test 1",
+  "password": "123456"
+}
+
+
+### Auth Login 1
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin1@test.com",
+    "password": "123456"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Login 2
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin2@test.com",
+  "password": "admin"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Login 3
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin3@test.com",
+  "password": "123456"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Get Status
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3032/auth/status
+Authorization: Bearer {{authToken}}
+
+
+### Auth Update Status
+// -----------------------------------------------------------------------------------------------
+PATCH http://localhost:3032/auth/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "Updated status"
+}

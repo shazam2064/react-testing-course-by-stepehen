@@ -1,0 +1,39 @@
+@email = admin1@test.com
+@password = 123456
+@orderId = 66fd1213b17803caaa65b408
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+
+
+### Get all user's orders
+GET http://localhost:3032/orders
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+
+### Get a user's order by ID
+GET http://localhost:3032/orders/{{orderId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+### Create an order
+POST http://localhost:3032/orders
+Authorization: Bearer {{authToken}}
+
+### Delete an order
+DELETE http://localhost:3032/orders/{{orderId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json

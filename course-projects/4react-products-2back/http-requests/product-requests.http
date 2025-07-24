@@ -1,0 +1,140 @@
+@email = admin1@test.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+
+### GET list of products
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3032/products?numItems=10&page=1
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.products && response.body.products.length > 0) {
+        client.global.set("product-id1", response.body.products[0]._id)
+        console.log("product-id1:", client.global.get("product1"));
+    } else {
+        console.log("No products found");
+    }
+%}
+
+
+### GET a product by id - with valid id
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3032/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
+
+
+### GET a product by id - no valid id
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3032/products/12345
+Authorization: Bearer {{authToken}}
+
+
+### Create a product with image
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/products HTTP/1.1
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="book-1296045.png"
+Content-Type: image/png
+
+< ../images/book-1296045.png
+--WebAppBoundary--
+Content-Disposition: form-data; name="name"
+
+New product with image - {{$isoTimestamp}}
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+9.99
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+This is the description of the new product
+--WebAppBoundary
+
+> {%
+    client.global.set("product-id1", response.body.product._id)
+    console.log("product-id1:", client.global.get("product1"));
+%}
+
+
+### Update a product with no image file
+// -----------------------------------------------------------------------------------------------
+PUT http://localhost:3032/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated product - no image update - {{$isoTimestamp}}",
+  "price": 19.99,
+  "description": "This is the updated description of the product"
+}
+
+
+### Update a product with image file
+// -----------------------------------------------------------------------------------------------
+PUT http://localhost:3032/products/{{product-id1}} HTTP/1.1
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="book-1296045.png"
+Content-Type: image/png
+
+< ../images/book-1296045.png
+--WebAppBoundary--
+Content-Disposition: form-data; name="name"
+
+Book from Backend 1
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+19.99
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+This is book was retrieved from backend. {{$isoTimestamp}}
+--WebAppBoundary
+
+
+### Update a product with missing fields
+// -----------------------------------------------------------------------------------------------
+PUT http://localhost:3032/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "New product - updated - {{$isoTimestamp}}",
+  "price": 19.99
+}
+
+### Delete a product with valid product-id
+// -----------------------------------------------------------------------------------------------
+DELETE http://localhost:3032/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
+
+### Delete a product with no valid product-id
+// -----------------------------------------------------------------------------------------------
+DELETE http://localhost:3032/products/12345
+Authorization: Bearer {{authToken}}
+
+### Delete a product with wrong product-id
+// -----------------------------------------------------------------------------------------------
+DELETE http://localhost:3032/products/66ca7b63354ae4e587bb1ac6
+Authorization: Bearer {{authToken}}

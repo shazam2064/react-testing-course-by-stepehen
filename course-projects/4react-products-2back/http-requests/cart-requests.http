@@ -1,0 +1,57 @@
+@email = admin1@test.com
+@password = 123456
+@product-id1 = 66fa70239900356e7c365941
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+
+### Get the user's cart
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3032/cart
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.cart && response.body.cart.products.length > 0) {
+        client.global.set("cart-product-id1", response.body.cart.products[0].productItem._id)
+        console.log("cart-product-id1:", client.global.get("cart-product-id1"));
+    } else {
+        console.log("No products in cart");
+    }
+%}
+
+### Add a product to the cart
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/cart
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "productId": "{{product-id1}}",
+  "quantity": 1
+}
+
+> {%
+    console.log("Product added to cart");
+%}
+
+### Delete a product from the cart
+// -----------------------------------------------------------------------------------------------
+DELETE http://localhost:3032/cart/66fc6da9f6474cae89702a85
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+> {%
+    console.log("Product removed from cart");
+%}
