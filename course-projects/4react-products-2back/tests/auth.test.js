@@ -25,12 +25,16 @@ describe('Auth Controller', () => {
         it('should create a new user and return 201 status', async () => {
             validationResult.mockReturnValue({ isEmpty: () => true });
             bcrypt.hash.mockResolvedValue('hashedPassword');
+
             const mockSave = jest.fn().mockResolvedValue({ _id: 'mockUserId' });
             User.prototype.save = mockSave;
 
             req.body = { email: 'admin1@test.com', password: '123456', name: 'User Test 1' };
 
             await signup(req, res, next);
+
+            console.log('res.status calls:', res.status.mock.calls);
+            console.log('res.json calls:', res.json.mock.calls);
 
             expect(validationResult).toHaveBeenCalledWith(req);
             expect(bcrypt.hash).toHaveBeenCalledWith('123456', 12);
