@@ -46,3 +46,5 @@ mongoConnect(() => {
         console.log(`The server is listening on port ${PORT}`);
     });
 });
+
+module.exports = app;
