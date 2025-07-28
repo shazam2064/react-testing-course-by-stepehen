@@ -10,10 +10,9 @@ describe('User Controller', () => {
     let authToken;
 
     beforeAll(async () => {
-        // Mock user authentication and get a token
         const response = await request(app)
             .post('/auth/login')
-            .send({ email: 'user@test.com', password: '123456' });
+            .send({ email: 'admin1@test.com', password: '123456' });
         authToken = response.body.token;
     });
 
