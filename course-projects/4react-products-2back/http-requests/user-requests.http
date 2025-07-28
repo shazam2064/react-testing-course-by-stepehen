@@ -1,4 +1,4 @@
-@email = user@test.com
+@email = admin1@test.com
 @password = 123456
 
 ### Auth Login
