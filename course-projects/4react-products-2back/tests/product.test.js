@@ -21,7 +21,6 @@ describe('Product Controller', () => {
 
     describe('GET /products', () => {
         it('should fetch a list of products', async () => {
-            // Mock Product.find() and countDocuments()
             const mockFind = {
                 skip: jest.fn().mockReturnThis(),
                 limit: jest.fn().mockResolvedValue([{ name: 'Test Product', price: 10 }]),
