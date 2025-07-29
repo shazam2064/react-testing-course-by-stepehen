@@ -33,9 +33,6 @@ describe('Auth Controller', () => {
 
             await signup(req, res, next);
 
-            console.log('res.status calls:', res.status.mock.calls);
-            console.log('res.json calls:', res.json.mock.calls);
-
             expect(validationResult).toHaveBeenCalledWith(req);
             expect(bcrypt.hash).toHaveBeenCalledWith('123456', 12);
             expect(mockSave).toHaveBeenCalled();
@@ -92,6 +89,17 @@ describe('Auth Controller', () => {
                 isAdmin: false,
             });
         });
+
+        it('should handle invalid credentials', async () => {
+            User.findOne.mockResolvedValue(null);
+
+            req.body = { email: 'admin1@test.com', password: '123456' };
+
+            await login(req, res, next);
+
+            expect(User.findOne).toHaveBeenCalledWith({ email: 'admin1@test.com' });
+            expect(next).toHaveBeenCalledWith(expect.any(Error));
+        });
     });
 
     describe('getUserStatus', () => {
@@ -104,21 +112,41 @@ describe('Auth Controller', () => {
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({ status: 'Active' });
         });
+
+        it('should handle user not found', async () => {
+            User.findById.mockResolvedValue(null);
+
+            await getUserStatus(req, res, next);
+
+            expect(User.findById).toHaveBeenCalledWith('mockUserId');
+            expect(next).toHaveBeenCalledWith(expect.any(Error));
+        });
     });
 
     describe('updateUserStatus', () => {
         it('should update the user status and return 200 status', async () => {
-            User.findById.mockResolvedValue({
-                save: jest.fn().mockResolvedValue({ status: 'Updated status' }),
-            });
+            const mockSave = jest.fn().mockResolvedValue({ status: 'Updated status' });
+            User.findById.mockResolvedValue({ save: mockSave });
 
             req.body = { status: 'Updated status' };
 
             await updateUserStatus(req, res, next);
 
             expect(User.findById).toHaveBeenCalledWith('mockUserId');
+            expect(mockSave).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({ message: 'User status updated' });
+        });
+
+        it('should handle user not found', async () => {
+            User.findById.mockResolvedValue(null);
+
+            req.body = { status: 'Updated status' };
+
+            await updateUserStatus(req, res, next);
+
+            expect(User.findById).toHaveBeenCalledWith('mockUserId');
+            expect(next).toHaveBeenCalledWith(expect.any(Error));
         });
     });
 });
