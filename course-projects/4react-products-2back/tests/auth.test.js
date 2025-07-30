@@ -105,4 +105,54 @@ describe('Auth Signup', () => {
     });
 });
 
+describe('Auth GET Status', () => {
+    let validToken;
 
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+
+        expect(loginResponse.status).toBe(200);
+        validToken = loginResponse.body.token;
+    });
+
+    it('should return 200 and the user status if the user exists', async () => {
+        const mockUserId = 'validUserId';
+
+        jest.spyOn(User, 'findById').mockResolvedValueOnce({
+            _id: mockUserId,
+            status: 'Active',
+        });
+
+        const response = await request(app)
+            .get('/auth/status')
+            .set('Authorization', `Bearer ${validToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                status: 'Active',
+            })
+        );
+    });
+
+    it('should return 404 if the user is not found', async () => {
+        jest.spyOn(User, 'findById').mockResolvedValueOnce(null);
+
+        const response = await request(app)
+            .get('/auth/status')
+            .set('Authorization', `Bearer ${validToken}`);
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'User not found',
+            })
+        );
+    });
+});
