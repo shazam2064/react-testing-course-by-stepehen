@@ -50,4 +50,59 @@ describe('Auth Login', () => {
     });
 });
 
+describe('Auth Signup', () => {
+    it('should create a new user and return 201 with user details', async () => {
+        const requestBody = {
+            email: 'admin3@test.com',
+            name: 'User Test 3',
+            password: '123456',
+        };
+
+        const response = await request(app)
+            .put('/auth/signup')
+            .send(requestBody)
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(201);
+
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'User created!',
+                userId: expect.any(String),
+            })
+        );
+    });
+
+
+    it('should return 422 if the email address already exists', async () => {
+        const requestBody = {
+            email: 'admin1@test.com',
+            name: 'User Test 1',
+            password: '123456',
+        };
+
+        const response = await request(app)
+            .put('/auth/signup')
+            .send(requestBody)
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(422);
+
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Validation failed, entered data is incorrect',
+                details: expect.arrayContaining([
+                    expect.objectContaining({
+                        type: 'field',
+                        value: 'admin1@test.com',
+                        msg: 'Email address already exists!',
+                        path: 'email',
+                        location: 'body',
+                    }),
+                ]),
+            })
+        );
+    });
+});
+
 
