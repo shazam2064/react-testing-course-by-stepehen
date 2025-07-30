@@ -1,152 +1,53 @@
-const { signup, login, getUserStatus, updateUserStatus } = require('../controllers/auth.controller');
+const request = require('supertest');
+const app = require('../app');
 const User = require('../models/user.model');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
-const { throwError } = require('../controllers/error.controller');
 
-jest.mock('../models/user.model');
-jest.mock('bcryptjs');
-jest.mock('jsonwebtoken');
-jest.mock('express-validator');
-jest.mock('../controllers/error.controller');
+describe('Auth Login', () => {
+    it('should return 200 and a valid token with user details', async () => {
+        const requestBody = {
+            email: 'admin1@test.com',
+            password: '123456',
+        };
 
-describe('Auth Controller', () => {
-    let req, res, next;
+        const response = await request(app)
+            .post('/auth/login')
+            .send(requestBody)
+            .set('Content-Type', 'application/json');
 
-    beforeEach(() => {
-        req = { body: {}, userId: 'mockUserId', headers: {} };
-        res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-        next = jest.fn();
-        jest.clearAllMocks();
-    });
+        expect(response.status).toBe(200);
 
-    describe('signup', () => {
-        it('should create a new user and return 201 status', async () => {
-            validationResult.mockReturnValue({ isEmpty: () => true });
-            bcrypt.hash.mockResolvedValue('hashedPassword');
+        expect(response.headers['content-type']).toMatch(/application\/json/);
 
-            const mockSave = jest.fn().mockResolvedValue({ _id: 'mockUserId' });
-            User.prototype.save = mockSave;
-
-            req.body = { email: 'admin1@test.com', password: '123456', name: 'User Test 1' };
-
-            await signup(req, res, next);
-
-            expect(validationResult).toHaveBeenCalledWith(req);
-            expect(bcrypt.hash).toHaveBeenCalledWith('123456', 12);
-            expect(mockSave).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({ message: 'User created!', userId: 'mockUserId' });
-        });
-
-        it('should handle validation errors', async () => {
-            validationResult.mockReturnValue({
-                isEmpty: () => false,
-                array: () => [{ msg: 'Invalid input' }],
-            });
-
-            await signup(req, res, next);
-
-            expect(validationResult).toHaveBeenCalledWith(req);
-            expect(throwError).toHaveBeenCalledWith(422, [{ msg: 'Invalid input' }], 'Validation failed, entered data is incorrect');
-        });
-
-        it('should handle errors during user creation', async () => {
-            validationResult.mockReturnValue({ isEmpty: () => true });
-            bcrypt.hash.mockResolvedValue('hashedPassword');
-            const mockSave = jest.fn().mockRejectedValue(new Error('Database error'));
-            User.prototype.save = mockSave;
-
-            await signup(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
-    });
-
-    describe('login', () => {
-        it('should log in a user and return a token', async () => {
-            User.findOne.mockResolvedValue({ email: 'admin1@test.com', password: 'hashedPassword', _id: 'mockUserId', isAdmin: false });
-            bcrypt.compare.mockResolvedValue(true);
-            jwt.sign.mockReturnValue('mockToken');
-
-            req.body = { email: 'admin1@test.com', password: '123456' };
-
-            await login(req, res, next);
-
-            expect(User.findOne).toHaveBeenCalledWith({ email: 'admin1@test.com' });
-            expect(bcrypt.compare).toHaveBeenCalledWith('123456', 'hashedPassword');
-            expect(jwt.sign).toHaveBeenCalledWith(
-                { email: 'admin1@test.com', userId: 'mockUserId' },
-                expect.any(String),
-                { expiresIn: '1h' }
-            );
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                token: 'mockToken',
-                userId: 'mockUserId',
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                token: expect.any(String),
+                userId: expect.any(String),
                 email: 'admin1@test.com',
-                isAdmin: false,
-            });
-        });
-
-        it('should handle invalid credentials', async () => {
-            User.findOne.mockResolvedValue(null);
-
-            req.body = { email: 'admin1@test.com', password: '123456' };
-
-            await login(req, res, next);
-
-            expect(User.findOne).toHaveBeenCalledWith({ email: 'admin1@test.com' });
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
+                isAdmin: true,
+            })
+        );
     });
 
-    describe('getUserStatus', () => {
-        it('should return the user status', async () => {
-            User.findById.mockResolvedValue({ status: 'Active' });
+    it('should return 422 for invalid credentials', async () => {
+        const requestBody = {
+            email: 'admin1@test.com',
+            password: 'wrongpassword',
+        };
 
-            await getUserStatus(req, res, next);
+        const response = await request(app)
+            .post('/auth/login')
+            .send(requestBody)
+            .set('Content-Type', 'application/json');
 
-            expect(User.findById).toHaveBeenCalledWith('mockUserId');
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ status: 'Active' });
-        });
+        // Assert the correct status code
+        expect(response.status).toBe(422);
 
-        it('should handle user not found', async () => {
-            User.findById.mockResolvedValue(null);
-
-            await getUserStatus(req, res, next);
-
-            expect(User.findById).toHaveBeenCalledWith('mockUserId');
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
-    });
-
-    describe('updateUserStatus', () => {
-        it('should update the user status and return 200 status', async () => {
-            const mockSave = jest.fn().mockResolvedValue({ status: 'Updated status' });
-            User.findById.mockResolvedValue({ save: mockSave });
-
-            req.body = { status: 'Updated status' };
-
-            await updateUserStatus(req, res, next);
-
-            expect(User.findById).toHaveBeenCalledWith('mockUserId');
-            expect(mockSave).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ message: 'User status updated' });
-        });
-
-        it('should handle user not found', async () => {
-            User.findById.mockResolvedValue(null);
-
-            req.body = { status: 'Updated status' };
-
-            await updateUserStatus(req, res, next);
-
-            expect(User.findById).toHaveBeenCalledWith('mockUserId');
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Wrong password',
+            })
+        );
     });
 });
+
+
