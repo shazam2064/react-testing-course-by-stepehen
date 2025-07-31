@@ -36,6 +36,5 @@ const router = express.Router();
 router.put('/signup', signupValidations, authController.signup);
 router.post('/login', authController.login);
 router.get('/status', isAuth, authController.getUserStatus);
-router.patch('/status', isAuth, statusValidations, authController.updateUserStatus);
 
 module.exports = router;
