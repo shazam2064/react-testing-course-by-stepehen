@@ -50,12 +50,12 @@ Content-Type: application/json
 
 ### PUT a user
 // -----------------------------------------------------------------------------------------------
-PUT http://localhost:3032/users/6708f5441e4eb09b383f02cf
+PUT http://localhost:3032/users/{{user-id1}}
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "email": "admin2@test.com",
+  "email": "admin1@test.com",
   "name": "123456",
   "password": "123456",
   "isAdmin": true
