@@ -51,7 +51,18 @@ describe('Auth Controller', () => {
     });
 
     describe('Auth Signup', () => {
-        it('should create a new user and return 201 with user details', async () => {
+        it('should create a new user, return 201 with user details, and delete the user', async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'admin1@test.com',
+                    password: '123456',
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            const validToken = loginResponse.body.token;
+
             const requestBody = {
                 email: 'admin3@test.com',
                 name: 'User Test 3',
@@ -69,6 +80,19 @@ describe('Auth Controller', () => {
                 expect.objectContaining({
                     message: 'User created!',
                     userId: expect.any(String),
+                })
+            );
+
+            const createdUserId = response.body.userId;
+
+            const deleteResponse = await request(app)
+                .delete(`/users/${createdUserId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(deleteResponse.status).toBe(200);
+            expect(deleteResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'User deleted successfully',
                 })
             );
         });
