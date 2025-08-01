@@ -157,3 +157,125 @@ describe('User Controller - GET User by ID', () => {
 });
 
 
+describe('User Controller - CREATE User', () => {
+    it('should create a new user, return 201 with user details, and delete the user', async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+
+        expect(loginResponse.status).toBe(200);
+        const validToken = loginResponse.body.token;
+
+        const requestBody = {
+            email: 'user2@test.com',
+            name: 'User2',
+            password: '123456',
+            isAdmin: false,
+        };
+
+        const createResponse = await request(app)
+            .post('/users')
+            .set('Authorization', `Bearer ${validToken}`)
+            .send(requestBody)
+            .set('Content-Type', 'application/json');
+
+        expect(createResponse.status).toBe(201);
+        expect(createResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'User created successfully',
+                user: expect.objectContaining({
+                    email: 'user2@test.com',
+                    name: 'User2',
+                    isAdmin: false,
+                }),
+            })
+        );
+
+        const createdUserId = createResponse.body.user._id;
+
+        const deleteResponse = await request(app)
+            .delete(`/users/${createdUserId}`)
+            .set('Authorization', `Bearer ${validToken}`);
+
+        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'User deleted successfully',
+            })
+        );
+    });
+
+    it('should return 422 for invalid input values', async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+
+        expect(loginResponse.status).toBe(200);
+        const validToken = loginResponse.body.token;
+
+        const invalidRequestBody = {
+            email: '', // Invalid email
+            name: '', // Invalid name
+            password: '123', // Password too short
+            isAdmin: false,
+        };
+
+        const createResponse = await request(app)
+            .post('/users')
+            .set('Authorization', `Bearer ${validToken}`)
+            .send(invalidRequestBody)
+            .set('Content-Type', 'application/json');
+
+        expect(createResponse.status).toBe(422);
+        expect(createResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'Validation failed',
+            })
+        );
+    });
+
+    it('should return 500 if there is a server error', async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+
+        expect(loginResponse.status).toBe(200);
+        const validToken = loginResponse.body.token;
+
+        jest.spyOn(User.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+        const requestBody = {
+            email: 'user2@test.com',
+            name: 'User2',
+            password: '123456',
+            isAdmin: false,
+        };
+
+        const createResponse = await request(app)
+            .post('/users')
+            .set('Authorization', `Bearer ${validToken}`)
+            .send(requestBody)
+            .set('Content-Type', 'application/json');
+
+        expect(createResponse.status).toBe(500);
+        expect(createResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'Database error',
+            })
+        );
+    });
+});
+
+
