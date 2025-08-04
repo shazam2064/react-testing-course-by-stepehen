@@ -431,4 +431,85 @@ describe('User Controller Tests', () => {
             );
         });
     });
+
+
+    describe('User Controller - DELETE User', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'admin1@test.com',
+                    password: '123456',
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a user, delete it, and return 200 with a success message', async () => {
+            const createResponse = await request(app)
+                .post('/users')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    email: 'dummyuser@test.com',
+                    name: 'Dummy User',
+                    password: '123456',
+                    isAdmin: false,
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(createResponse.status).toBe(201);
+            const createdUserId = createResponse.body.user._id;
+
+            const deleteResponse = await request(app)
+                .delete(`/users/${createdUserId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(deleteResponse.status).toBe(200);
+            expect(deleteResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'User deleted successfully',
+                    result: expect.objectContaining({
+                        _id: createdUserId,
+                        email: 'dummyuser@test.com',
+                    }),
+                })
+            );
+        });
+
+        it('should return 404 if the user does not exist', async () => {
+            const nonExistentUserId = '000000000000000000000000';
+
+            const response = await request(app)
+                .delete(`/users/${nonExistentUserId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'User not found',
+                })
+            );
+        });
+
+        it('should handle errors and return 500 on server error', async () => {
+            const mockUserId = '688ccf9a0ab0514c3e06390f';
+
+            jest.spyOn(User, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .delete(`/users/${mockUserId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error',
+                })
+            );
+        });
+    });
 });
