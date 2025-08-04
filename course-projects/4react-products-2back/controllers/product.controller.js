@@ -7,27 +7,22 @@ const {handleError, throwError} = require('./error.controller');
 const Product = require('../models/product.model');
 
 exports.getProducts = async (req, res, next) => {
-    const currentPage = req.query.page || 1;
-    const perPage = 10;
-    let totalItems;
-    Product.find().countDocuments()
-        .then(count => {
-            totalItems = count;
-            return Product.find()
-                .skip((currentPage - 1) * perPage)
-                .limit(perPage);
-        })
-        .then(products => {
-            res.status(200).json({
-                message: 'Products fetched successfully',
-                products,
-                totalItems
-            });
-        })
-        .catch(err => {
-            handleError(err, next, 'Products fetch failed');
+    try {
+        const totalItems = await Product.countDocuments();
+        console.log('Total items:', totalItems);
+
+        const products = await Product.find()
+        console.log('Products:', products);
+
+        res.status(200).json({
+            message: 'Products fetched successfully',
+            products,
+            totalItems,
         });
-}
+    } catch (err) {
+        handleError(err, next, 'Products fetch failed');
+    }
+};
 
 exports.createProduct = async (req, res, next) => {
     const errors = validationResult(req);
