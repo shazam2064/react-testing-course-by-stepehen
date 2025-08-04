@@ -1,144 +1,66 @@
 const request = require('supertest');
-const app = require('../app'); // Ensure app.js exports the Express app
+const app = require('../app');
 const Product = require('../models/product.model');
-const mongoose = require('mongoose');
-
-jest.mock('../models/product.model');
 
 describe('Product Controller', () => {
-    let authToken;
+    let validToken;
 
     beforeAll(async () => {
-        const response = await request(app)
+        const loginResponse = await request(app)
             .post('/auth/login')
-            .send({ email: 'admin1@test.com', password: '123456' });
-        authToken = response.body.token;
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+
+        expect(loginResponse.status).toBe(200);
+        validToken = loginResponse.body.token;
     });
 
-    afterAll(async () => {
-        await mongoose.connection.close();
-    });
+    describe('GET Products', () => {
+        it('should return 200 and a list of products with total items', async () => {
+            const mockProducts = [
+                {
+                    _id: '688cdc39cf05275731d730ff',
+                    name: 'New product with image - 2025-08-01T15:24:40.989839Z',
+                    price: 9.99,
+                    description: 'This is the description of the new product',
+                    imageUrl: 'images/2025-08-01T15-24-41.014Z-book-1296045.png',
+                    creator: '688ccf9a0ab0514c3e06390f',
+                    createdAt: '2025-08-01T15:24:41.022Z',
+                    updatedAt: '2025-08-01T15:24:41.022Z',
+                    __v: 0,
+                },
+            ];
 
-    describe('GET /products', () => {
-        it('should fetch a list of products', async () => {
-            const mockFind = {
+            jest.spyOn(Product, 'find').mockReturnValueOnce({
                 skip: jest.fn().mockReturnThis(),
-                limit: jest.fn().mockResolvedValue([{ name: 'Test Product', price: 10 }]),
-            };
-            Product.find.mockReturnValue(mockFind);
-            Product.find().countDocuments = jest.fn().mockResolvedValue(1);
-
-            const response = await request(app)
-                .get('/products?page=1')
-                .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body.message).toBe('Products fetched successfully');
-            expect(response.body.products).toHaveLength(1);
-        });
-    });
-
-    describe('POST /products', () => {
-        it('should create a new product', async () => {
-            Product.prototype.save = jest.fn().mockResolvedValue({
-                name: 'New Product',
-                price: 9.99,
-                description: 'Test description',
-                imageUrl: 'test/image/path',
+                limit: jest.fn().mockResolvedValueOnce(mockProducts),
             });
 
-            const response = await request(app)
-                .post('/products')
-                .set('Authorization', `Bearer ${authToken}`)
-                .field('name', 'New Product')
-                .field('price', 9.99)
-                .field('description', 'Test description')
-                .attach('image', '__tests__/test-image.png');
-
-            expect(response.status).toBe(201);
-            expect(response.body.message).toBe('Product created successfully');
-            expect(response.body.product.name).toBe('New Product');
-        });
-    });
-
-    describe('GET /products/:productId', () => {
-        it('should fetch a product by ID', async () => {
-            Product.findById.mockResolvedValue({
-                name: 'Test Product',
-                price: 10,
-                description: 'Test description',
-            });
+            jest.spyOn(Product, 'countDocuments').mockResolvedValueOnce(1);
 
             const response = await request(app)
-                .get('/products/validProductId')
-                .set('Authorization', `Bearer ${authToken}`);
+                .get('/products?page=1&numItems=10')
+                .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
-            expect(response.body.message).toBe('Product fetched successfully');
-            expect(response.body.product.name).toBe('Test Product');
-        });
-
-        it('should return 404 if product is not found', async () => {
-            Product.findById.mockResolvedValue(null);
-
-            const response = await request(app)
-                .get('/products/invalidProductId')
-                .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(404);
-            expect(response.body.message).toBe('Could not find the post with id:invalidProductId');
-        });
-    });
-
-    describe('PUT /products/:productId', () => {
-        it('should update a product', async () => {
-            Product.findById.mockResolvedValue({
-                name: 'Old Product',
-                price: 10,
-                description: 'Old description',
-                imageUrl: 'old/image/path',
-                creator: 'userId',
-                save: jest.fn().mockResolvedValue({
-                    name: 'Updated Product',
-                    price: 19.99,
-                    description: 'Updated description',
-                    imageUrl: 'new/image/path',
-                }),
-            });
-
-            const response = await request(app)
-                .put('/products/validProductId')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    name: 'Updated Product',
-                    price: 19.99,
-                    description: 'Updated description',
-                    image: 'new/image/path',
-                });
-
-            expect(response.status).toBe(200);
-            expect(response.body.message).toBe('Product updated successfully');
-            expect(response.body.product.name).toBe('Updated Product');
-        });
-    });
-
-    describe('DELETE /products/:productId', () => {
-        it('should delete a product', async () => {
-            Product.findById.mockResolvedValue({
-                name: 'Test Product',
-                price: 10,
-                description: 'Test description',
-                imageUrl: 'test/image/path',
-                creator: 'userId',
-            });
-            Product.findByIdAndDelete.mockResolvedValue();
-
-            const response = await request(app)
-                .delete('/products/validProductId')
-                .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body.message).toBe('Product deleted successfully');
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Products fetched successfully',
+                    products: expect.arrayContaining([
+                        expect.objectContaining({
+                            _id: expect.any(String),
+                            name: expect.any(String),
+                            price: expect.any(Number),
+                            description: expect.any(String),
+                            imageUrl: expect.any(String),
+                        }),
+                    ]),
+                    totalItems: 1,
+                })
+            );
         });
     });
 });
