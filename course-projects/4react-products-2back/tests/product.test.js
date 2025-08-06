@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../app');
 const Product = require('../models/product.model');
+const path = require('path');
 
 describe('Product Controller - GET Products', () => {
     let validToken;
@@ -145,3 +146,96 @@ describe('Product Controller - Get Product By ID', () => {
         );
     });
 });
+
+describe('Product Controller - Create Product', () => {
+    let validToken;
+
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+
+        expect(loginResponse.status).toBe(200);
+        validToken = loginResponse.body.token;
+    });
+
+    it('should create a product successfully and return 201', async () => {
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${validToken}`)
+            .field('name', 'Test Product')
+            .field('price', '9.99')
+            .field('description', 'Test description')
+            .attach('image', path.join(__dirname, '../images/test.png'));
+
+        expect(response.status).toBe(201);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Product created successfully',
+                product: expect.objectContaining({
+                    name: 'Test Product',
+                    price: 9.99,
+                    description: 'Test description',
+                    imageUrl: expect.any(String),
+                }),
+            })
+        );
+    });
+
+    it('should return 422 if validation fails', async () => {
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${validToken}`)
+            .field('name', '') // Invalid name
+            .field('price', '9.99')
+            .field('description', 'Test description')
+            .attach('image', path.join(__dirname, '../images/test.png'));
+
+        expect(response.status).toBe(422);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Validation failed, entered data is incorrect',
+            })
+        );
+    });
+
+    it('should return 422 if no image is provided', async () => {
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${validToken}`)
+            .field('name', 'Test Product')
+            .field('price', '9.99')
+            .field('description', 'Test description');
+
+        expect(response.status).toBe(422);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'No image provided',
+            })
+        );
+    });
+
+    it('should return 500 if there is a database error', async () => {
+        jest.spyOn(Product.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${validToken}`)
+            .field('name', 'Test Product')
+            .field('price', '9.99')
+            .field('description', 'Test description')
+            .attach('image', path.join(__dirname, '../images/test.png'));
+
+        expect(response.status).toBe(500);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Product creation failed',
+            })
+        );
+    });
+});
+
