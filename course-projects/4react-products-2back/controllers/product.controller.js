@@ -27,10 +27,16 @@ exports.getProducts = async (req, res, next) => {
 exports.createProduct = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        const error = new Error('Validation failed, entered data is incorrect');
+        error.statusCode = 422;
+        error.details = errors.array();
+        return next(error);
     }
+
     if (!req.file) {
-        throwError(422, '', 'No image provided');
+        const error = new Error('No image provided');
+        error.statusCode = 422;
+        return next(error);
     }
     const name = req.body.name;
     const price = req.body.price;
