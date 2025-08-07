@@ -350,3 +350,73 @@ describe('Product Controller - Update Product', () => {
     });
 });
 
+describe('Product Controller - Delete Product', () => {
+    let authToken;
+    let createdProductId;
+
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+        expect(loginResponse.status).toBe(200);
+        authToken = loginResponse.body.token;
+
+        const createResponse = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${authToken}`)
+            .field('name', 'Test Product for Deletion')
+            .field('price', '9.99')
+            .field('description', 'This product will be deleted')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
+        expect(createResponse.status).toBe(201);
+        createdProductId = createResponse.body.product._id;
+    });
+
+    it('should return 404 if the product does not exist', async () => {
+        const nonExistentProductId = '000000000000000000000000';
+
+        const response = await request(app)
+            .delete(`/products/${nonExistentProductId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: expect.stringContaining('Could not find the post with id:'),
+            })
+        );
+    });
+
+    it('should handle errors and return 500 on server error', async () => {
+        jest.spyOn(Product, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await request(app)
+            .delete(`/products/${createdProductId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(500);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Database error',
+            })
+        );
+    });
+
+    it('should delete a product successfully with a valid product ID', async () => {
+        const deleteResponse = await request(app)
+            .delete(`/products/${createdProductId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'Product deleted successfully',
+            })
+        );
+    });
+});
+
