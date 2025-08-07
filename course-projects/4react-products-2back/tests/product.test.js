@@ -147,8 +147,10 @@ describe('Product Controller - Get Product By ID', () => {
     });
 });
 
+
 describe('Product Controller - Create Product', () => {
-    let validToken;
+    let authToken;
+    let createdProductId;
 
     beforeAll(async () => {
         const loginResponse = await request(app)
@@ -158,19 +160,18 @@ describe('Product Controller - Create Product', () => {
                 password: '123456',
             })
             .set('Content-Type', 'application/json');
-
         expect(loginResponse.status).toBe(200);
-        validToken = loginResponse.body.token;
+        authToken = loginResponse.body.token;
     });
 
-    it('should create a product successfully and return 201', async () => {
+    it('should create a product successfully with valid data and image', async () => {
         const response = await request(app)
             .post('/products')
-            .set('Authorization', `Bearer ${validToken}`)
+            .set('Authorization', `Bearer ${authToken}`)
             .field('name', 'Test Product')
             .field('price', '9.99')
-            .field('description', 'Test description')
-            .attach('image', path.join(__dirname, '../images/test.png'));
+            .field('description', 'This is a test product')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
 
         expect(response.status).toBe(201);
         expect(response.body).toEqual(
@@ -179,37 +180,22 @@ describe('Product Controller - Create Product', () => {
                 product: expect.objectContaining({
                     name: 'Test Product',
                     price: 9.99,
-                    description: 'Test description',
+                    description: 'This is a test product',
                     imageUrl: expect.any(String),
                 }),
             })
         );
-    });
 
-    it('should return 422 if validation fails', async () => {
-        const response = await request(app)
-            .post('/products')
-            .set('Authorization', `Bearer ${validToken}`)
-            .field('name', '') // Invalid name
-            .field('price', '9.99')
-            .field('description', 'Test description')
-            .attach('image', path.join(__dirname, '../images/test.png'));
-
-        expect(response.status).toBe(422);
-        expect(response.body).toEqual(
-            expect.objectContaining({
-                message: 'Validation failed, entered data is incorrect',
-            })
-        );
+        createdProductId = response.body.product._id;
     });
 
     it('should return 422 if no image is provided', async () => {
         const response = await request(app)
             .post('/products')
-            .set('Authorization', `Bearer ${validToken}`)
+            .set('Authorization', `Bearer ${authToken}`)
             .field('name', 'Test Product')
             .field('price', '9.99')
-            .field('description', 'Test description');
+            .field('description', 'This is a test product');
 
         expect(response.status).toBe(422);
         expect(response.body).toEqual(
@@ -219,23 +205,50 @@ describe('Product Controller - Create Product', () => {
         );
     });
 
-    it('should return 500 if there is a database error', async () => {
-        jest.spyOn(Product.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
-
+    it('should return 422 if validation fails (e.g., missing name)', async () => {
         const response = await request(app)
             .post('/products')
-            .set('Authorization', `Bearer ${validToken}`)
-            .field('name', 'Test Product')
+            .set('Authorization', `Bearer ${authToken}`)
             .field('price', '9.99')
-            .field('description', 'Test description')
-            .attach('image', path.join(__dirname, '../images/test.png'));
+            .field('description', 'This is a test product')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
 
-        expect(response.status).toBe(500);
+        expect(response.status).toBe(422);
         expect(response.body).toEqual(
             expect.objectContaining({
-                message: 'Product creation failed',
+                message: 'Validation failed, entered data is incorrect',
             })
         );
+    });
+
+    it('should return 401 if no authorization token is provided', async () => {
+        const response = await request(app)
+            .post('/products')
+            .field('name', 'Test Product')
+            .field('price', '9.99')
+            .field('description', 'This is a test product')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
+
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Not authenticated.',
+            })
+        );
+    });
+    afterAll(async () => {
+        if (createdProductId) {
+            const deleteResponse = await request(app)
+                .delete(`/products/${createdProductId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(deleteResponse.status).toBe(200);
+            expect(deleteResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'Product deleted successfully',
+                })
+            );
+        }
     });
 });
 
