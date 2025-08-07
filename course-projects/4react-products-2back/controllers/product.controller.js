@@ -90,7 +90,9 @@ exports.updateProduct = async (req, res, next) => {
         imageUrl = req.file.path.replace(/\\/g, '/');
     }
     if (!imageUrl) {
-        throwError(422, '', 'No file picked');
+        const error = new Error('No file picked');
+        error.statusCode = 422;
+        return next(error);
     }
 
     const errors = validationResult(req);
