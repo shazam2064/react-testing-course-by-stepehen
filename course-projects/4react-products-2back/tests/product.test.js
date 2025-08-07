@@ -252,3 +252,101 @@ describe('Product Controller - Create Product', () => {
     });
 });
 
+
+describe('Product Controller - Update Product', () => {
+    let authToken;
+    let createdProductId;
+
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+        expect(loginResponse.status).toBe(200);
+        authToken = loginResponse.body.token;
+
+        const createResponse = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${authToken}`)
+            .field('name', 'Test Product')
+            .field('price', '9.99')
+            .field('description', 'This is a test product')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
+        expect(createResponse.status).toBe(201);
+        createdProductId = createResponse.body.product._id;
+    });
+
+    it('should update a product successfully with valid data and image', async () => {
+        const updateResponse = await request(app)
+            .put(`/products/${createdProductId}`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .field('name', 'Updated Product')
+            .field('price', '19.99')
+            .field('description', 'This is the updated description')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
+
+        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'Product updated successfully',
+                product: expect.objectContaining({
+                    name: 'Updated Product',
+                    price: 19.99,
+                    description: 'This is the updated description',
+                    imageUrl: expect.any(String),
+                }),
+            })
+        );
+    });
+
+    it('should return 422 if no image is provided during update', async () => {
+        const updateResponse = await request(app)
+            .put(`/products/${createdProductId}`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .field('name', 'Updated Product Without Image')
+            .field('price', '19.99')
+            .field('description', 'This is the updated description without image');
+
+        expect(updateResponse.status).toBe(422);
+        expect(updateResponse.body).toEqual(
+            expect.objectContaining({
+                message: 'No file picked',
+            })
+        );
+    });
+
+    it('should return 404 if the product does not exist', async () => {
+        const updateResponse = await request(app)
+            .put('/products/123456789012345678901234')
+            .set('Authorization', `Bearer ${authToken}`)
+            .field('name', 'Nonexistent Product')
+            .field('price', '19.99')
+            .field('description', 'This product does not exist')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
+
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.body).toEqual(
+            expect.objectContaining({
+                message: expect.stringContaining('Could not find the post with id:'),
+            })
+        );
+    });
+
+    afterAll(async () => {
+        if (createdProductId) {
+            const deleteResponse = await request(app)
+                .delete(`/products/${createdProductId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+            expect(deleteResponse.status).toBe(200);
+            expect(deleteResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'Product deleted successfully',
+                })
+            );
+        }
+    });
+});
+
