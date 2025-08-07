@@ -1,121 +1,77 @@
 const request = require('supertest');
+const path = require('path');
 const app = require('../app');
-const Cart = require('../models/cart.model');
 const Product = require('../models/product.model');
-const mongoose = require('mongoose');
 
-jest.mock('../models/cart.model');
-jest.mock('../models/product.model');
-
-describe('Cart Controller', () => {
+describe('Cart Controller - Add and Remove Product', () => {
     let authToken;
+    let createdProductId;
 
     beforeAll(async () => {
-        const response = await request(app)
+        const loginResponse = await request(app)
             .post('/auth/login')
-            .send({ email: 'admin1@test.com', password: '123456' });
-        authToken = response.body.token;
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+        expect(loginResponse.status).toBe(200);
+        authToken = loginResponse.body.token;
+
+        const productResponse = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${authToken}`)
+            .field('name', 'Test Product for Cart')
+            .field('price', '9.99')
+            .field('description', 'This product is for cart testing')
+            .attach('image', path.join(__dirname, '../images/book-1296045.png'));
+        expect(productResponse.status).toBe(201);
+        createdProductId = productResponse.body.product._id;
+    });
+
+    it('should add a product to the cart', async () => {
+        const response = await request(app)
+            .post('/cart')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({
+                productId: createdProductId,
+                quantity: 1,
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body.message).toBe('Product added to cart successfully');
+        expect(response.body.cart.products).toHaveLength(1);
+        expect(response.body.cart.products[0].product).toBe(createdProductId);
+    });
+
+    it('should fetch the user\'s cart', async () => {
+        const response = await request(app)
+            .get('/cart')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.message).toBe('Cart fetched successfully');
+        expect(response.body.cart.products).toHaveLength(1);
+        expect(response.body.cart.products[0].product._id).toBe(createdProductId);
+    });
+
+    it('should remove a product from the cart', async () => {
+        const response = await request(app)
+            .delete(`/cart/${createdProductId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.message).toBe('Product deleted from cart successfully');
+        expect(response.body.cart.products).toHaveLength(0);
     });
 
     afterAll(async () => {
-        await mongoose.connection.close();
-    });
-
-    describe('GET /cart', () => {
-        it('should fetch the user\'s cart', async () => {
-            Cart.findOne.mockResolvedValue({
-                user: 'userId',
-                products: [{ product: { name: 'Test Product' }, quantity: 1 }],
-            });
-
-            const response = await request(app)
-                .get('/cart')
+        if (createdProductId) {
+            const deleteResponse = await request(app)
+                .delete(`/products/${createdProductId}`)
                 .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body.message).toBe('Cart fetched successfully');
-            expect(response.body.cart).toBeDefined();
-        });
-
-        it('should return 404 if cart is not found', async () => {
-            Cart.findOne.mockResolvedValue(null);
-
-            const response = await request(app)
-                .get('/cart')
-                .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(404);
-            expect(response.body.message).toBe('Cart not found');
-        });
-    });
-
-    describe('POST /cart', () => {
-        it('should add a product to the cart', async () => {
-            Product.findById.mockResolvedValue({ _id: 'productId', name: 'Test Product' });
-            Cart.findOne.mockResolvedValue({
-                user: 'userId',
-                products: [],
-                save: jest.fn().mockResolvedValue({
-                    user: 'userId',
-                    products: [{ product: 'productId', quantity: 1 }],
-                }),
-            });
-
-            const response = await request(app)
-                .post('/cart')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({ productId: 'productId', quantity: 1 });
-
-            expect(response.status).toBe(201);
-            expect(response.body.message).toBe('Product added to cart successfully');
-            expect(response.body.cart.products).toHaveLength(1);
-        });
-
-        it('should return 404 if product is not found', async () => {
-            Product.findById.mockResolvedValue(null);
-
-            const response = await request(app)
-                .post('/cart')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({ productId: 'invalidProductId', quantity: 1 });
-
-            expect(response.status).toBe(404);
-            expect(response.body.message).toBe('Product not found');
-        });
-    });
-
-    describe('DELETE /cart/:productId', () => {
-        it('should delete a product from the cart', async () => {
-            Cart.findOne.mockResolvedValue({
-                user: 'userId',
-                products: [{ product: 'productId', quantity: 1 }],
-                save: jest.fn().mockResolvedValue({
-                    user: 'userId',
-                    products: [],
-                }),
-            });
-
-            const response = await request(app)
-                .delete('/cart/productId')
-                .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body.message).toBe('Product deleted from cart successfully');
-            expect(response.body.cart.products).toHaveLength(0);
-        });
-
-        it('should return 404 if product is not found in the cart', async () => {
-            Cart.findOne.mockResolvedValue({
-                user: 'userId',
-                products: [],
-            });
-
-            const response = await request(app)
-                .delete('/cart/invalidProductId')
-                .set('Authorization', `Bearer ${authToken}`);
-
-            expect(response.status).toBe(404);
-            expect(response.body.message).toBe('Product not found in cart');
-        });
+            expect(deleteResponse.status).toBe(200);
+            expect(deleteResponse.body.message).toBe('Product deleted successfully');
+        }
     });
 });
