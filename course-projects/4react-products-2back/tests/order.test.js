@@ -169,3 +169,91 @@ describe('Order Controller - Create Order', () => {
         expect(response.body.message).toBe('Cart is empty');
     });
 });
+
+
+describe('Order Controller - Delete Order', () => {
+    let authToken;
+    let createdOrderId;
+
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+        expect(loginResponse.status).toBe(200);
+        authToken = loginResponse.body.token;
+
+        const order = await Order.create({
+            creator: loginResponse.body.userId,
+            orderList: [
+                {
+                    productItem: '688cdc39cf05275731d730ff',
+                    quantity: 1,
+                },
+            ],
+        });
+        createdOrderId = order._id.toString();
+    });
+
+    it('should delete an order successfully', async () => {
+        const response = await request(app)
+            .delete(`/orders/${createdOrderId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.message).toBe('Order deleted successfully');
+
+        const deletedOrder = await Order.findById(createdOrderId);
+        expect(deletedOrder).toBeNull();
+    });
+
+    it('should return 404 if the order does not exist', async () => {
+        const nonExistentOrderId = '000000000000000000000000'; // Invalid MongoDB ObjectId
+        const response = await request(app)
+            .delete(`/orders/${nonExistentOrderId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(404);
+        expect(response.body.message).toBe('Order not found');
+    });
+
+    it('should return 403 if the user is not authorized to delete the order', async () => {
+        const otherOrder = await Order.create({
+            creator: '000000000000000000000000',
+            orderList: [
+                {
+                    productItem: '688cdc39cf05275731d730ff',
+                    quantity: 1,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .delete(`/orders/${otherOrder._id}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(403);
+        expect(response.body.message).toBe('Not authorized');
+
+        await Order.findByIdAndDelete(otherOrder._id);
+    });
+
+    it('should return 422 if the order ID format is invalid', async () => {
+        const invalidOrderId = 'invalidOrderId';
+        const response = await request(app)
+            .delete(`/orders/${invalidOrderId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(422);
+        expect(response.body.message).toBe('Validation failed');
+    });
+
+    afterAll(async () => {
+        if (createdOrderId) {
+            await Order.findByIdAndDelete(createdOrderId);
+        }
+    });
+});
