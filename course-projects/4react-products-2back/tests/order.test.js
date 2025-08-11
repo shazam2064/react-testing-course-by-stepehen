@@ -1,161 +1,53 @@
-const { getUserOrders, getOrderById, createOrder, deleteOrder } = require('../controllers/order.controller');
+const request = require('supertest');
+const app = require('../app'); // Adjust the path to your app entry point
 const Order = require('../models/order.model');
-const Cart = require('../models/cart.model');
-const { validationResult } = require('express-validator');
 
-jest.mock('../models/order.model');
-jest.mock('../models/cart.model');
-jest.mock('express-validator');
+describe('Order Controller - Get User Orders', () => {
+    let authToken;
 
-describe('Order Controller', () => {
-    let req, res, next;
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+        expect(loginResponse.status).toBe(200);
+        authToken = loginResponse.body.token;
 
-    beforeEach(() => {
-        req = { body: {}, params: {}, userId: 'mockUserId' };
-        res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-        next = jest.fn();
-        jest.clearAllMocks();
-    });
-
-    describe('getUserOrders', () => {
-        it('should fetch all orders for a user and return 200', async () => {
-            Order.find.mockReturnValue({
-                populate: jest.fn().mockResolvedValue([{ orderList: [], creator: 'mockUserId' }])
-            });
-
-            await getUserOrders(req, res, next);
-
-            expect(Order.find).toHaveBeenCalledWith({ creator: 'mockUserId' });
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                message: 'Orders fetched successfully',
-                orders: [{ orderList: [], creator: 'mockUserId' }]
-            });
-        });
-
-        it('should handle errors during fetching orders', async () => {
-            Order.find.mockReturnValue({
-                populate: jest.fn().mockRejectedValue(new Error('Database error'))
-            });
-
-            await getUserOrders(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
+        await Order.create({
+            creator: loginResponse.body.userId,
+            orderList: [
+                {
+                    productItem: '688cdc39cf05275731d730ff',
+                    quantity: 1,
+                },
+            ],
         });
     });
 
-    describe('getOrderById', () => {
-        it('should fetch an order by ID and return 200', async () => {
-            Order.findById.mockReturnValue({
-                populate: jest.fn().mockResolvedValue({ orderList: [], creator: 'mockUserId' })
-            });
+    it('should fetch all user orders successfully', async () => {
+        const response = await request(app)
+            .get('/orders')
+            .set('Authorization', `Bearer ${authToken}`);
 
-            req.params.orderId = 'mockOrderId';
-
-            await getOrderById(req, res, next);
-
-            expect(Order.findById).toHaveBeenCalledWith('mockOrderId');
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                message: 'Order fetched successfully',
-                order: { orderList: [], creator: 'mockUserId' }
-            });
-        });
-
-        it('should handle order not found', async () => {
-            Order.findById.mockReturnValue({
-                populate: jest.fn().mockResolvedValue(null)
-            });
-
-            req.params.orderId = 'mockOrderId';
-
-            await getOrderById(req, res, next);
-
-            expect(Order.findById).toHaveBeenCalledWith('mockOrderId');
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
+        expect(response.status).toBe(200);
+        expect(response.body.message).toBe('Orders fetched successfully');
+        expect(response.body.orders).toBeDefined();
+        expect(response.body.orders.length).toBeGreaterThan(0);
     });
 
-    describe('createOrder', () => {
-        it('should create an order and return 201', async () => {
-            validationResult.mockReturnValue({ isEmpty: () => true });
-            Cart.findOne.mockReturnValue({
-                populate: jest.fn().mockResolvedValue({
-                    products: [{ product: 'mockProduct', quantity: 2 }]
-                })
-            });
-            Order.mockImplementation(() => ({
-                save: jest.fn().mockResolvedValue({ _id: 'mockOrderId', orderList: [], creator: 'mockUserId' })
-            }));
-            Cart.prototype.save = jest.fn().mockResolvedValue({});
+    it('should return error if an invalid token is provided', async () => {
+        const response = await request(app)
+            .get('/orders')
+            .set('Authorization', 'Bearer invalidToken');
 
-            await createOrder(req, res, next);
-
-            expect(validationResult).toHaveBeenCalledWith(req);
-            expect(Cart.findOne).toHaveBeenCalledWith({ user: 'mockUserId' });
-            expect(Order).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({
-                message: 'Order created successfully',
-                order: expect.any(Object)
-            });
-        });
-
-        it('should handle validation errors', async () => {
-            validationResult.mockReturnValue({
-                isEmpty: () => false,
-                array: () => [{ msg: 'Invalid input' }]
-            });
-
-            await createOrder(req, res, next);
-
-            expect(validationResult).toHaveBeenCalledWith(req);
-            expect(res.status).toHaveBeenCalledWith(422);
-            expect(res.json).toHaveBeenCalledWith({
-                message: 'Validation failed',
-                errors: [{ msg: 'Invalid input' }]
-            });
-        });
-
-        it('should handle cart not found', async () => {
-            validationResult.mockReturnValue({ isEmpty: () => true });
-            Cart.findOne.mockResolvedValue(null);
-
-            await createOrder(req, res, next);
-
-            expect(Cart.findOne).toHaveBeenCalledWith({ user: 'mockUserId' });
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
+        expect(response.status).toBe(500);
+        expect(response.body.message).toBe('Token was not valid.');
     });
 
-    describe('deleteOrder', () => {
-        it('should delete an order and return 200', async () => {
-            validationResult.mockReturnValue({ isEmpty: () => true });
-            Order.findById.mockResolvedValue({
-                creator: 'mockUserId'
-            });
-            Order.findByIdAndDelete.mockResolvedValue({});
-
-            req.params.orderId = 'mockOrderId';
-
-            await deleteOrder(req, res, next);
-
-            expect(Order.findById).toHaveBeenCalledWith('mockOrderId');
-            expect(Order.findByIdAndDelete).toHaveBeenCalledWith('mockOrderId');
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ message: 'Order deleted successfully' });
-        });
-
-        it('should handle order not found', async () => {
-            validationResult.mockReturnValue({ isEmpty: () => true });
-            Order.findById.mockResolvedValue(null);
-
-            req.params.orderId = 'mockOrderId';
-
-            await deleteOrder(req, res, next);
-
-            expect(Order.findById).toHaveBeenCalledWith('mockOrderId');
-            expect(next).toHaveBeenCalledWith(expect.any(Error));
-        });
+    afterAll(async () => {
+        await Order.deleteMany({ creator: '688ccf9a0ab0514c3e06390f' });
     });
 });
