@@ -17,9 +17,6 @@ app.use((req, res, next) => {
     next();
 });
 
-const feedRoutes = require('./routes/feed.routes');
-app.use('/feed', feedRoutes);
-
 const authRoutes = require('./routes/auth.routes');
 app.use('/auth', authRoutes);
 
