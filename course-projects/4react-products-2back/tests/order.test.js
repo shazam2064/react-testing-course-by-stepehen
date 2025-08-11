@@ -51,7 +51,8 @@ describe('Order Controller', () => {
         });
 
         afterAll(async () => {
-            await Order.deleteMany({creator: '688ccf9a0ab0514c3e06390f'});
+            await Order.deleteMany({creator: '688ccf9a0ab0514c3e06390f'})
+            await Cart.deleteMany({});
         });
     });
 
@@ -117,6 +118,7 @@ describe('Order Controller', () => {
             if (createdOrderId) {
                 await Order.findByIdAndDelete(createdOrderId);
             }
+            await Cart.deleteMany({});
         });
     });
 
@@ -169,6 +171,13 @@ describe('Order Controller', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.message).toBe('Cart is empty');
+        });
+
+        afterAll(async () => {
+            if (createdOrderId) {
+                await Order.findByIdAndDelete(createdOrderId);
+            }
+            await Cart.deleteMany({});
         });
     });
 
@@ -257,6 +266,7 @@ describe('Order Controller', () => {
             if (createdOrderId) {
                 await Order.findByIdAndDelete(createdOrderId);
             }
+            await Cart.deleteMany({});
         });
     });
 });
