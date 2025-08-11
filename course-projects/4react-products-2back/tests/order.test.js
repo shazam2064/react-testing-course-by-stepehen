@@ -1,6 +1,7 @@
 const request = require('supertest');
-const app = require('../app'); // Adjust the path to your app entry point
+const app = require('../app');
 const Order = require('../models/order.model');
+const Cart = require('../models/cart.model');
 
 describe('Order Controller - Get User Orders', () => {
     let authToken;
@@ -114,5 +115,57 @@ describe('Order Controller - Get Order By ID', () => {
         if (createdOrderId) {
             await Order.findByIdAndDelete(createdOrderId);
         }
+    });
+});
+
+
+describe('Order Controller - Create Order', () => {
+    let authToken;
+
+    beforeAll(async () => {
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
+        expect(loginResponse.status).toBe(200);
+        authToken = loginResponse.body.token;
+
+        await Cart.create({
+            user: loginResponse.body.userId,
+            products: [
+                {
+                    product: '688cdc39cf05275731d730ff',
+                    quantity: 1,
+                },
+            ],
+        });
+    });
+
+    it('should create an order successfully', async () => {
+        const response = await request(app)
+            .post('/orders')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(201);
+        expect(response.body.message).toBe('Order created successfully');
+        expect(response.body.order).toBeDefined();
+        expect(response.body.order.orderList.length).toBeGreaterThan(0);
+    });
+
+    it('should return 400 if the cart is empty', async () => {
+        await Cart.create({
+            user: '688ccf9a0ab0514c3e06390f',
+            products: [],
+        });
+
+        const response = await request(app)
+            .post('/orders')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe('Cart is empty');
     });
 });
