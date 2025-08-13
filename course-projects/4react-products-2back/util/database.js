@@ -5,7 +5,7 @@ const mongoDb = process.env.MONGO_DB;
 const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
 const mongoCluster = process.env.MONGO_CLUSTER;
-const MONGODB_URI = `mongodb+srv://${mongoUser}:${mongoPass}@${mongoCluster}/${mongoDb}?retryWrites=true&w=majority&ssl=true`
+const MONGODB_URI = `mongodb+srv://${mongoUser}:${mongoPass}@${mongoCluster}/${mongoDb}?retryWrites=true&w=majority&ssl=true`;
 
 const mongoConnect = callback => {
     mongoose.connect(MONGODB_URI)
@@ -16,9 +16,19 @@ const mongoConnect = callback => {
         .catch(err => {
             console.log('There was a MongoDB connection error: ', err);
         });
-}
+};
+
+const closeConnection = async () => {
+    try {
+        await mongoose.connection.close();
+        console.log('The MongoDB connection has been closed successfully.');
+    } catch (err) {
+        console.log('Error while closing the MongoDB connection: ', err);
+    }
+};
 
 // -----------------------------------------------------------------------------------------------
 module.exports = {
     mongoConnect,
+    closeConnection,
 };
