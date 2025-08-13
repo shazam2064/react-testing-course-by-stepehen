@@ -179,4 +179,11 @@ describe('Auth Controller', () => {
             );
         });
     });
+
+    afterAll(async () => {
+        console.log('All tests completed. Closing database connection...');
+        const { closeConnection } = require('../util/database');
+        await server.close();
+        await closeConnection();
+    });
 });

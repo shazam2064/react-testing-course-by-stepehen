@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../app');
 const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
+const {closeConnection} = require("../util/database");
 
 
 describe('Order Controller', () => {
@@ -268,5 +269,11 @@ describe('Order Controller', () => {
             }
             await Cart.deleteMany({});
         });
+    });
+
+    afterAll(async () => {
+        console.log('All tests completed. Closing database connection...');
+        const { closeConnection } = require('../util/database');
+        await closeConnection();
     });
 });

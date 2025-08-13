@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../app');
 const Product = require('../models/product.model');
 const path = require('path');
+const {closeConnection} = require("../util/database");
 
 describe('Product Controller', () => {
     describe('Product Controller - GET Products', () => {
@@ -419,5 +420,11 @@ describe('Product Controller', () => {
                 })
             );
         });
+    });
+
+    afterAll(async () => {
+        console.log('All tests completed. Closing database connection...');
+        const { closeConnection } = require('../util/database');
+        await closeConnection();
     });
 });

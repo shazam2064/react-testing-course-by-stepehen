@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../app');
 const User = require('../models/user.model');
+const {closeConnection} = require("../util/database");
 
 describe('User Controller Tests', () => {
     describe('User Controller - GET Users', () => {
@@ -511,5 +512,11 @@ describe('User Controller Tests', () => {
                 })
             );
         });
+    });
+
+    afterAll(async () => {
+        console.log('All tests completed. Closing database connection...');
+        const { closeConnection } = require('../util/database');
+        await closeConnection();
     });
 });

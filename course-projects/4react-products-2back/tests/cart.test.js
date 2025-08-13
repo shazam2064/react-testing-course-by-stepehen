@@ -2,6 +2,7 @@ const request = require('supertest');
 const path = require('path');
 const app = require('../app');
 const Product = require('../models/product.model');
+const {closeConnection} = require("../util/database");
 
 describe('Cart Controller - Add and Remove Product', () => {
     let authToken;
@@ -73,5 +74,10 @@ describe('Cart Controller - Add and Remove Product', () => {
             expect(deleteResponse.status).toBe(200);
             expect(deleteResponse.body.message).toBe('Product deleted successfully');
         }
+    });
+    afterAll(async () => {
+        console.log('All tests completed. Closing database connection...');
+        const { closeConnection } = require('../util/database');
+        await closeConnection();
     });
 });
