@@ -2,10 +2,15 @@ const request = require('supertest');
 const app = require('../app');
 const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
-const {closeConnection} = require("../util/database");
 
 
 describe('Order Controller', () => {
+    beforeEach(() => {
+        const randomPort = Math.floor(Math.random() * (9999 - 3000 + 1)) + 3000;
+        process.env.PORT_NUMBER = randomPort;
+        console.log(`Using random port: ${randomPort}`);
+    });
+
     describe('Order Controller - Get User Orders', () => {
         let authToken;
 

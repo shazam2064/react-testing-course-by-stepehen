@@ -3,6 +3,12 @@ const app = require('../app');
 const User = require('../models/user.model');
 
 describe('Auth Controller', () => {
+    beforeEach(() => {
+        const randomPort = Math.floor(Math.random() * (9999 - 3000 + 1)) + 3000;
+        process.env.PORT_NUMBER = randomPort;
+        console.log(`Using random port: ${randomPort}`);
+    });
+
     describe('Auth Login', () => {
         it('should return 200 and a valid token with user details', async () => {
             const requestBody = {
@@ -183,7 +189,6 @@ describe('Auth Controller', () => {
     afterAll(async () => {
         console.log('All tests completed. Closing database connection...');
         const { closeConnection } = require('../util/database');
-        await server.close();
         await closeConnection();
     });
 });

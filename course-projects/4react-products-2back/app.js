@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+require('dotenv').config();
 
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
@@ -37,7 +38,7 @@ app.use(errorHandler.globalResponse);
 
 // -----------------------------------------------------------------------------------------------
 const { mongoConnect} = require('./util/database.js');
-const PORT = 3032;
+const PORT = process.env.PORT;
 mongoConnect(() => {
     app.listen(PORT, () => {
         console.log(`The server is listening on port ${PORT}`);
