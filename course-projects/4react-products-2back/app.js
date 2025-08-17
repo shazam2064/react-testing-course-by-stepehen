@@ -38,7 +38,7 @@ app.use(errorHandler.globalResponse);
 
 // -----------------------------------------------------------------------------------------------
 const { mongoConnect} = require('./util/database.js');
-const PORT = process.env.PORT;
+const PORT = process.env.PORT_NUMBER;
 mongoConnect(() => {
     app.listen(PORT, () => {
         console.log(`The server is listening on port ${PORT}`);
@@ -46,3 +46,5 @@ mongoConnect(() => {
 });
 
 module.exports = app;
+
+// For the tests to work make sure you have the default user created, the rest should be fine I think, also clear out the rest of the database.
