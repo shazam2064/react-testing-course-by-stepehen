@@ -1,6 +1,6 @@
 const request = require('supertest');
 const path = require('path');
-const app = require('../app');
+const { randomPort, app } = require('./testUtils');
 const Product = require('../models/product.model');
 
 describe('Cart Controller - Add and Remove Product', () => {
@@ -8,10 +8,6 @@ describe('Cart Controller - Add and Remove Product', () => {
     let createdProductId;
 
     beforeAll(async () => {
-        const randomPort = Math.floor(Math.random() * (9999 - 3000 + 1)) + 3000;
-        process.env.PORT_NUMBER = randomPort;
-        console.log(`Using random port: ${randomPort}`);
-
         const loginResponse = await request(app)
             .post('/auth/login')
             .send({
@@ -64,7 +60,7 @@ describe('Cart Controller - Add and Remove Product', () => {
             .delete(`/cart/${createdProductId}`)
             .set('Authorization', `Bearer ${authToken}`);
 
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(200); // error here now
         expect(response.body.message).toBe('Product deleted from cart successfully');
         expect(response.body.cart.products).toHaveLength(0);
     });

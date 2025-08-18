@@ -1,13 +1,10 @@
 const request = require('supertest');
-const app = require('../app');
+const { randomPort, app } = require('./testUtils');
 const User = require('../models/user.model');
 const {closeConnection} = require("../util/database");
 
 describe('User Controller Tests', () => {
     beforeEach(() => {
-        const randomPort = Math.floor(Math.random() * (9999 - 3000 + 1)) + 3000;
-        process.env.PORT_NUMBER = randomPort;
-        console.log(`Using random port: ${randomPort}`);
     });
 
     describe('User Controller - GET Users', () => {
