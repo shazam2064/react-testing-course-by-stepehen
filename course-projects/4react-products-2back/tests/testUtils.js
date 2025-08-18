@@ -4,7 +4,4 @@ console.log(`Using random port: ${randomPort}`);
 
 const app = require('../app');
 
-module.exports = {
-    randomPort,
-    app,
-};
+module.exports = app;
