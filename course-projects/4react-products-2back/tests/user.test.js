@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { randomPort, app } = require('./testUtils');
+const app = require('./testUtils');
 const User = require('../models/user.model');
 const {closeConnection} = require("../util/database");
 

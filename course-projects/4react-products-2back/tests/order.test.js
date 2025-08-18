@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { randomPort, app } = require('./testUtils');
+const app = require('./testUtils');
 const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
 

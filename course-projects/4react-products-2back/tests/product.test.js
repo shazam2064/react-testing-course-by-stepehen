@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { randomPort, app } = require('./testUtils');
+const app= require('./testUtils');
 const Product = require('../models/product.model');
 const path = require('path');
 

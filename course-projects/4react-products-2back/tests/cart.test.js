@@ -1,7 +1,6 @@
 const request = require('supertest');
 const path = require('path');
-const { randomPort, app } = require('./testUtils');
-const Product = require('../models/product.model');
+const app = require('./testUtils');
 
 describe('Cart Controller - Add and Remove Product', () => {
     let authToken;
@@ -60,7 +59,7 @@ describe('Cart Controller - Add and Remove Product', () => {
             .delete(`/cart/${createdProductId}`)
             .set('Authorization', `Bearer ${authToken}`);
 
-        expect(response.status).toBe(200); // error here now
+        expect(response.status).toBe(200);
         expect(response.body.message).toBe('Product deleted from cart successfully');
         expect(response.body.cart.products).toHaveLength(0);
     });
