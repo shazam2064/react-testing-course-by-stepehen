@@ -1,9 +1,11 @@
-module.exports = {
+export default {
+    testEnvironment: "jsdom",
     transform: {
-        '^.+\\.jsx?$': 'babel-jest',
+        "^.+\\.[tj]sx?$": "babel-jest",   // handle JS/JSX
     },
     transformIgnorePatterns: [
-        '/node_modules/(?!axios)/', // Allow Jest to transform Axios
+        "node_modules/(?!(axios|msw|@bundled-es-modules)/)", // 👈 allow axios & msw ESM builds
     ],
-    testEnvironment: 'jsdom',
+    moduleFileExtensions: ["js", "jsx"],
+    setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 };
