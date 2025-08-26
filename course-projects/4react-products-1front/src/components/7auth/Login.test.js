@@ -101,7 +101,8 @@ test("renders Login form", () => {
         </MemoryRouter>
     );
 
-    expect(screen.getByText(/login/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument(); // Targets the <h1>
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument(); // Targets the email input
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument(); // Targets the password input
+    expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument(); // Targets the button
 });
