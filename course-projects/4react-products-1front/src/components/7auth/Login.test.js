@@ -1,34 +1,34 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import Login from "../7auth/Login";
 import { UserContext, DispatchContext } from "../../contexts/user.context";
-
-
-const server = setupServer(
-    rest.post("http://localhost:3000/api/auth/login", (req, res, ctx) => {
-        const { email, password } = req.body;
-        if (email === "test@test.com" && password === "123456") {
-            return res(
-                ctx.json({ userId: "1", email, token: "abc123", isLogged: true })
-            );
-        }
-        return res(ctx.status(401), ctx.json({ message: "Invalid credentials" }));
-    })
-);
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+import { createServer } from "../../test/server";
 
 const mockDispatch = jest.fn();
+
+createServer([
+    {
+        path: "/api/auth/login",
+        method: "post",
+        res: (req) => {
+            const { email, password } = req.body;
+            if (email === "test@test.com" && password === "123456") {
+                return { userId: "1", email, token: "abc123", isLogged: true };
+            }
+            return { status: 401, message: "Invalid credentials" };
+        },
+    },
+]);
 
 function renderLogin() {
     return render(
         <MemoryRouter initialEntries={["/login"]}>
             <DispatchContext.Provider value={mockDispatch}>
                 <UserContext.Provider value={{}}>
-                    <Route path="/login" component={Login} />
-                    <Route path="/" render={() => <div>🏠 Home Page</div>} />
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/" element={<div role="main">🏠 Home Page</div>} />
+                    </Routes>
                 </UserContext.Provider>
             </DispatchContext.Provider>
         </MemoryRouter>
@@ -55,8 +55,7 @@ test("successful login redirects and dispatches LOGIN", async () => {
 
     fireEvent.click(screen.getByRole("button", { name: /login/i }));
 
-    // Wait for redirect to home page
-    await screen.findByText("🏠 Home Page");
+    await screen.findByRole("main", { name: /🏠 Home Page/i });
 
     expect(mockDispatch).toHaveBeenCalledWith({
         type: "LOGIN",
