@@ -1,15 +1,17 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext, DispatchContext as CartDispatchContext } from '../../contexts/cart.context';
 import CartItem from './CartItem';
-import { withRouter } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useFetchCart, useDeleteProductFromCart } from "../../rest/useRestCart";
 import { useCreateOrder } from "../../rest/useRestOrders";
-import {Alert} from "reactstrap";
+import { Alert } from "reactstrap";
 
-function CartList(props) {
+function CartList() {
     const cart = useContext(CartContext);
     const cartDispatch = useContext(CartDispatchContext);
-    const [refreshCart, setRefreshCart] = useState(props.location.state?.refreshCart || false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [refreshCart, setRefreshCart] = useState(location.state?.refreshCart || false);
     const [error, setError] = useState('');
     const fetchCart = useFetchCart();
     const deleteProductFromCart = useDeleteProductFromCart();
@@ -82,7 +84,7 @@ function CartList(props) {
         };
         createOrder(newOrder).then(() => {
             cartDispatch({ type: 'CLEAR_CART' });
-            props.history.push('/orders');
+            navigate('/orders');
             console.log('Order placed successfully', newOrder);
         }).catch(error => {
             setError('Order could not be placed: ' + error.message);
@@ -106,4 +108,4 @@ function CartList(props) {
     );
 };
 
-export default withRouter(CartList);
+export default CartList;

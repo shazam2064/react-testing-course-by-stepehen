@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AdminUsersContext, DispatchContext } from "../../contexts/admin-users.context";
 import UserItem from "./UserItem";
-import { withRouter } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDeleteAdminUser, useFetchAdminUsers } from "../../rest/useRestAdminUsers";
 import { UserContext } from "../../contexts/user.context";
 import { Alert } from "reactstrap";
 
-function ListUsers(props) {
+function ListUsers() {
     const adminUsers = useContext(AdminUsersContext);
     const dispatch = useContext(DispatchContext);
     const [error, setError] = useState('');
@@ -15,6 +15,7 @@ function ListUsers(props) {
     const [refreshAdminUsers, setRefreshAdminUsers] = useState(true);
     const loggedUser = useContext(UserContext);
     const [visible, setVisible] = useState(true);
+    const navigate = useNavigate();
 
     const onDismiss = () => setVisible(false);
 
@@ -33,7 +34,7 @@ function ListUsers(props) {
     }, [refreshAdminUsers]);
 
     const handleEditUser = (adminUserId) => {
-        props.history.push('/admin/edit-user/' + adminUserId);
+        navigate('/admin/edit-user/' + adminUserId);
     }
 
     const handleDeleteUser = (adminUserId) => {
@@ -85,4 +86,4 @@ function ListUsers(props) {
     );
 }
 
-export default withRouter(ListUsers);
+export default ListUsers;
