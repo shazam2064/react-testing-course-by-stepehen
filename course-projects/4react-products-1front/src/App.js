@@ -1,5 +1,4 @@
-import logo from './logo.svg';
-import {Route, Switch} from "react-router-dom";
+import {Route, Routes} from "react-router-dom";
 import Shop from "./components/Shop";
 import ProductList from "./components/1products/ProductList";
 import CartList from "./components/3cart/CartList";
@@ -28,7 +27,7 @@ function App() {
                     <ProductsProvider>
                         <CartProvider>
                             <OrdersProvider>
-                                <Switch>
+                                <Routes>
                                     <Route exact path="/" component={Shop}/>
                                     <Route path="/products" component={ProductList}/>
                                     <Route path="/view-product/:prodId" component={ViewProduct}/>
@@ -46,7 +45,7 @@ function App() {
                                            render={(routeProps) => <AddEditUser {...routeProps} />}/>
                                     <Route path="/admin/edit-user/:adminUserId"
                                            render={(routeProps) => <AddEditUser {...routeProps} />}/>
-                                </Switch>
+                                </Routes>
                             </OrdersProvider>
                         </CartProvider>
                     </ProductsProvider>
