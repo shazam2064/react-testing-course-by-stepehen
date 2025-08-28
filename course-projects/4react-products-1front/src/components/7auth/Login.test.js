@@ -22,7 +22,10 @@ createServer([
 
 function renderLogin() {
     return render(
-        <MemoryRouter initialEntries={["/login"]}>
+        <MemoryRouter
+            initialEntries={["/login"]}
+            future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
             <DispatchContext.Provider value={mockDispatch}>
                 <UserContext.Provider value={{}}>
                     <Routes>
@@ -34,7 +37,6 @@ function renderLogin() {
         </MemoryRouter>
     );
 }
-
 test("renders login form inputs and button", () => {
     renderLogin();
 
@@ -47,7 +49,7 @@ test("successful login redirects and dispatches LOGIN", async () => {
     renderLogin();
 
     fireEvent.change(screen.getByLabelText(/email/i), {
-        target: { value: "test@test.com" },
+        target: { value: "admin1@test.com" },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
         target: { value: "123456" },
@@ -55,11 +57,11 @@ test("successful login redirects and dispatches LOGIN", async () => {
 
     fireEvent.click(screen.getByRole("button", { name: /login/i }));
 
-    await screen.findByRole("main", { name: /🏠 Home Page/i });
+    await screen.findByRole("main", { name: /home page/i });
 
     expect(mockDispatch).toHaveBeenCalledWith({
         type: "LOGIN",
-        payload: expect.objectContaining({ email: "test@test.com" }),
+        payload: expect.objectContaining({ email: "admin1@test.com" }),
     });
 });
 
@@ -81,27 +83,3 @@ test("failed login shows error alert", async () => {
         ).toBeInTheDocument()
     );
 });
-
-
-/*
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import Login from "../7auth/Login";
-import { UserContext, DispatchContext } from "../../contexts/user.context";
-
-test("renders Login form", () => {
-    render(
-        <MemoryRouter>
-            <DispatchContext.Provider value={() => {}}>
-                <UserContext.Provider value={{}}>
-                    <Login />
-                </UserContext.Provider>
-            </DispatchContext.Provider>
-        </MemoryRouter>
-    );
-
-    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument(); // Targets the <h1>
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument(); // Targets the email input
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument(); // Targets the password input
-    expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument(); // Targets the button
-});*/
