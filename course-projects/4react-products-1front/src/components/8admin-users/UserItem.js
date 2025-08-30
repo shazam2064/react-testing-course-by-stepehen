@@ -1,7 +1,8 @@
 import React, { useState, memo } from "react";
+import { withRouter } from "react-router-dom";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
 
-const UserItem = memo(function UserItem({ adminUser, actionButtons }) {
+const UserItem = memo(function UserItem({ adminUser, history, actionButtons }) {
     const [open, setOpen] = useState('');
     const toggle = (id) => {
         if (open === id) {
@@ -34,4 +35,4 @@ const UserItem = memo(function UserItem({ adminUser, actionButtons }) {
     );
 });
 
-export default UserItem;
+export default withRouter(UserItem);

@@ -1,14 +1,8 @@
 import React, { memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import { API_URL } from '../../rest/api.rest';
 
-const ProductItem = memo(function ProductItem({ product, actionButtons }) {
-    const navigate = useNavigate();
-
-    const handleNavigation = (path) => {
-        navigate(path);
-    };
-
+const ProductItem = memo(function ProductItem({ product, history, actionButtons }) {
     return (
         <div key={product._id}>
             <article className="card">
@@ -39,4 +33,4 @@ const ProductItem = memo(function ProductItem({ product, actionButtons }) {
     );
 });
 
-export default ProductItem;
+export default withRouter(ProductItem);

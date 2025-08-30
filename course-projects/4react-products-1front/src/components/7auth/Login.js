@@ -1,19 +1,16 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { handleChange } from '../0commons/form.common';
 import { UserContext, DispatchContext } from '../../contexts/user.context';
-// import axios from "axios/dist/node/axios.cjs";
-import axios from "axios";
+import axios from 'axios';
 import { API_URL } from '../../rest/api.rest';
-import { Alert, Button, Form, FormGroup } from "reactstrap";
-import { useNavigate } from 'react-router-dom';
+import {Alert, Button, Form, FormGroup} from "reactstrap";
 
-function Login() {
+function Login(props) {
     const [user, setUser] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const loggedUser = useContext(UserContext);
     const loggedDispatch = useContext(DispatchContext);
     const [visible, setVisible] = useState(true);
-    const navigate = useNavigate();
 
     const onDismiss = () => setVisible(false);
 
@@ -25,7 +22,7 @@ function Login() {
         try {
             const response = await axios.post(`${API_URL}/auth/login`, user);
             loggedDispatch({ type: 'LOGIN', payload: response.data });
-            navigate('/');
+            props.history.push('/');
         } catch (err) {
             setError('Login failed. Please try again.');
         }

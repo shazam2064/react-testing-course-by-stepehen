@@ -1,10 +1,5 @@
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
-import { TextEncoder, TextDecoder } from 'util';
-
-if (!global.TextEncoder) global.TextEncoder = TextEncoder;
-if (!global.TextDecoder) global.TextDecoder = TextDecoder;
-
-// 👇 Fake stream classes so msw doesn’t crash
-if (!global.TransformStream) global.TransformStream = class {};
-if (!global.ReadableStream) global.ReadableStream = class {};
-if (!global.WritableStream) global.WritableStream = class {};

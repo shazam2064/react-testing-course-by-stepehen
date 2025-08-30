@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { AdminUsersContext } from "../../contexts/admin-users.context";
-import { useCreateAdminUser, useFetchAdminUserById, useUpdateAdminUser } from '../../rest/useRestAdminUsers';
+import { withRouter } from 'react-router-dom';
+import {AdminUsersContext} from "../../contexts/admin-users.context";
+import {useCreateAdminUser, useFetchAdminUserById, useUpdateAdminUser} from '../../rest/useRestAdminUsers';
 import { UserContext } from '../../contexts/user.context';
-import { getInitialAdminUserState } from "../../reducers/admin-user.reducer";
-import { Alert, Form, FormGroup } from "reactstrap";
+import {getInitialAdminUserState} from "../../reducers/admin-user.reducer";
+import {Alert, Form, FormGroup, Toast, ToastBody, ToastHeader} from "reactstrap";
 
-function AddEditUser() {
+function AddEditUser(props) {
     const adminUsers = useContext(AdminUsersContext);
     const [adminUser, setAdminUser] = useState(getInitialAdminUserState());
     const [error, setError] = useState(null);
     const createAdminUser = useCreateAdminUser();
     const updateAdminUser = useUpdateAdminUser();
     const fetchAdminUserById = useFetchAdminUserById();
-    const { adminUserId } = useParams();
-    const navigate = useNavigate();
+    const {adminUserId} = props.match.params;
     const isEditMode = !!adminUserId;
     const loggedUser = useContext(UserContext);
     const [visible, setVisible] = useState(true);
@@ -54,7 +53,7 @@ function AddEditUser() {
                 await createAdminUser(adminUser);
             }
             setError(null);
-            navigate('/admin/users');
+            props.history.push('/admin/users');
         } catch (error) {
             setError(`User could not be ${isEditMode ? 'updated' : 'created'}: ${error.message}`);
         }
@@ -73,7 +72,7 @@ function AddEditUser() {
                 <p className="mb-0">
                     Go <a
                     className="alert-link"
-                    onClick={() => navigate('/')}>
+                    onClick={() => props.history.push('/')}>
                     back
                 </a>.
                 </p>
@@ -83,7 +82,7 @@ function AddEditUser() {
 
     return (
         <div className="container p-s5 my-4 col-6 offset-3">
-            <h1 className="mb-3 text-center display-3">{isEditMode ? 'Edit User' : 'Add User'}</h1>
+        <h1 className="mb-3 text-center display-3">{isEditMode ? 'Edit User' : 'Add User'}</h1>
             {error ?
                 <Alert color="danger" isOpen={visible} toggle={onDismiss}>
                     <h4 className="alert-heading">An error occurred</h4>
@@ -154,4 +153,4 @@ function AddEditUser() {
     );
 }
 
-export default AddEditUser;
+export default withRouter(AddEditUser);

@@ -1,34 +1,33 @@
 import React, { useContext, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, withRouter } from 'react-router-dom';
 import { DispatchContext, UserContext } from '../contexts/user.context';
 import { useDeleteAdminUser } from '../rest/useRestAdminUsers';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { Navbar, NavbarBrand, NavbarToggler, Collapse, Nav, NavItem, Button, Dropdown, DropdownToggle, DropdownMenu, DropdownItem } from 'reactstrap';
 
-function NavbarComponent() {
+function NavbarComponent(props) {
     const loggedUser = useContext(UserContext);
     const loggedDispatch = useContext(DispatchContext);
     const deleteAdminUser = useDeleteAdminUser();
     const [isOpen, setIsOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const navigate = useNavigate();
 
     const toggle = () => setIsOpen(!isOpen);
     const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
     const handleLogout = () => {
         loggedDispatch({ type: 'LOGOUT' });
-        navigate('/login');
+        props.history.push('/login');
     };
 
     const handleEditUser = () => {
-        navigate('/admin/edit-user/' + loggedUser.userId);
+        props.history.push('/admin/edit-user/' + loggedUser.userId);
     };
 
     const handleDeleteUser = () => {
         deleteAdminUser(loggedUser.userId).then(() => {
             loggedDispatch({ type: 'LOGOUT' });
-            navigate('/login');
+            props.history.push('/login');
         }).catch(error => {
             alert('User could not be deleted: ' + error.message);
         });
@@ -99,16 +98,16 @@ function NavbarComponent() {
             <NavbarToggler onClick={toggle} />
             <Collapse isOpen={isOpen} navbar>
                 <Nav className="me-auto" navbar>
-                    <NavItem>
-                        <NavLink className="nav-link" to="/products" activeClassName="active">Products</NavLink>
-                    </NavItem>
-                    <NavItem>
-                        <NavLink className="nav-link" to="/cart" activeClassName="active">Cart</NavLink>
-                    </NavItem>
-                    <NavItem>
-                        <NavLink className="nav-link" to="/orders" activeClassName="active">Orders</NavLink>
-                    </NavItem>
-                    {getAdminRoutes()}
+                        <NavItem>
+                            <NavLink className="nav-link" to="/products" activeClassName="active">Products</NavLink>
+                        </NavItem>
+                        <NavItem>
+                            <NavLink className="nav-link" to="/cart" activeClassName="active">Cart</NavLink>
+                        </NavItem>
+                        <NavItem>
+                            <NavLink className="nav-link" to="/orders" activeClassName="active">Orders</NavLink>
+                        </NavItem>
+                        {getAdminRoutes()}
                 </Nav>
                 {getSignupLoginButtons()}
             </Collapse>
@@ -116,4 +115,4 @@ function NavbarComponent() {
     );
 }
 
-export default NavbarComponent;
+export default withRouter(NavbarComponent);

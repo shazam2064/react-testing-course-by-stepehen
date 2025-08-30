@@ -1,19 +1,19 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { DispatchContext, ProductsContext } from '../../contexts/products.context';
 import ProductItem from '../0commons/ProductItem';
-import { useNavigate } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import AddToCartButton from "./AddToCartButton";
 import { useFetchProducts, useDeleteProduct } from "../../rest/useRestProducts";
-import { Alert } from "reactstrap";
+import {Alert} from "reactstrap";
 
-function ListProducts({ adminProducts }) {
+function ListProducts(props) {
     const products = useContext(ProductsContext);
     const dispatch = useContext(DispatchContext);
     const [error, setError] = useState('');
     const fetchProducts = useFetchProducts();
     const deleteProduct = useDeleteProduct();
+    const { adminProducts } = props;
     const [visible, setVisible] = useState(true);
-    const navigate = useNavigate();
 
     const onDismiss = () => setVisible(false);
 
@@ -40,7 +40,7 @@ function ListProducts({ adminProducts }) {
     }, [dispatch, error]);
 
     const handleEditProduct = (prodId) => {
-        navigate(`/admin/edit-product/${prodId}`);
+        props.history.push(`/admin/edit-product/${prodId}`);
     };
 
     const handleDeleteProduct = (prodId) => {
@@ -54,8 +54,8 @@ function ListProducts({ adminProducts }) {
 
     const handleViewProduct = (prodId) => {
         console.log('Viewing product:', prodId);
-        navigate(`/view-product/${prodId}`);
-    };
+        props.history.push(`/view-product/${prodId}`);
+    }
 
     const showActionButtons = (product) => {
         console.log('adminProducts:', product._id);
@@ -74,7 +74,7 @@ function ListProducts({ adminProducts }) {
                 </>
             );
         }
-    };
+    }
 
     return (
         <section className="container">
@@ -106,4 +106,4 @@ function ListProducts({ adminProducts }) {
     );
 }
 
-export default ListProducts;
+export default withRouter(ListProducts);

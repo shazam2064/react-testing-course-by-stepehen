@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import { useAddProductToCart } from "../../rest/useRestCart";
 
-function AddToCartButton({ productItem }) {
+function AddToCartButton({ productItem, history }) {
     const addProductToCart = useAddProductToCart();
     const [refreshCart, setRefreshCart] = useState(false);
-    const navigate = useNavigate();
 
     const handleAddToCart = async () => {
         await addProductToCart(productItem._id, 1);
         setRefreshCart(true);
-        navigate('/cart', { state: { refreshCart: true } });
+        history.push({
+            pathname: '/cart',
+            state: { refreshCart: true }
+        });
     };
 
     return (
@@ -18,4 +20,4 @@ function AddToCartButton({ productItem }) {
     );
 }
 
-export default AddToCartButton;
+export default withRouter(AddToCartButton);
