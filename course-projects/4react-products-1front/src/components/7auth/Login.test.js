@@ -1,4 +1,3 @@
-// course-projects/4react-products-1front/src/components/7auth/Login.test.js
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Login from './Login';
