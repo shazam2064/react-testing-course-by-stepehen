@@ -19,3 +19,11 @@ global.BroadcastChannel = class {
     onmessage = null;
 };
 
+try {
+    const react = require('react');
+    const reactDomTestUtils = require('react-dom/test-utils');
+    if (react && react.act && reactDomTestUtils && reactDomTestUtils.act !== react.act) {
+        reactDomTestUtils.act = react.act;
+    }
+} catch (e) {
+}
