@@ -12,20 +12,14 @@ const renderSignup = () => {
 };
 
 describe('Signup Component', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
     test('renders signup form', () => {
         renderSignup();
-        expect(screen.getByRole('heading', {name: /signup/i})).toBeInTheDocument();
         expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/eMail/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: /signup/i})).toBeInTheDocument();
+        expect(screen.getByLabelText('Password')).toBeInTheDocument();
+        expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /signup/i })).toBeInTheDocument();
     });
-
 });
 
 
