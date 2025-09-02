@@ -4,7 +4,7 @@ module.exports = {
         '^.+\\.jsx?$': 'babel-jest',
     },
     transformIgnorePatterns: [
-        '/node_modules/(?!(axios)/)',
+        '/node_modules/(?!(axios|msw)/)',
     ],
     moduleNameMapper: {
         '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
