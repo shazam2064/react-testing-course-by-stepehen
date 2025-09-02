@@ -11,7 +11,14 @@ export function createServer(handlerConfig) {
             throw new Error(`Unsupported HTTP method: ${method}`);
         }
         return rest[method](config.path, (req, res, ctx) => {
-            return res(ctx.json(config.res(req, res, ctx)));
+            try {
+                return res(ctx.json(config.res(req, res, ctx)));
+            } catch (err) {
+                return res(
+                    ctx.status(400),
+                    ctx.json({ error: err.message || 'Unknown error' })
+                );
+            }
         });
     });
 
@@ -21,7 +28,7 @@ export function createServer(handlerConfig) {
         server.listen();
     });
 
-        afterEach(() => {
+    afterEach(() => {
         server.resetHandlers();
     });
 
