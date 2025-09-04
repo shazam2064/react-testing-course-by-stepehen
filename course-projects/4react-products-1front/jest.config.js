@@ -9,6 +9,6 @@ module.exports = {
     moduleNameMapper: {
         '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     },
-    setupFilesAfterEnv: ['<rootDir>/config/jest.setup.js'], // Correct usage of <rootDir>
-    testMatch: ['**/?(*.)+(test).[jt]s?(x)'], // Matches files like Login.test.js or Login.test.jsx
+    setupFilesAfterEnv: ['<rootDir>/config/jest.setup.js'],
+    testMatch: ['**/?(*.)+(test).[jt]s?(x)'],
 };
