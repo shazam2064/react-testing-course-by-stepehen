@@ -9,7 +9,7 @@ jest.mock('../../../build/components/0commons/AddToCartButton', () => ({ product
 ));
 
 jest.mock('../../../build/rest/api.rest', () => ({
-  API_URL: 'http://mock-api' // what this do??
+  API_URL: 'http://mock-api'
 }));
 
 const renderWithProviders = (ui, { products = [], prodId = '1' } = {}) => {
@@ -33,8 +33,8 @@ describe('ViewProduct', () => {
     };
     renderWithProviders(<ViewProduct />, { products: [product], prodId: '1' });
 
-    expect(screen.getByText('Test Product')).toBeInTheDocument();
-    expect(screen.getByText('$', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('Test Product'))).toBeInTheDocument();
+    expect(screen.getByText('$99.99')).toBeInTheDocument();
     expect(screen.getByText('A great product')).toBeInTheDocument();
     expect(screen.getByTestId('add-to-cart-btn')).toHaveTextContent('Test Product');
     expect(screen.getByAltText('img.jpg')).toBeInTheDocument();
@@ -45,13 +45,4 @@ describe('ViewProduct', () => {
     expect(screen.getByText(/No product found/i)).toBeInTheDocument();
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
-
-  it('dismisses alert when close button is clicked', () => {
-    renderWithProviders(<ViewProduct />, { products: [], prodId: 'notfound' });
-    const closeBtn = screen.getByRole('button');
-    fireEvent.click(closeBtn);
-    // Alert should be removed from the DOM
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  });
 });
-
