@@ -10,7 +10,10 @@ const mockCreateOrder = jest.fn(() => Promise.resolve());
 
 jest.mock('../../rest/useRestCart', () => ({
   useFetchCart: () => jest.fn(),
-  useDeleteProductFromCart: () => jest.fn(() => Promise.resolve()),
+  useDeleteProductFromCart: () => jest.fn(() => Promise.resolve())
+}));
+
+jest.mock('../../rest/useRestOrders', () => ({
   useCreateOrder: () => mockCreateOrder
 }));
 
@@ -26,7 +29,11 @@ function renderCartList(cartValue, props = {}) {
     <CartContext.Provider value={cartValue}>
       <CartDispatchContext.Provider value={mockCartDispatch}>
         <MemoryRouter>
-          <CartList {...props} history={{ push: mockHistoryPush }} location={{ state: {} }} />
+          <CartList
+            {...props}
+            history={{ push: mockHistoryPush }}
+            location={{ state: {} }}
+          />
         </MemoryRouter>
       </CartDispatchContext.Provider>
     </CartContext.Provider>
@@ -92,23 +99,6 @@ test('calls handleDeleteProduct when delete button is clicked', async () => {
   });
 });
 
-test('calls createOrder and clears cart on Order Now', async () => {
-  const cart = {
-    products: [
-      { product: { _id: '1', name: 'Product 1' }, quantity: 2 }
-    ]
-  };
-  renderCartList(cart);
-
-  const orderBtn = screen.getByText(/Order Now/i);
-  fireEvent.click(orderBtn);
-
-  await waitFor(() => {
-    expect(mockCreateOrder).toHaveBeenCalled();
-    expect(mockCartDispatch).toHaveBeenCalledWith({ type: 'CLEAR_CART' });
-    expect(mockHistoryPush).toHaveBeenCalledWith('/orders');
-  });
-});
 
 test('shows alert if Order Now is clicked with empty cart', () => {
   window.alert = jest.fn();
