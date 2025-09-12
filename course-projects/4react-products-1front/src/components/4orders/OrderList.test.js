@@ -46,7 +46,6 @@ describe('OrderList', () => {
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ORDERS', orders }));
 
-    // Use a function matcher to find the heading with "Order Id:"
     expect(
       screen.getByText((content, element) =>
         element.tagName.toLowerCase() === 'h3' && content.includes('Order Id:')
