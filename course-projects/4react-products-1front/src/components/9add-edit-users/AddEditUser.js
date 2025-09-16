@@ -15,7 +15,7 @@ function AddEditUser(props) {
     const fetchAdminUserById = useFetchAdminUserById();
     const {adminUserId} = props.match.params;
     const isEditMode = !!adminUserId;
-    const loggedUser = useContext(UserContext);
+    const loggedUser = useContext(UserContext) || {};
     const [visible, setVisible] = useState(true);
 
     const onDismiss = () => setVisible(false);
