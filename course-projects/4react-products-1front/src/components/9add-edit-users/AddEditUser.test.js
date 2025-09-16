@@ -20,14 +20,23 @@ jest.mock('../../rest/useRestAdminUsers', () => ({
 }));
 
 jest.mock('../../contexts/admin-users.context', () => ({
-  AdminUsersContext: React.createContext([]),
+  AdminUsersContext: {},
 }));
 jest.mock('../../contexts/user.context', () => ({
-  UserContext: React.createContext({ isAdmin: true }),
+  UserContext: {},
 }));
 
-function renderWithRouter(ui, { route = '/admin/users/add', user = mockUser } = {}) {
+function renderWithRouter({ route = '/admin/users/add', user = { isAdmin: true } } = {}) {
   const history = createMemoryHistory({ initialEntries: [route] });
+  jest.spyOn(React, 'useContext').mockImplementation((ctx) => {
+    if (ctx === require('../../contexts/user.context').UserContext) {
+      return user;
+    }
+    if (ctx === require('../../contexts/admin-users.context').AdminUsersContext) {
+      return [];
+    }
+    return {};
+  });
   return render(
     <Router history={history}>
       <AddEditUser
@@ -39,8 +48,12 @@ function renderWithRouter(ui, { route = '/admin/users/add', user = mockUser } = 
 }
 
 describe('AddEditUser', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders Add User form for admin', () => {
-    renderWithRouter(<AddEditUser />);
+    renderWithRouter();
     expect(screen.getByText(/Add User/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
@@ -51,24 +64,20 @@ describe('AddEditUser', () => {
   });
 
   it('renders Edit User form for admin', async () => {
-    renderWithRouter(<AddEditUser />, { route: '/admin/users/edit/1' });
+    renderWithRouter({ route: '/admin/users/edit/1' });
     await waitFor(() => expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument());
     expect(screen.getByText(/Edit User/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Update User/i })).toBeInTheDocument();
   });
 
   it('shows unauthorized message for non-admin', () => {
-    jest.spyOn(React, 'useContext').mockImplementation((ctx) => {
-      if (ctx.displayName === 'UserContext') return { isAdmin: false };
-      return [];
-    });
-    renderWithRouter(<AddEditUser />);
+    renderWithRouter({ user: { isAdmin: false } });
     expect(screen.getByText(/Unauthorized!/i)).toBeInTheDocument();
     expect(screen.getByText(/not authorized/i)).toBeInTheDocument();
   });
 
   it('submits the form', async () => {
-    renderWithRouter(<AddEditUser />);
+    renderWithRouter();
     fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Jane' } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'jane@example.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'pass123' } });
@@ -80,4 +89,3 @@ describe('AddEditUser', () => {
     });
   });
 });
-
