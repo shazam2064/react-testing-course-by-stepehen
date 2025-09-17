@@ -80,13 +80,14 @@ describe('AddEditProduct', () => {
   });
 
   it('validates form and shows alert on missing fields', async () => {
+    window.alert = jest.fn();
     renderWithProviders(<AddEditProduct />, { products: [], user: { isAdmin: true } });
     fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText(/Price/i), { target: { value: '0' } });
     fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: /Add Product/i }));
     await waitFor(() => {
-      expect(window.alert).toBeCalledWith('Please fill in the missing fields');
+      expect(window.alert).toHaveBeenCalledWith('Please fill in the missing fields');
     });
   });
 
@@ -133,4 +134,3 @@ describe('AddEditProduct', () => {
     console.error.mockRestore();
   });
 });
-
