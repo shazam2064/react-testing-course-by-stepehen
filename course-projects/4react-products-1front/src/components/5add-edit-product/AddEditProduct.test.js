@@ -1,56 +1,136 @@
-import React from 'react'
-import {render, screen, fireEvent, waitFor} from "@testing-library/react";
-import AddEditProduct from "./AddEditProduct";
-import {ProductsContext, DispatchContext} from "../../contexts/products.context";
-import {MemoryRouter} from "react-router-dom";
+import React from 'react';
+import { render, fireEvent, screen, waitFor } from '@testing-library/react';
+import { Router } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
+import AddEditProduct from './AddEditProduct';
+import { ProductsContext, DispatchContext } from '../../contexts/products.context';
+import { UserContext } from '../../contexts/user.context';
 
-jest.mock('reactstrap', () => ({
-    Alert: ({children, isOpen}) => (isOpen ? <div data-testid="alert">{children}</div> : null)
-}))
-
-const mockAddOrders = jest.fn();
-const mockUpdateOrders = jest.fn();
-
+// Mock hooks
 jest.mock('../../rest/useRestProducts', () => ({
-    useCreateProduct: () => mockAddOrders,
-    useUpdateProduct: () => mockUpdateOrders,
+  useCreateProduct: () => jest.fn(() => Promise.resolve()),
+  useUpdateProduct: () => jest.fn(() => Promise.resolve())
 }));
 
-const renderWithContext = (products = [], dispatch = jest.fn(), prodId = null) => {
-    return render(
-        <ProductsContext.Provider value={products}>
-            <DispatchContext.Provider value={dispatch}>
-                <MemoryRouter>
-                    <AddEditProduct match={{params: {prodId}}}/>
-                </MemoryRouter>
-            </DispatchContext.Provider>
-        </ProductsContext.Provider>
-    );
+const mockProducts = [
+  {
+    _id: '1',
+    name: 'Test Product',
+    price: 10,
+    description: 'Test Description',
+    imageUrl: 'images/test.jpg'
+  }
+];
+
+const renderWithProviders = (
+  ui,
+  {
+    products = [],
+    dispatch = jest.fn(),
+    user = { isAdmin: true },
+    route = '/admin/add-product',
+    prodId = null
+  } = {}
+) => {
+  const history = createMemoryHistory();
+  history.push(route);
+  const match = { params: prodId ? { prodId } : {} };
+
+  return render(
+    <UserContext.Provider value={user}>
+      <ProductsContext.Provider value={products}>
+        <DispatchContext.Provider value={dispatch}>
+          <Router history={history}>
+            <AddEditProduct match={match} history={history} />
+          </Router>
+        </DispatchContext.Provider>
+      </ProductsContext.Provider>
+    </UserContext.Provider>
+  );
 };
 
 describe('AddEditProduct', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+  it('renders Add Product form for admin', () => {
+    renderWithProviders(<AddEditProduct />, { products: [], user: { isAdmin: true } });
+    expect(screen.getByText(/Add Product/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Price/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Image/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add Product/i })).toBeInTheDocument();
+  });
+
+  it('renders Edit Product form for admin', () => {
+    renderWithProviders(<AddEditProduct />, {
+      products: mockProducts,
+      user: { isAdmin: true },
+      route: '/admin/edit-product/1',
+      prodId: '1'
     });
+    expect(screen.getByText(/Edit Product/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Test Product')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('10')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Test Description')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Edit Product/i })).toBeInTheDocument();
+  });
 
-    it('renders form in add mode', () => {
-        renderWithContext([], jest.fn(), null);
+  it('shows access denied for non-admin', () => {
+    renderWithProviders(<AddEditProduct />, { user: { isAdmin: false } });
+    expect(screen.getByText(/Access denied/i)).toBeInTheDocument();
+  });
 
-        expect(screen.getByText(/Add Product/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Price/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Image/i)).toBeInTheDocument();
-        expect(screen.getByText(/Create Product/i)).toBeInTheDocument();
+  it('validates form and shows alert on missing fields', async () => {
+    renderWithProviders(<AddEditProduct />, { products: [], user: { isAdmin: true } });
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText(/Price/i), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add Product/i }));
+    await waitFor(() => {
+      expect(window.alert).toBeCalledWith('Please fill in the missing fields');
     });
+  });
 
-    it('renders form in edit mode with product data', () => {
-        const products = [
-            {_id: '1', name: 'Test Product', price: 99.99, description: 'A great product', imageUrl: 'img.jpg'}
-        ];
-        renderWithContext(products, jest.fn(), '1');
-
-        expect(screen.getByDisplayValue('Test Product')).toBeInTheDocument();
-        expect(screen.get )
+  it('submits form and redirects on success', async () => {
+    const history = createMemoryHistory();
+    history.push('/admin/add-product');
+    window.alert = jest.fn();
+    render(
+      <UserContext.Provider value={{ isAdmin: true }}>
+        <ProductsContext.Provider value={[]}>
+          <DispatchContext.Provider value={jest.fn()}>
+            <Router history={history}>
+              <AddEditProduct match={{ params: {} }} history={history} />
+            </Router>
+          </DispatchContext.Provider>
+        </ProductsContext.Provider>
+      </UserContext.Provider>
+    );
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'New Product' } });
+    fireEvent.change(screen.getByLabelText(/Price/i), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'A new product' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add Product/i }));
+    await waitFor(() => {
+      expect(history.location.pathname).toBe('/admin/admin-products');
     });
+  });
+
+  it('shows error alert if API fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorMsg = 'API error';
+    jest.mock('../../rest/useRestProducts', () => ({
+      useCreateProduct: () => jest.fn(() => Promise.reject(new Error(errorMsg))),
+      useUpdateProduct: () => jest.fn(() => Promise.reject(new Error(errorMsg)))
+    }));
+    renderWithProviders(<AddEditProduct />, { products: [], user: { isAdmin: true } });
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'New Product' } });
+    fireEvent.change(screen.getByLabelText(/Price/i), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'A new product' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add Product/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/An error occurred/i)).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(errorMsg))).toBeInTheDocument();
+    });
+    console.error.mockRestore();
+  });
 });
+
