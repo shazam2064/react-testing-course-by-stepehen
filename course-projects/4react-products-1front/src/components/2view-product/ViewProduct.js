@@ -9,7 +9,7 @@ function ViewProduct(props) {
     const { match } = props;
     const products = useContext(ProductsContext);
     const prodId = match.params.prodId;
-    const product = products.find(p => p._id === prodId);
+    const product = prodId ? products.find(p => p._id === prodId) : products[0];
     const [visible, setVisible] = useState(true);
 
     const onDismiss = () => setVisible(false);
