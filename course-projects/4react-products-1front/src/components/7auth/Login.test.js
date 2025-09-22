@@ -2,7 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Login from './Login';
 import { UserContext, DispatchContext } from '../../contexts/user.context';
-import { createServer } from '../../test/server';
+import axios from 'axios';
+
+jest.mock('axios');
 
 const mockDispatch = jest.fn();
 const mockHistory = { push: jest.fn() };
@@ -31,13 +33,9 @@ describe('Login Component', () => {
     });
 
     test('logs in successfully and redirects', async () => {
-        createServer([
-            {
-                method: 'post',
-                path: '/auth/login',
-                res: () => ({ token: 'mock-token', user: { id: 1, email: 'test@example.com' } }),
-            },
-        ]);
+        axios.post.mockResolvedValueOnce({
+            data: { token: 'mock-token', user: { id: 1, email: 'test@example.com' } }
+        });
 
         renderWithContext();
 
@@ -55,13 +53,7 @@ describe('Login Component', () => {
     });
 
     test('shows error on failed login', async () => {
-        createServer([
-            {
-                method: 'post',
-                path: '/auth/login',
-                res: () => { throw new Error('Invalid credentials'); },
-            },
-        ]);
+        axios.post.mockRejectedValueOnce(new Error('Invalid credentials'));
 
         renderWithContext();
 
