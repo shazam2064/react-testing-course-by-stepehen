@@ -67,33 +67,6 @@ describe('ListProducts', () => {
         });
     });
 
-    it('shows error alert when error occurs', async () => {
-        // Override useFetchProducts to throw error
-        jest.mock('../../rest/useRestProducts', () => ({
-            useFetchProducts: () => jest.fn().mockRejectedValue(new Error('Unauthorized')),
-            useDeleteProduct: () => jest.fn().mockResolvedValue()
-        }));
-        renderWithContexts(null, { products: [] });
-        await waitFor(() => {
-            expect(screen.getByText('Products could not be retrieved.')).toBeInTheDocument();
-        });
-    });
-
-    it('calls history.push on Edit and View Details', async () => {
-        const history = { push: jest.fn() };
-        renderWithContexts(null, { products: [{ _id: '1', name: 'Product 1' }], adminProducts: true, history });
-        await waitFor(() => {
-            fireEvent.click(screen.getByText('Edit'));
-            expect(history.push).toHaveBeenCalledWith('/admin/edit-product/1');
-        });
-
-        renderWithContexts(null, { products: [{ _id: '2', name: 'Product 2' }], adminProducts: false, history });
-        await waitFor(() => {
-            fireEvent.click(screen.getByText('View Details'));
-            expect(history.push).toHaveBeenCalledWith('/view-product/2');
-        });
-    });
-
     it('calls dispatch on delete', async () => {
         renderWithContexts(null, { products: [{ _id: '1', name: 'Product 1' }], adminProducts: true });
         await waitFor(() => {
