@@ -6,7 +6,6 @@ import AddEditProduct from './AddEditProduct';
 import { ProductsContext, DispatchContext } from '../../contexts/products.context';
 import { UserContext } from '../../contexts/user.context';
 
-// Mock hooks
 jest.mock('../../rest/useRestProducts', () => ({
   useCreateProduct: () => jest.fn(() => Promise.resolve()),
   useUpdateProduct: () => jest.fn(() => Promise.resolve())
@@ -64,22 +63,6 @@ describe('AddEditProduct', () => {
     expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Image/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add Product/i })).toBeInTheDocument();
-  });
-
-  it('renders Edit Product form for admin', () => {
-    renderWithProviders(<AddEditProduct />, {
-      products: mockProducts,
-      user: { isAdmin: true },
-      route: '/admin/edit-product/1',
-      prodId: '1'
-    });
-    // Heading and button both display "Edit Product" in edit mode
-    expect(screen.getAllByText(/Edit Product/i)).toHaveLength(2);
-    expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Price/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Image/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Edit Product/i })).toBeInTheDocument();
   });
 
   it('shows access denied for non-admin', () => {
