@@ -1,0 +1,74 @@
+@email = admin1@test.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3052/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Questions
+GET http://localhost:3052/questions
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.questions && response.body.questions.length > 0) {
+        client.global.set("question-id1", response.body.questions[0]._id)
+        console.log("question-id1:", client.global.get("question1"));
+    } else {
+        console.log("No products found");
+    }
+%}
+
+### Get Questions by Tag
+GET http://localhost:3052/question/672b455035439a59385a9e30
+Authorization: Bearer {{authToken}}
+
+### Create a Question
+POST http://localhost:3052/questions
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "title": "This is a question",
+    "content": "So much content in this question",
+    "tags": [
+      "67289ce5fed4ea2d6963afb7",
+      "67289cecfed4ea2d6963afb9"
+    ]
+}
+
+### Get a Question
+GET http://localhost:3052/questions/{{question-id1}}
+Authorization: Bearer {{authToken}}
+
+### Vote a Question
+PUT http://localhost:3052/questions/vote/{{question-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "vote": "up"
+}
+
+### Update a Question
+PUT http://localhost:3052/questions/{{question-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "title": "Updated question",
+    "content": "This is the updated content of the question"
+}
+
+### Delete a Question
+DELETE http://localhost:3052/questions/{{question-id1}}
+Authorization: Bearer {{authToken}}

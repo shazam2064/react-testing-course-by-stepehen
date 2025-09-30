@@ -1,0 +1,52 @@
+@email = test@test.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3052/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Tags
+GET http://localhost:3052/tags
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.tags && response.body.tags.length > 0) {
+        client.global.set("tag-id1", response.body.tags[0]._id)
+        console.log("tag-id1:", client.global.get("tag-id1"));
+    } else {
+        console.log("No tags found");
+    }
+%}
+
+### Create a Tag
+POST http://localhost:3052/tags
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "New Tag",
+    "description": "New Tag Description"
+}
+
+### Update a Tag
+PUT http://localhost:3052/tags/{{tag-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "Updated Tag"
+}
+
+### Delete a Tag
+DELETE http://localhost:3052/tags/{{tag-id1}}
+Authorization: Bearer {{authToken}}

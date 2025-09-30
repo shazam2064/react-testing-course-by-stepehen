@@ -1,0 +1,61 @@
+@email = admin1@test.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3052/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Answers
+GET http://localhost:3052/answers/672b456e35439a59385a9e33
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.answers && response.body.answers.length > 0) {
+        client.global.set("answer-id1", response.body.answers[0]._id)
+        console.log("answer-id1:", client.global.get("answer-id1"));
+    } else {
+        console.log("No answers found");
+    }
+%}
+
+### Create an Answer
+POST http://localhost:3052/answers
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "content": "This is the content of the new answer",
+    "questionId": "67234a93f900bae269f30be9"
+}
+
+### Vote a Question
+PUT http://localhost:3052/answers/vote/{{answer-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "vote": "down"
+}
+
+### Update an Answer
+PUT http://localhost:3052/answers/{{answer-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "content": "This is the updated content of the answer"
+}
+
+### Delete an Answer
+DELETE http://localhost:3052/answers/{{answer-id1}}
+Authorization: Bearer {{authToken}}

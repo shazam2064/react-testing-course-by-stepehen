@@ -1,0 +1,69 @@
+### Auth Sign up
+PUT http://localhost:3052/auth/signup
+Content-Type: application/json
+
+{
+  "email": "gabrielsalomon.990@gmail.com",
+  "name": "Gabriel",
+  "password": "123456"
+}
+
+
+### Auth Verify Email
+GET localhost:3052/auth/verify/6076f23092d9fb272cb96617f892cd0e2668b9986b543e9bcb3497bb6e143ad9
+
+
+### Auth Login 1
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3052/auth/login
+Content-Type: application/json
+
+{
+    "email": "gabrielsalomon990@gmail.com",
+    "password": "123456"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Login 2
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin2@test.com",
+  "password": "admin"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Login 3
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3032/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin3@test.com",
+  "password": "123456"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Get Status
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3032/auth/status
+Authorization: Bearer {{authToken}}
+
+
+### Auth Update Status
+// -----------------------------------------------------------------------------------------------
+PATCH http://localhost:3032/auth/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "Updated status"
+}
