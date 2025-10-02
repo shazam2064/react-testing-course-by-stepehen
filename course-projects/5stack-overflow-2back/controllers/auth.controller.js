@@ -14,7 +14,10 @@ exports.signup = (req, res, next) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        return res.status(422).json({
+            message: 'Validation failed, entered data is incorrect',
+            details: errors.array(),
+        });
     }
 
     const email = req.body.email;
