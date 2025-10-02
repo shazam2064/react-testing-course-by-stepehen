@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="5stack-overflow-2back start" type="js.build_tools.npm">
-    <package-json value="$PROJECT_DIR$/course-projects/5stack-overflow-2back-e5/package.json" />
+    <package-json value="$PROJECT_DIR$/course-projects/5stack-overflow-2back/package.json" />
     <command value="run" />
     <scripts>
       <script value="start" />
