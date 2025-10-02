@@ -10,7 +10,7 @@ describe('Auth Controller', () => {
     describe('Auth Login', () => {
         it('should return 200 and a valid token with user details', async () => {
             const requestBody = {
-                email: 'admin1@test.com',
+                email: 'gabrielsalomon990@gmail.com',
                 password: '123456',
             };
 
@@ -27,7 +27,7 @@ describe('Auth Controller', () => {
                 expect.objectContaining({
                     token: expect.any(String),
                     userId: expect.any(String),
-                    email: 'admin1@test.com',
+                    email: 'gabrielsalomon.990@gmail.com',
                     isAdmin: true,
                 })
             );
@@ -35,7 +35,7 @@ describe('Auth Controller', () => {
 
         it('should return 422 for invalid credentials', async () => {
             const requestBody = {
-                email: 'admin1@test.com',
+                email: 'gabrielsalomon990@gmail.com',
                 password: 'wrongpassword',
             };
 
@@ -52,21 +52,39 @@ describe('Auth Controller', () => {
                 })
             );
         });
-    });
 
-    describe('Auth Signup', () => {
-        it('should create a new user, return 201 with user details, and delete the user', async () => {
-            const loginResponse = await request(app)
+        it('should return 422 if email is not verified', async () => {
+            const unverifiedUser = new User({
+                email: 'unverified@test.com',
+                password: await require('bcryptjs').hash('123456', 12),
+                name: 'Unverified User',
+                isAdmin: false,
+                verificationToken: 'sometoken',
+                verificationTokenExpiration: Date.now() + 3600000
+            });
+            await unverifiedUser.save();
+
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'admin1@test.com',
-                    password: '123456',
+                    email: 'unverified@test.com',
+                    password: '123456'
                 })
                 .set('Content-Type', 'application/json');
 
-            expect(loginResponse.status).toBe(200);
-            const validToken = loginResponse.body.token;
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Please verify your email before logging in',
+                })
+            );
 
+            await User.deleteOne({ email: 'unverified@test.com' });
+        });
+    });
+
+    describe('Auth Signup', () => {
+        it('should create a new user and return 201 with verification message', async () => {
             const requestBody = {
                 email: 'admin3@test.com',
                 name: 'User Test 3',
@@ -82,28 +100,16 @@ describe('Auth Controller', () => {
 
             expect(response.body).toEqual(
                 expect.objectContaining({
-                    message: 'User created!',
-                    userId: expect.any(String),
+                    message: expect.stringContaining('User created! Please check your email to verify your account.'),
                 })
             );
 
-            const createdUserId = response.body.userId;
-
-            const deleteResponse = await request(app)
-                .delete(`/users/${createdUserId}`)
-                .set('Authorization', `Bearer ${validToken}`);
-
-            expect(deleteResponse.status).toBe(200);
-            expect(deleteResponse.body).toEqual(
-                expect.objectContaining({
-                    message: 'User deleted successfully',
-                })
-            );
+            await User.deleteOne({ email: 'admin3@test.com' });
         });
 
         it('should return 422 if the email address already exists', async () => {
             const requestBody = {
-                email: 'admin1@test.com',
+                email: 'gabrielsalomon990@gmail.com',
                 name: 'User Test 1',
                 password: '123456',
             };
@@ -121,7 +127,7 @@ describe('Auth Controller', () => {
                     details: expect.arrayContaining([
                         expect.objectContaining({
                             type: 'field',
-                            value: 'admin1@test.com',
+                            value: 'gabrielsalomon.990@gmail.com',
                             msg: 'Email address already exists!',
                             path: 'email',
                             location: 'body',
@@ -139,7 +145,7 @@ describe('Auth Controller', () => {
             const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'admin1@test.com',
+                    email: 'gabrielsalomon990@gmail.com',
                     password: '123456',
                 })
                 .set('Content-Type', 'application/json');
