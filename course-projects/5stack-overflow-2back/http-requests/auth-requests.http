@@ -3,7 +3,7 @@ PUT http://localhost:3052/auth/signup
 Content-Type: application/json
 
 {
-  "email": "gabrielsalomon.990@gmail.com",
+  "email": "gabrielsalomon990@gmail.com",
   "name": "Gabriel",
   "password": "123456"
 }
