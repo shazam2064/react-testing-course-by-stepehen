@@ -51,7 +51,7 @@ describe('Auth Controller', () => {
                 expect.objectContaining({
                     token: expect.any(String),
                     userId: expect.any(String),
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon990@gmail.com',
                     isAdmin: true,
                 })
             );
@@ -68,7 +68,7 @@ describe('Auth Controller', () => {
                 .send(requestBody)
                 .set('Content-Type', 'application/json');
 
-            expect(response.status).toBe(500);
+            expect(response.status).toBe(422);
 
             expect(response.body).toEqual(
                 expect.objectContaining({
@@ -151,7 +151,7 @@ describe('Auth Controller', () => {
                     details: expect.arrayContaining([
                         expect.objectContaining({
                             type: 'field',
-                            value: 'gabrielsalomon.990@gmail.com',
+                            value: 'gabrielsalomon990@gmail.com',
                             msg: 'Email address already exists!',
                             path: 'email',
                             location: 'body',
