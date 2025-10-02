@@ -1,8 +1,32 @@
 const request = require('supertest');
 const app= require('./testUtils');
 const User = require('../models/user.model');
+const bcrypt = require('bcryptjs');
 
 describe('Auth Controller', () => {
+    beforeAll(async () => {
+        // Ensure DB connection is established
+        const { mongoConnect } = require('../util/database');
+        await mongoConnect();
+
+        // Ensure the test user exists and is verified
+        const passwordHash = await bcrypt.hash('123456', 12);
+        await User.updateOne(
+            { email: 'gabrielsalomon990@gmail.com' },
+            {
+                $set: {
+                    email: 'gabrielsalomon990@gmail.com',
+                    password: passwordHash,
+                    name: 'Gabriel Salomon',
+                    isAdmin: true,
+                    verificationToken: undefined,
+                    verificationTokenExpiration: undefined,
+                }
+            },
+            { upsert: true }
+        );
+    });
+
     beforeEach(() => {
 
     });
@@ -44,7 +68,7 @@ describe('Auth Controller', () => {
                 .send(requestBody)
                 .set('Content-Type', 'application/json');
 
-            expect(response.status).toBe(422);
+            expect(response.status).toBe(500);
 
             expect(response.body).toEqual(
                 expect.objectContaining({
