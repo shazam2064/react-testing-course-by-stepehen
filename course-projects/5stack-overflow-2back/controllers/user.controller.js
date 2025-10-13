@@ -49,7 +49,10 @@ exports.updateUser = async (req, res, next) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, '', 'Validation failed');
+        return res.status(422).json({
+            message: 'Validation failed',
+            details: errors.array(),
+        });
     }
 
     User.findById(userId)
@@ -71,6 +74,17 @@ exports.updateUser = async (req, res, next) => {
             });
         })
         .catch(err => {
+            if (err.name === 'ValidationError') {
+                return res.status(422).json({
+                    message: 'Validation failed',
+                    details: Object.values(err.errors).map(e => ({
+                        type: 'field',
+                        msg: e.message,
+                        path: e.path,
+                        value: e.value,
+                    })),
+                });
+            }
             handleError(err, next, 'User update failed');
         });
 }
@@ -103,7 +117,10 @@ exports.createUser = async (req, res, next) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, '', 'Validation failed');
+        return res.status(422).json({
+            message: 'Validation failed',
+            details: errors.array(),
+        });
     }
 
     bcrypt.hash(password, 12)
@@ -123,6 +140,17 @@ exports.createUser = async (req, res, next) => {
             });
         })
         .catch(err => {
+            if (err.name === 'ValidationError') {
+                return res.status(422).json({
+                    message: 'Validation failed',
+                    details: Object.values(err.errors).map(e => ({
+                        type: 'field',
+                        msg: e.message,
+                        path: e.path,
+                        value: e.value,
+                    })),
+                });
+            }
             handleError(err, next, 'User creation failed');
         });
 }
