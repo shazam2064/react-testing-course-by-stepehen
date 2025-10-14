@@ -508,6 +508,11 @@ describe('User Controller Tests', () => {
         it('should handle errors and return 500 on server error', async () => {
             const mockUserId = '688ccf9a0ab0514c3e06390f';
 
+            // Ensure findById returns a user so findByIdAndDelete is called and throws
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: mockUserId,
+                email: 'dummyuser@test.com',
+            });
             jest.spyOn(User, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
 
             const response = await request(app)
