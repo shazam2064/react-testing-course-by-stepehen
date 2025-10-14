@@ -19,12 +19,16 @@ exports.getUsers = async (req, res, next) => {
         });
 }
 
-exports.getUser = async (req, res, next) => {
+exports.getUser = (req, res, next) => {
     const userId = req.params.userId;
-    User
-        .findById(userId)
-        .populate('questions')
-        .populate('answers')
+    if (!userId || !/^[a-fA-F0-9]{24}$/.test(userId)) {
+        return res.status(422).json({ message: 'Invalid user ID format' });
+    }
+    const query = User.findById(userId);
+    if (typeof query.populate === 'function') {
+        query.populate('questions').populate('answers');
+    }
+    query
         .then(user => {
             if (!user) {
                 throwError(404, '', 'User not found');

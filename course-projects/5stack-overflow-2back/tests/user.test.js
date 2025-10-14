@@ -145,7 +145,7 @@ describe('User Controller Tests', () => {
         });
 
         it('should return 404 if the user is not found', async () => {
-            const mockUserId = 'nonexistentUserId';
+            const mockUserId = '68ecfe5f977174350fab2a39'; // valid ObjectId
 
             jest.spyOn(User, 'findById').mockResolvedValueOnce(null);
 
@@ -157,6 +157,21 @@ describe('User Controller Tests', () => {
             expect(response.body).toEqual(
                 expect.objectContaining({
                     message: 'User not found',
+                })
+            );
+        });
+
+        it('should return 422 for invalid userId format', async () => {
+            const invalidUserId = 'notavalidid';
+
+            const response = await request(app)
+                .get(`/users/${invalidUserId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Invalid user ID format',
                 })
             );
         });
