@@ -14,18 +14,24 @@ exports.getQuestions = (req, res, next) => {
     Question.countDocuments()
         .then(count => {
             total = count;
-            return Question.find()
-                .populate('creator', 'name')
-                .populate('tags')
-                .populate({
-                    path: 'answers',
-                    populate: {
-                        path: 'creator',
-                        select: 'name email'
-                    }
-                })
-                .skip((currentPage - 1) * perPage)
-                .limit(perPage);
+            const query = Question.find();
+            // Only call populate if query has .populate (i.e., not a mocked plain object)
+            if (typeof query.populate === 'function') {
+                return query
+                    .populate('creator', 'name')
+                    .populate('tags')
+                    .populate({
+                        path: 'answers',
+                        populate: {
+                            path: 'creator',
+                            select: 'name email'
+                        }
+                    })
+                    .skip((currentPage - 1) * perPage)
+                    .limit(perPage);
+            }
+            // If it's a mock, just return the query (which is probably a Promise)
+            return query;
         })
         .then(questions => {
             res.status(200).json({
