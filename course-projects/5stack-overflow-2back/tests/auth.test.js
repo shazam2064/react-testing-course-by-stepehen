@@ -5,11 +5,9 @@ const bcrypt = require('bcryptjs');
 
 describe('Auth Controller', () => {
     beforeAll(async () => {
-        // Ensure DB connection is established
         const { mongoConnect } = require('../util/database');
         await mongoConnect();
 
-        // Ensure the test user exists and is verified
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
             { email: 'gabrielsalomon990@gmail.com' },
