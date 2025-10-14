@@ -109,9 +109,9 @@ describe('Question Controller - GET Questions', () => {
     });
 
     it('should handle errors and return 500', async () => {
-        jest.spyOn(Question, 'find').mockImplementation(() => ({
-            // This will cause .populate to not exist, triggering the error
-        }));
+        jest.spyOn(Question, 'find').mockImplementation(() => {
+            throw new Error('Database error');
+        });
 
         const response = await request(app)
             .get('/questions')
@@ -120,7 +120,7 @@ describe('Question Controller - GET Questions', () => {
         expect(response.status).toBe(500);
         expect(response.body).toEqual(
             expect.objectContaining({
-                message: expect.stringContaining('populate is not a function'),
+                message: 'Database error',
             })
         );
     });
