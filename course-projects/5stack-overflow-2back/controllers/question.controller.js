@@ -11,7 +11,7 @@ exports.getQuestions = (req, res, next) => {
     const currentPage = req.query.page || 1;
     const perPage = 50;
     let total;
-    Question.find().countDocuments()
+    Question.countDocuments()
         .then(count => {
             total = count;
             return Question.find()
