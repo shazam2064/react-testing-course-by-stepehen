@@ -11,7 +11,6 @@ describe('Question Controller', () => {
     beforeAll(async () => {
         await mongoConnect();
 
-        // Ensure admin1@test.com exists for login
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
             {email: 'admin1@test.com'},
@@ -332,6 +331,135 @@ describe('Question Controller', () => {
                 })
             );
         });
+    });
+
+    describe('Question Controller - UPDATE Question', () => {
+        it('should update a question and return 200 with updated details', async () => {
+            const mockQuestionId = '68ee68e62869fd5ce11a7c78';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                title: 'Old Title',
+                content: 'Old Content',
+                tags: ['67289ce5fed4ea2d6963afb7'],
+                creator: '68ecfe5f977174350fab2a37',
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockQuestionId,
+                    title: 'Updated Title',
+                    content: 'Updated Content',
+                    tags: ['67289ce5fed4ea2d6963afb7'],
+                    creator: '68ecfe5f977174350fab2a37'
+                }),
+            };
+
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .put(`/questions/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: 'Updated Title',
+                    content: 'Updated Content',
+                    tags: ['67289ce5fed4ea2d6963afb7']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Question updated successfully',
+                    question: expect.objectContaining({
+                        title: 'Updated Title',
+                        content: 'Updated Content',
+                        tags: ['67289ce5fed4ea2d6963afb7'],
+                        creator: '68ecfe5f977174350fab2a37'
+                    }),
+                })
+            );
+        });
+
+        it('should return 404 if the question is not found', async () => {
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put('/questions/unknownid')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: 'Updated Title',
+                    content: 'Updated Content',
+                    tags: ['67289ce5fed4ea2d6963afb7']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Could not find the question'),
+                })
+            );
+        });
+
+        it('should return 403 if not authorized', async () => {
+            const mockQuestionId = '68ee68e62869fd5ce11a7c78';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                title: 'Old Title',
+                content: 'Old Content',
+                tags: ['67289ce5fed4ea2d6963afb7'],
+                creator: 'differentUserId',
+                save: jest.fn(),
+            };
+
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .put(`/questions/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: 'Updated Title',
+                    content: 'Updated Content',
+                    tags: ['67289ce5fed4ea2d6963afb7']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(403);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Not authorized'),
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const mockQuestionId = '68ee68e62869fd5ce11a7c78';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                title: 'Old Title',
+                content: 'Old Content',
+                tags: ['67289ce5fed4ea2d6963afb7'],
+                creator: '68ecfe5f977174350fab2a37',
+                save: jest.fn(),
+            };
+
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .put(`/questions/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: '',
+                    content: '',
+                    tags: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
     });
 
 });
