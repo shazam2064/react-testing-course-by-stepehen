@@ -6,41 +6,44 @@ const bcrypt = require('bcryptjs');
 const {mongoConnect, closeConnection} = require("../util/database");
 
 describe('Question Controller', () => {
-    describe('Question Controller - GET Questions', () => {
-        let validToken;
+    let validToken;
 
-        beforeAll(async () => {
-            const {mongoConnect} = require('../util/database');
-            await mongoConnect();
+    beforeAll(async () => {
+        await mongoConnect();
 
-            // Ensure admin1@test.com exists for login
-            const passwordHash = await bcrypt.hash('123456', 12);
-            await User.updateOne(
-                {email: 'admin1@test.com'},
-                {
-                    $set: {
-                        email: 'admin1@test.com',
-                        password: passwordHash,
-                        name: 'User Test 1',
-                        isAdmin: true,
-                        status: 'I am new!',
-                    }
-                },
-                {upsert: true}
-            );
-
-            const loginResponse = await request(app)
-                .post('/auth/login')
-                .send({
+        // Ensure admin1@test.com exists for login
+        const passwordHash = await bcrypt.hash('123456', 12);
+        await User.updateOne(
+            {email: 'admin1@test.com'},
+            {
+                $set: {
                     email: 'admin1@test.com',
-                    password: '123456',
-                })
-                .set('Content-Type', 'application/json');
+                    password: passwordHash,
+                    name: 'User Test 1',
+                    isAdmin: true,
+                    status: 'I am new!',
+                }
+            },
+            {upsert: true}
+        );
 
-            expect(loginResponse.status).toBe(200);
-            validToken = loginResponse.body.token;
-        });
+        const loginResponse = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'admin1@test.com',
+                password: '123456',
+            })
+            .set('Content-Type', 'application/json');
 
+        expect(loginResponse.status).toBe(200);
+        validToken = loginResponse.body.token;
+    });
+
+    afterAll(async () => {
+        await closeConnection();
+    });
+
+    describe('Question Controller - GET Questions', () => {
         it('should return 200 and a list of questions', async () => {
             const mockQuestions = [
                 {
@@ -126,29 +129,9 @@ describe('Question Controller', () => {
                 })
             );
         });
-
-        afterAll(async () => {
-            const {closeConnection} = require('../util/database');
-            await closeConnection();
-        });
     });
 
     describe('Question Controller - GET Question by ID', () => {
-        let validToken;
-
-        beforeAll(async () => {
-            const loginResponse = await request(app)
-                .post('/auth/login')
-                .send({
-                    email: 'admin1@test.com',
-                    password: '123456',
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(loginResponse.status).toBe(200);
-            validToken = loginResponse.body.token;
-        });
-
         it('should return 200 and the question details if the question exists', async () => {
             const mockQuestionId = '68ee68e62869fd5ce11a7c78';
             const mockQuestion = {
@@ -257,6 +240,95 @@ describe('Question Controller', () => {
             expect(response.body).toEqual(
                 expect.objectContaining({
                     message: 'Database error',
+                })
+            );
+        });
+    });
+
+    describe('Question Controller - CREATE Question', () => {
+        it('should create a new question and return 201 with details', async () => {
+            const mockQuestion = {
+                _id: '68ee68e62869fd5ce11a7c78',
+                title: 'New Question',
+                content: 'Question content',
+                tags: ['67289ce5fed4ea2d6963afb7'],
+                creator: '68ecfe5f977174350fab2a37',
+                save: jest.fn().mockResolvedValueOnce(this),
+            };
+            jest.spyOn(Question.prototype, 'save').mockResolvedValueOnce(mockQuestion);
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: '68ecfe5f977174350fab2a37',
+                name: 'User Test 1',
+                questions: { push: jest.fn() },
+                save: jest.fn().mockResolvedValueOnce({}),
+            });
+            jest.spyOn(require('../models/tag.model'), 'find').mockResolvedValueOnce([
+                { questions: { push: jest.fn() }, save: jest.fn() }
+            ]);
+
+            const response = await request(app)
+                .post('/questions')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: 'New Question',
+                    content: 'Question content',
+                    tags: ['67289ce5fed4ea2d6963afb7']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(201);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Question created successfully',
+                    question: expect.objectContaining({
+                        title: 'New Question',
+                        content: 'Question content',
+                        tags: ['67289ce5fed4ea2d6963afb7'],
+                    }),
+                    creator: expect.objectContaining({
+                        _id: '68ecfe5f977174350fab2a37',
+                        name: 'User Test 1'
+                    })
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const response = await request(app)
+                .post('/questions')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: '',
+                    content: '',
+                    tags: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            jest.spyOn(Question.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .post('/questions')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    title: 'New Question',
+                    content: 'Question content',
+                    tags: ['67289ce5fed4ea2d6963afb7']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
                 })
             );
         });
