@@ -462,4 +462,86 @@ describe('Question Controller', () => {
 
     });
 
+    describe('Question Controller - DELETE Question', () => {
+        it('should delete a question and return 200 with details', async () => {
+            const mockQuestionId = '68ee68e62869fd5ce11a7c78';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                creator: '68ecfe5f977174350fab2a37',
+            };
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+            jest.spyOn(Question, 'findByIdAndDelete').mockResolvedValueOnce(mockQuestion);
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                questions: { pull: jest.fn() },
+                save: jest.fn().mockResolvedValueOnce({}),
+            });
+
+            const response = await request(app)
+                .delete(`/questions/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Question deleted successfully',
+                    question: expect.objectContaining({
+                        _id: mockQuestionId,
+                        creator: '68ecfe5f977174350fab2a37',
+                    }),
+                })
+            );
+        });
+
+        it('should return 404 if the question is not found', async () => {
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .delete('/questions/unknownid')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Could not find the question'),
+                })
+            );
+        });
+
+        it('should return 403 if not authorized', async () => {
+            const mockQuestionId = '68ee68e62869fd5ce11a7c78';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                creator: 'differentUserId',
+            };
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .delete(`/questions/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(403);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Not authorized'),
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            const mockQuestionId = '68ee68e62869fd5ce11a7c78';
+            jest.spyOn(Question, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .delete(`/questions/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error',
+                })
+            );
+        });
+    });
+
 });
