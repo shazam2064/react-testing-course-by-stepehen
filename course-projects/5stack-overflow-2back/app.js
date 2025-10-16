@@ -18,9 +18,6 @@ app.use((req, res, next) => {
     next();
 });
 
-const feedRoutes = require('./routes/feed.routes');
-app.use('/feed', feedRoutes);
-
 const questionRoutes = require('./routes/question.routes');
 app.use('/', questionRoutes);
 
