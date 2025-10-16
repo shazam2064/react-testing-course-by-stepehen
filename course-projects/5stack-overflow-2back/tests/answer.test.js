@@ -327,5 +327,84 @@ describe('Question Controller', () => {
             );
         });
     });
-});
 
+    describe('Answer Controller - DELETE Answer', () => {
+        it('should delete an answer and return 200 with message', async () => {
+            const mockAnswerId = '68efc054a0c73cb42c0d6a2c';
+            const mockAnswer = {
+                _id: mockAnswerId,
+                creator: '68ecfe5f977174350fab2a37'
+            };
+
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(mockAnswer);
+            jest.spyOn(Answer, 'findByIdAndDelete').mockResolvedValueOnce(mockAnswer);
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                answers: { pull: jest.fn() },
+                save: jest.fn().mockResolvedValueOnce({})
+            });
+
+            const response = await request(app)
+                .delete(`/answers/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Answer deleted successfully'
+                })
+            );
+        });
+
+        it('should return 404 if the answer is not found', async () => {
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .delete('/answers/unknownid')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Answer not found')
+                })
+            );
+        });
+
+        it('should return 403 if not authorized', async () => {
+            const mockAnswerId = '68efc054a0c73cb42c0d6a2c';
+            const mockAnswer = {
+                _id: mockAnswerId,
+                creator: 'differentUserId'
+            };
+
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(mockAnswer);
+
+            const response = await request(app)
+                .delete(`/answers/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(403);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Not authorized')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            const mockAnswerId = '68efc054a0c73cb42c0d6a2c';
+            jest.spyOn(Answer, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .delete(`/answers/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+});
