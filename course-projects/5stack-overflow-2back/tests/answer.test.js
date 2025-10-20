@@ -407,4 +407,143 @@ describe('Question Controller', () => {
             );
         });
     });
+
+    describe('Answer Controller - VOTE Answer', () => {
+        it('should upvote an answer and return 200', async () => {
+            const mockAnswerId = '68f100000000000000000001';
+            const mockUserId = '68ecfe5f977174350fab2a37';
+            const mockAnswer = {
+                _id: mockAnswerId,
+                votes: 0,
+                voters: [],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockAnswerId,
+                    votes: 1,
+                    voters: [{ userId: mockUserId, vote: 'up' }]
+                })
+            };
+
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(mockAnswer);
+
+            const response = await request(app)
+                .put(`/answers/vote/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Vote recorded successfully',
+                    question: expect.objectContaining({
+                        _id: mockAnswerId,
+                        votes: 1,
+                        voters: expect.arrayContaining([
+                            expect.objectContaining({ userId: mockUserId, vote: 'up' })
+                        ])
+                    })
+                })
+            );
+        });
+
+        it('should change vote from down to up and return 200', async () => {
+            const mockAnswerId = '68f100000000000000000002';
+            const mockUserId = '68ecfe5f977174350fab2a37';
+            const mockAnswer = {
+                _id: mockAnswerId,
+                votes: -1,
+                voters: [{ userId: mockUserId, vote: 'down' }],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockAnswerId,
+                    votes: 1,
+                    voters: [{ userId: mockUserId, vote: 'up' }]
+                })
+            };
+
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(mockAnswer);
+
+            const response = await request(app)
+                .put(`/answers/vote/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Vote recorded successfully',
+                    question: expect.objectContaining({
+                        _id: mockAnswerId,
+                        votes: 1,
+                        voters: expect.arrayContaining([
+                            expect.objectContaining({ userId: mockUserId, vote: 'up' })
+                        ])
+                    })
+                })
+            );
+        });
+
+        it('should return 403 if vote is unchanged', async () => {
+            const mockAnswerId = '68f100000000000000000003';
+            const mockUserId = '68ecfe5f977174350fab2a37';
+            const mockAnswer = {
+                _id: mockAnswerId,
+                votes: 1,
+                voters: [{ userId: mockUserId, vote: 'up' }],
+                save: jest.fn()
+            };
+
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(mockAnswer);
+
+            const response = await request(app)
+                .put(`/answers/vote/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(403);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Vote not changed'
+                })
+            );
+            expect(mockAnswer.save).not.toHaveBeenCalled();
+        });
+
+        it('should return 404 if the answer is not found', async () => {
+            const mockAnswerId = 'nonexistentid';
+            jest.spyOn(Answer, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/answers/vote/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Could not find')
+                })
+            );
+        });
+
+        it('should return 500 on database error', async () => {
+            const mockAnswerId = '68f100000000000000000004';
+            jest.spyOn(Answer, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .put(`/answers/vote/${mockAnswerId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'down' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
 });
