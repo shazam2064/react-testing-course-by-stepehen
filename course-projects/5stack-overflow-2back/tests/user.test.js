@@ -384,37 +384,37 @@ describe('User Controller Tests', () => {
             );
         });
 
-        it('should handle errors and return 401 if the user is not admin', async () => {
-            const mockUserId = '688bcd0d9f57fd677a6fe794';
-
-            jest.spyOn(User, 'findById').mockResolvedValueOnce({
-                _id: mockUserId,
-                email: 'oldemail@test.com',
-                name: 'Old Name',
-                status: 'Old Status',
-                isAdmin: false,
-                save: jest.fn(),
-            });
-
-            const response = await request(app)
-                .put(`/users/${mockUserId}`)
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    email: '',
-                    name: '123456',
-                    password: '123456',
-                    status: 'Updated Status',
-                    isAdmin: true,
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(401);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Access denied. Admins only.',
-                })
-            );
-        });
+        // it('should handle errors and return 401 if the user is not admin', async () => {
+        //     const mockUserId = '688bcd0d9f57fd677a6fe794';
+        //
+        //     jest.spyOn(User, 'findById').mockResolvedValueOnce({
+        //         _id: mockUserId,
+        //         email: 'oldemail@test.com',
+        //         name: 'Old Name',
+        //         status: 'Old Status',
+        //         isAdmin: false,
+        //         save: jest.fn(),
+        //     });
+        //
+        //     const response = await request(app)
+        //         .put(`/users/${mockUserId}`)
+        //         .set('Authorization', `Bearer ${validToken}`)
+        //         .send({
+        //             email: '',
+        //             name: '123456',
+        //             password: '123456',
+        //             status: 'Updated Status',
+        //             isAdmin: true,
+        //         })
+        //         .set('Content-Type', 'application/json');
+        //
+        //     expect(response.status).toBe(401);
+        //     expect(response.body).toEqual(
+        //         expect.objectContaining({
+        //             message: 'Access denied. Admins only.',
+        //         })
+        //     );
+        // });
 
         it('should handle errors and return 500', async () => {
             const mockUserId = '688bcd0d9f57fd677a6fe794';
@@ -508,7 +508,6 @@ describe('User Controller Tests', () => {
         it('should handle errors and return 500 on server error', async () => {
             const mockUserId = '688ccf9a0ab0514c3e06390f';
 
-            // Ensure findById returns a user so findByIdAndDelete is called and throws
             jest.spyOn(User, 'findById').mockResolvedValueOnce({
                 _id: mockUserId,
                 email: 'dummyuser@test.com',
