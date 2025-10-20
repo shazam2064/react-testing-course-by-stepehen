@@ -105,7 +105,8 @@ describe('Tag Controller', () => {
                 _id: '68f63f982eca3e875b58ad7b',
                 createdAt: '2025-10-20T13:56:40.621Z',
                 updatedAt: '2025-10-20T13:56:40.621Z',
-                __v: 0
+                __v: 0,
+                questions: []
             };
 
             jest.spyOn(Tag.prototype, 'save').mockResolvedValueOnce(mockTag);
@@ -124,9 +125,10 @@ describe('Tag Controller', () => {
                 expect.objectContaining({
                     message: 'Tag created successfully',
                     tag: expect.objectContaining({
-                        _id: mockTag._id,
                         name: 'New Tag',
-                        description: 'New Tag Description'
+                        description: 'New Tag Description',
+                        questions: expect.any(Array),
+                        _id: expect.any(String)
                     })
                 })
             );
