@@ -276,4 +276,62 @@ describe('Tag Controller', () => {
         });
     });
 
+
+    describe('Tag Controller - DELETE Tag', () => {
+        it('should delete a tag and return 200 with message', async () => {
+            const mockTagId = '68f63f982eca3e875b58ad7b';
+            const mockTag = {
+                _id: mockTagId,
+                name: 'New Tag',
+                description: 'New Tag Description',
+                questions: []
+            };
+
+            jest.spyOn(Tag, 'findByIdAndDelete').mockResolvedValueOnce(mockTag);
+
+            const response = await request(app)
+                .delete(`/tags/${mockTagId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tag deleted successfully'
+                })
+            );
+        });
+
+        it('should return 404 if the tag is not found', async () => {
+            jest.spyOn(Tag, 'findByIdAndDelete').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .delete('/tags/unknownid')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Could not find')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            const mockTagId = '68f63f982eca3e875b58ad7b';
+            jest.spyOn(Tag, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .delete(`/tags/${mockTagId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
+
 });
