@@ -173,4 +173,107 @@ describe('Tag Controller', () => {
         });
     });
 
+    describe('Tag Controller - UPDATE Tag', () => {
+        it('should update a tag and return 200 with updated details', async () => {
+            const mockTagId = '68f63f982eca3e875b58ad7b';
+            const mockTag = {
+                _id: mockTagId,
+                name: 'Old Tag',
+                description: 'Old Description',
+                questions: [],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockTagId,
+                    name: 'Updated Tag',
+                    description: 'Updated Description',
+                    questions: []
+                })
+            };
+
+            jest.spyOn(Tag, 'findById').mockResolvedValueOnce(mockTag);
+
+            const response = await request(app)
+                .put(`/tags/${mockTagId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    name: 'Updated Tag',
+                    description: 'Updated Description'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tag updated successfully',
+                    tag: expect.objectContaining({
+                        _id: mockTagId,
+                        name: 'Updated Tag',
+                        description: 'Updated Description',
+                        questions: expect.any(Array)
+                    })
+                })
+            );
+        });
+
+        it('should return 404 if the tag is not found', async () => {
+            jest.spyOn(Tag, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put('/tags/unknownid')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    name: 'Updated Tag',
+                    description: 'Updated Description'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Could not find')
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const mockTagId = '68f63f982eca3e875b58ad7b';
+
+            const response = await request(app)
+                .put(`/tags/${mockTagId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    name: '',
+                    description: ''
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            const mockTagId = '68f63f982eca3e875b58ad7b';
+            jest.spyOn(Tag, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .put(`/tags/${mockTagId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    name: 'Updated Tag',
+                    description: 'Updated Description'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
 });
