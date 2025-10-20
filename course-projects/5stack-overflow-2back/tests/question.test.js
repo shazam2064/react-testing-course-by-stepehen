@@ -42,6 +42,10 @@ describe('Question Controller', () => {
         await closeConnection();
     });
 
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     describe('Question Controller - GET Questions', () => {
         it('should return 200 and a list of questions', async () => {
             const mockQuestions = [
@@ -539,6 +543,145 @@ describe('Question Controller', () => {
             expect(response.body).toEqual(
                 expect.objectContaining({
                     message: 'Database error',
+                })
+            );
+        });
+    });
+
+    describe('Question Controller - VOTE Question', () => {
+        it('should upvote a question and return 200', async () => {
+            const mockQuestionId = '68f200000000000000000001';
+            const mockUserId = '68ecfe5f977174350fab2a37';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                votes: 0,
+                voters: [],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockQuestionId,
+                    votes: 1,
+                    voters: [{ userId: mockUserId, vote: 'up' }]
+                })
+            };
+
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .put(`/questions/vote/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Vote recorded successfully',
+                    question: expect.objectContaining({
+                        _id: mockQuestionId,
+                        votes: 1,
+                        voters: expect.arrayContaining([
+                            expect.objectContaining({ userId: mockUserId, vote: 'up' })
+                        ])
+                    })
+                })
+            );
+        });
+
+        it('should change vote from down to up and return 200', async () => {
+            const mockQuestionId = '68f200000000000000000002';
+            const mockUserId = '68ecfe5f977174350fab2a37';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                votes: -1,
+                voters: [{ userId: mockUserId, vote: 'down' }],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockQuestionId,
+                    votes: 1, // -1 + 2
+                    voters: [{ userId: mockUserId, vote: 'up' }]
+                })
+            };
+
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .put(`/questions/vote/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Vote recorded successfully',
+                    question: expect.objectContaining({
+                        _id: mockQuestionId,
+                        votes: 1,
+                        voters: expect.arrayContaining([
+                            expect.objectContaining({ userId: mockUserId, vote: 'up' })
+                        ])
+                    })
+                })
+            );
+        });
+
+        it('should return 403 if vote is unchanged', async () => {
+            const mockQuestionId = '68f200000000000000000003';
+            const mockUserId = '68ecfe5f977174350fab2a37';
+            const mockQuestion = {
+                _id: mockQuestionId,
+                votes: 1,
+                voters: [{ userId: mockUserId, vote: 'up' }],
+                save: jest.fn()
+            };
+
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(mockQuestion);
+
+            const response = await request(app)
+                .put(`/questions/vote/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(403);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Vote not changed'
+                })
+            );
+            expect(mockQuestion.save).not.toHaveBeenCalled();
+        });
+
+        it('should return 404 if the question is not found', async () => {
+            const mockQuestionId = 'nonexistentid';
+            jest.spyOn(Question, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/questions/vote/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'up' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Could not find')
+                })
+            );
+        });
+
+        it('should return 500 on database error', async () => {
+            const mockQuestionId = '68f200000000000000000004';
+            jest.spyOn(Question, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .put(`/questions/vote/${mockQuestionId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ vote: 'down' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
                 })
             );
         });
