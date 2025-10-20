@@ -73,7 +73,7 @@ exports.voteAnswer = (req, res, next) => {
     Answer.findById(answerId)
         .then(answer => {
             if (!answer) {
-                throwError(404, '', 'Could not find the answer with id: ' + questionId);
+                throwError(404, '', 'Could not find the answer with id: ' + answerId);
             }
 
             const existingVoteIndex = answer.voters.findIndex(voter => voter.userId.toString() === userId);
