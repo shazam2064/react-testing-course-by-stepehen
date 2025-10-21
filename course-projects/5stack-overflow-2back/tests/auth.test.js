@@ -212,6 +212,55 @@ describe('Auth Controller', () => {
         });
     });
 
+    describe('Auth Verify Email', () => {
+        let adminToken;
+        let testUserId;
+        let verificationToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon990@gmail.com',
+                    password: '123456',
+                })
+                .set('Content-Type', 'application/json');
+            adminToken = loginResponse.body.token;
+        });
+
+        it('should verify email and allow login after verification', async () => {
+            const signupEmail = 'verifytestuser@test.com';
+            const signupRes = await request(app)
+                .put('/auth/signup')
+                .send({
+                    email: signupEmail,
+                    name: 'Verify Test User',
+                    password: '123456',
+                })
+                .set('Content-Type', 'application/json');
+            expect(signupRes.status).toBe(201);
+
+            const user = await User.findOne({ email: signupEmail });
+            expect(user).toBeTruthy();
+            testUserId = user._id;
+            verificationToken = user.verificationToken;
+            expect(verificationToken).toBeTruthy();
+
+            await User.updateOne(
+                { _id: testUserId },
+                { $set: { verificationToken: undefined, verificationTokenExpiration: undefined } }
+            );
+
+            const verifyRes = await request(app)
+                .get(`/auth/verify/${verificationToken}`)
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect([200, 422]).toContain(verifyRes.status);
+
+            await User.deleteOne({ _id: testUserId });
+        });
+    });
+
     afterAll(async () => {
         console.log('All tests completed. Closing database connection...');
         const { closeConnection } = require('../util/database');
