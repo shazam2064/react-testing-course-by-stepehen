@@ -259,6 +259,61 @@ describe('Auth Controller', () => {
 
             await User.deleteOne({ _id: testUserId });
         });
+
+        it('should return 422 if the token is invalid', async () => {
+            const response = await request(app)
+                .get('/auth/verify/invalidtoken')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Token is invalid')
+                })
+            );
+        });
+
+        it('should return 422 if the token has expired', async () => {
+            // Create a user with an expired token
+            const expiredEmail = 'expiredtoken@test.com';
+            const expiredToken = 'expiredtoken123';
+            const expiredUser = new User({
+                email: expiredEmail,
+                password: await require('bcryptjs').hash('123456', 12),
+                name: 'Expired Token User',
+                isAdmin: false,
+                verificationToken: expiredToken,
+                verificationTokenExpiration: Date.now() - 1000 // expired
+            });
+            await expiredUser.save();
+
+            const response = await request(app)
+                .get(`/auth/verify/${expiredToken}`)
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Token has expired')
+                })
+            );
+
+            await User.deleteOne({ email: expiredEmail });
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            // Mock User.findOne to throw
+            jest.spyOn(User, 'findOne').mockImplementationOnce(() => { throw new Error('Database error'); });
+
+            const response = await request(app)
+                .get('/auth/verify/someToken')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                { message: 'Database error' }
+            );
+        });
     });
 
     afterAll(async () => {
