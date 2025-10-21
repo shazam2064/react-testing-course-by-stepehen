@@ -125,7 +125,7 @@ exports.getQuestion = (req, res, next) => {
 }
 
 exports.getQuestionByTags = (req, res, next) => {
-    console.log('The getQuestionByTags controller was called with params:', req.params);
+   /* console.log('The getQuestionByTags controller was called with params:', req.params);
     const tagId = req.params.tagId;
 
     Question.find({ tags: tagId })
@@ -149,7 +149,7 @@ exports.getQuestionByTags = (req, res, next) => {
         })
         .catch(err => {
             handleError(err, next, 'Fetching questions by tag failed');
-        });
+        });*/
 };
 
 exports.updateQuestion = (req, res, next) => {
