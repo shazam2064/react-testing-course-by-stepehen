@@ -30,7 +30,6 @@ exports.getQuestions = (req, res, next) => {
                     .skip((currentPage - 1) * perPage)
                     .limit(perPage);
             }
-            // If it's a mock, just return the query (which is probably a Promise)
             return query;
         })
         .then(questions => {
