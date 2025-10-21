@@ -8,7 +8,6 @@ describe('User Controller Tests', () => {
         const { mongoConnect } = require('../util/database');
         await mongoConnect();
 
-        // Ensure admin1@test.com exists for login
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
             { email: 'admin1@test.com' },

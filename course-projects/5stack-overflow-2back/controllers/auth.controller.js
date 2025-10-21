@@ -128,24 +128,3 @@ exports.getUserStatus = (req, res, next) => {
             handleError(err, next, 'User status fetch failed');
         });
 };
-
-exports.updateUserStatus = (req, res, next) => {
-    console.log('The updateUserStatus() method was called with req.body:', req.body);
-    const newStatus = req.body.status;
-    User.findById(req.userId)
-        .then(user => {
-            console.log('The user was found:', user);
-            if (!user) {
-                throwError(404, null, 'User not found');
-            }
-            user.status = newStatus;
-            return user.save();
-        })
-        .then(result => {
-            console.log('The user status was updated:', result);
-            res.status(200).json({ message: 'User status updated' });
-        })
-        .catch(err => {
-            handleError(err, next, 'User status update failed');
-        });
-};
