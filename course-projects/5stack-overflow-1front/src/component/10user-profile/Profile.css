@@ -1,0 +1,71 @@
+.profile {
+    padding: 20px;
+    margin-left: 250px;
+    margin-top: 30px;
+}
+
+.profile h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.member-since {
+    font-size: 0.9rem;
+    color: gray;
+    margin-bottom: 10px;
+}
+
+.profile-details {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.stats, .about {
+    width: 45%;
+}
+
+.stats h2, .about h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.top-posts {
+    margin-top: 20px;
+}
+
+.post-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.post-buttons button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    background-color: #f1f1f1;
+    border-radius: 4px;
+}
+
+.post-buttons button:hover {
+    background-color: #e1e1e1;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    margin-bottom: 20px;
+}
+
+li h3 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+li p {
+    margin: 5px 0;
+}
