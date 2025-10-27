@@ -75,21 +75,19 @@ describe('ListQuestions', () => {
     });
   });
 
-  it('renders clickable title and navigates if a View button exists', async () => {
+  it('renders tags and author profile links for each question', async () => {
     const history = createMemoryHistory();
     renderWithProviders(<ListQuestions />, { questions: mockQuestions, history });
 
-    const title = await screen.findByText(/First question/i);
-    expect(title).toBeInTheDocument();
-    expect(title).toHaveStyle('cursor: pointer');
+    await waitFor(() => {
+      expect(screen.getByText(/Tag1/i)).toBeInTheDocument();
+      expect(screen.getByText(/Tag2/i)).toBeInTheDocument();
 
-    const viewButtons = screen.queryAllByText(/View/i);
-    if (viewButtons.length > 0) {
-      fireEvent.click(viewButtons[0]);
-      expect(history.location.pathname).toBe(`/view-question/${mockQuestions[0]._id}`);
-    } else {
-      fireEvent.click(title);
-      expect(history.location.pathname).toBeDefined();
-    }
+      const authorLink1 = screen.getByText(/User One/i).closest('a');
+      expect(authorLink1).toHaveAttribute('href', `/profile/${mockQuestions[0].creator._id}`);
+
+      const authorLink2 = screen.getByText(/User Two/i).closest('a');
+      expect(authorLink2).toHaveAttribute('href', `/profile/${mockQuestions[1].creator._id}`);
+    });
   });
 });
