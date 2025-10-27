@@ -7,7 +7,6 @@ import * as restHooks from "../../rest/useRestAdminUsers";
 import { Router } from "react-router-dom";
 import { createMemoryHistory } from "history";
 
-// Mock UserItem to simplify output
 jest.mock("./UserItem", () => ({ adminUser, actionButtons }) => (
   <div data-testid="user-item">
     <span>{adminUser.name}</span>
