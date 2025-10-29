@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import ViewQuestion from './ViewQuestion';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route } from 'react-router-dom';
 import { QuestionsContext, DispatchContext } from '../../contexts/questions.context';
 import { UserContext } from '../../contexts/user.context';
 
@@ -29,24 +29,41 @@ jest.mock('../../rest/api.rest', () => ({
     API_URL: 'http://mock-api'
 }));
 
-jest.mock('reactstrap', () => ({
-    Alert: ({ children, ...props }) => (
-        <div role="alert" {...props} timeout={0}>{children}</div>
-    )
-}));
+jest.mock('reactstrap', () => {
+    // require React inside factory so jest's hoisting doesn't break JSX rendering
+    const React = require('react');
+    const Passthrough = ({ children, ...props }) => React.createElement('div', props, children);
+    return {
+        Alert: ({ children, ...props }) => React.createElement('div', { role: 'alert', ...props, timeout: 0 }, children),
+        Row: Passthrough,
+        Col: Passthrough,
+        Button: ({ children, ...props }) => React.createElement('button', props, children),
+        Badge: ({ children, ...props }) => React.createElement('span', props, children),
+        Card: Passthrough,
+        CardBody: Passthrough,
+        CardFooter: Passthrough,
+        CardText: ({ children, ...props }) => React.createElement('p', props, children),
+        CardTitle: ({ children, ...props }) => React.createElement('h3', props, children),
+        Nav: Passthrough,
+        NavItem: Passthrough,
+        NavLink: ({ children, ...props }) => React.createElement('a', props, children),
+    };
+});
 
 afterEach(() => {
     jest.clearAllMocks();
     cleanup();
 });
 
-   const renderWithProviders = (ui, { questions = [], questionId = '1', user = { userId: 'u1', isAdmin: false } } = {}) => {
+const renderWithProviders = (ui, { questions = [], questionId = '1', user = { userId: 'u1', isAdmin: false } } = {}) => {
     return render(
         <QuestionsContext.Provider value={questions}>
             <DispatchContext.Provider value={jest.fn()}>
                 <UserContext.Provider value={user}>
-                    <MemoryRouter>
-                        {React.cloneElement(ui, { match: { params: { questionId } } })}
+                    <MemoryRouter initialEntries={[`/questions/${questionId}`]}>
+                        <Route path="/questions/:questionId">
+                            {(routeProps) => React.cloneElement(ui, routeProps)}
+                        </Route>
                     </MemoryRouter>
                 </UserContext.Provider>
             </DispatchContext.Provider>
@@ -112,4 +129,3 @@ describe('ViewQuestion', () => {
         });
     });
 });
-
