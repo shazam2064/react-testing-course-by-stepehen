@@ -26,7 +26,7 @@ import {
 function ViewQuestion(props) {
     const questions = useContext(QuestionsContext);
     const dispatch = useContext(DispatchContext);
-    const [question, setQuestion] = useState(getInitialQuestionState()[0]);
+    const [question, setQuestion] = useState(() => getInitialQuestionState()[0] || null);
     const [error, setError] = useState(null);
     const fetchQuestion = useFetchQuestion();
     const fetchQuestions = useFetchQuestions();
@@ -39,7 +39,7 @@ function ViewQuestion(props) {
     const [editAnswerId, setEditAnswerId] = useState(null);
     const loggedUser = useContext(UserContext);
     const isAdmin = loggedUser.isAdmin;
-    const isCreator = question.creator._id === loggedUser.userId;
+    const isCreator = !!(question && question.creator && question.creator._id === loggedUser.userId);
 
     useEffect(() => {
         if (reload) {
