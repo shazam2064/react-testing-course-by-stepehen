@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import QuestionItem from './QuestionItem';
@@ -19,7 +19,7 @@ const sampleQuestion = {
 describe('QuestionItem', () => {
   it('renders title, meta and tag/author elements', () => {
     const history = createMemoryHistory();
-    render(
+    const { container } = render(
         <Router history={history}>
           <QuestionItem question={sampleQuestion} />
         </Router>
@@ -28,9 +28,20 @@ describe('QuestionItem', () => {
     expect(screen.getByText(/This is a question/i)).toBeInTheDocument();
     expect(screen.getByText(/So much content in this question/i)).toBeInTheDocument();
 
-    expect(screen.getByText(/0\s+votes/i)).toBeInTheDocument();
-    expect(screen.getByText(/1\s+answers/i)).toBeInTheDocument();
-    expect(screen.getByText(/1\s+views/i)).toBeInTheDocument();
+    const votesDiv = container.querySelector('.votes');
+    expect(votesDiv).toBeInTheDocument();
+    expect(within(votesDiv).getByText(String(sampleQuestion.votes))).toBeInTheDocument();
+    expect(votesDiv).toHaveTextContent(/votes/i);
+
+    const answersDiv = container.querySelector('.answers');
+    expect(answersDiv).toBeInTheDocument();
+    expect(within(answersDiv).getByText(String(sampleQuestion.answers.length))).toBeInTheDocument();
+    expect(answersDiv).toHaveTextContent(/answers/i);
+
+    const viewsDiv = container.querySelector('.views');
+    expect(viewsDiv).toBeInTheDocument();
+    expect(within(viewsDiv).getByText(String(sampleQuestion.views))).toBeInTheDocument();
+    expect(viewsDiv).toHaveTextContent(/views/i);
 
     expect(screen.getByText(/New Tag/i)).toBeInTheDocument();
 
@@ -72,4 +83,3 @@ describe('QuestionItem', () => {
     expect(screen.getByText(/Tag2/i)).toBeInTheDocument();
   });
 });
-
