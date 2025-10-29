@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import ViewQuestion from './ViewQuestion';
+import { MemoryRouter } from 'react-router-dom';
 import { QuestionsContext, DispatchContext } from '../../contexts/questions.context';
 import { UserContext } from '../../contexts/user.context';
 
@@ -25,33 +25,46 @@ jest.mock('../../rest/useRestAnswers', () => ({
     useDeleteAnswer: () => mockDeleteAnswer
 }));
 
+jest.mock('../../rest/api.rest', () => ({
+    API_URL: 'http://mock-api'
+}));
+
+jest.mock('reactstrap', () => ({
+    Alert: ({ children, ...props }) => (
+        <div role="alert" {...props} timeout={0}>{children}</div>
+    )
+}));
+
 afterEach(() => {
     jest.clearAllMocks();
     cleanup();
 });
 
+   const renderWithProviders = (ui, { questions = [], questionId = '1', user = { userId: 'u1', isAdmin: false } } = {}) => {
+    return render(
+        <QuestionsContext.Provider value={questions}>
+            <DispatchContext.Provider value={jest.fn()}>
+                <UserContext.Provider value={user}>
+                    <MemoryRouter>
+                        {React.cloneElement(ui, { match: { params: { questionId } } })}
+                    </MemoryRouter>
+                </UserContext.Provider>
+            </DispatchContext.Provider>
+        </QuestionsContext.Provider>
+    );
+};
+
 describe('ViewQuestion', () => {
-    it('shows "Question not found" when fetchQuestion returns null', async () => {
+    it('shows "Question not found" when question is not found', async () => {
         mockFetchQuestion.mockResolvedValueOnce(null);
 
-        render(
-            <QuestionsContext.Provider value={[]}>
-                <DispatchContext.Provider value={jest.fn()}>
-                    <UserContext.Provider value={{ userId: 'u1', isAdmin: false }}>
-                        <MemoryRouter>
-                            <ViewQuestion match={{ params: { questionId: 'nonexistent' } }} />
-                        </MemoryRouter>
-                    </UserContext.Provider>
-                </DispatchContext.Provider>
-            </QuestionsContext.Provider>
-        );
+        renderWithProviders(<ViewQuestion />, { questions: [], questionId: 'notfound' });
 
-        const notFound = await screen.findByText(/Question not found/i);
-        expect(notFound).toBeInTheDocument();
-        expect(mockFetchQuestion).toHaveBeenCalledWith('nonexistent');
+        expect(await screen.findByText(/Question not found/i)).toBeInTheDocument();
+        expect(mockFetchQuestion).toHaveBeenCalledWith('notfound');
     });
 
-    it('renders question details when fetchQuestion returns a question', async () => {
+    it('renders question details when question is found', async () => {
         const mockQuestion = {
             _id: '68ee68e62869fd5ce11a7c78',
             title: 'This is a question',
@@ -82,20 +95,9 @@ describe('ViewQuestion', () => {
         mockFetchQuestion.mockResolvedValueOnce(mockQuestion);
         mockFetchQuestions.mockResolvedValueOnce([mockQuestion]);
 
-        render(
-            <QuestionsContext.Provider value={[mockQuestion]}>
-                <DispatchContext.Provider value={jest.fn()}>
-                    <UserContext.Provider value={{ userId: mockQuestion.creator._id, isAdmin: true }}>
-                        <MemoryRouter>
-                            <ViewQuestion match={{ params: { questionId: mockQuestion._id } }} />
-                        </MemoryRouter>
-                    </UserContext.Provider>
-                </DispatchContext.Provider>
-            </QuestionsContext.Provider>
-        );
+        renderWithProviders(<ViewQuestion />, { questions: [mockQuestion], questionId: mockQuestion._id, user: { userId: mockQuestion.creator._id, isAdmin: true } });
 
         expect(await screen.findByText(/This is a question/i)).toBeInTheDocument();
-
         expect(screen.getByText(/So much content in this question/i)).toBeInTheDocument();
         expect(screen.getByText(/New Tag/i)).toBeInTheDocument();
 
