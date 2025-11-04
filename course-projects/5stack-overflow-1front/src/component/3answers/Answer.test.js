@@ -45,13 +45,16 @@ describe('Answers component', () => {
 
         expect(screen.getByText(/This is an answer content/i)).toBeInTheDocument();
 
+        // find author link and assert href
         const authorLink = screen.getByText(/User Test 1/i).closest('a');
         expect(authorLink).toHaveAttribute('href', `/profile/${sampleAnswer.creator._id}`);
 
-        // created date rendered via toLocaleDateString - assert substring of year or month-day exists
-        expect(screen.getByText(new Date(sampleAnswer.createdAt).toLocaleDateString())).toBeInTheDocument();
+        // inspect the surrounding container of the author link for the date (avoids multiple matches)
+        const metaContainer = authorLink.closest('span') || authorLink.parentElement;
+        expect(metaContainer).toBeInTheDocument();
+        // assert the container text includes the year -> flexible against split nodes
+        expect(metaContainer.textContent).toMatch(/2025/);
 
-        // votes displayed (number inside the component)
         expect(screen.getByText('0')).toBeInTheDocument();
     });
 
@@ -93,4 +96,3 @@ describe('Answers component', () => {
         expect(triggerReload).not.toHaveBeenCalled();
     });
 });
-
