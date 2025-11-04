@@ -60,7 +60,6 @@ describe('AddEditAnswer', () => {
             <AddEditAnswer answer={answer} questionId="q1" editMode={true} triggerReloadVote={triggerReload} />
         );
 
-        // initial content should be populated
         const textarea = screen.getByLabelText(/Your Answer/i);
         expect(textarea.value).toBe('Existing content');
 
@@ -69,9 +68,8 @@ describe('AddEditAnswer', () => {
 
         await waitFor(() => {
             expect(mockUpdate).toHaveBeenCalledWith('a1', 'Updated content');
+            expect(triggerReload).toHaveBeenCalled();
         });
-
-        expect(triggerReload).toHaveBeenCalled();
     });
 
     it('shows validation alert when content is empty', async () => {
@@ -122,4 +120,3 @@ describe('AddEditAnswer', () => {
         });
     });
 });
-
