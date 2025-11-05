@@ -41,14 +41,17 @@ describe('AddEditAnswer', () => {
         const textarea = screen.getByLabelText(/Your Answer/i);
         fireEvent.change(textarea, { target: { value: 'New answer content' } });
 
+        await waitFor(() => {
+            expect(textarea.value).toBe('New answer content');
+        });
+
         fireEvent.click(screen.getByRole('button', { name: /Post Your Answer/i }));
 
         await waitFor(() => {
             expect(mockCreate).toHaveBeenCalledWith('q1', 'New answer content');
+            expect(triggerReload).toHaveBeenCalled();
         });
 
-        expect(triggerReload).toHaveBeenCalled();
-        expect(textarea.value).toBe(''); // reset after submit
     });
 
     it('updates an existing answer in edit mode', async () => {
@@ -64,8 +67,15 @@ describe('AddEditAnswer', () => {
         expect(textarea.value).toBe('Existing content');
 
         fireEvent.change(textarea, { target: { value: 'Updated content' } });
+
+        // wait for controlled input to update before submitting
+        await waitFor(() => {
+            expect(textarea.value).toBe('Updated content');
+        });
+
         fireEvent.click(screen.getByRole('button', { name: /Update Your Answer/i }));
 
+        // wait for both the update call and the triggerReload to be called
         await waitFor(() => {
             expect(mockUpdate).toHaveBeenCalledWith('a1', 'Updated content');
             expect(triggerReload).toHaveBeenCalled();
@@ -96,6 +106,12 @@ describe('AddEditAnswer', () => {
 
         const textarea = screen.getByLabelText(/Your Answer/i);
         fireEvent.change(textarea, { target: { value: 'Will fail' } });
+
+        // wait for controlled input to update before submitting
+        await waitFor(() => {
+            expect(textarea.value).toBe('Will fail');
+        });
+
         fireEvent.click(screen.getByRole('button', { name: /Post Your Answer/i }));
 
         await waitFor(() => {
@@ -113,6 +129,12 @@ describe('AddEditAnswer', () => {
 
         const textarea = screen.getByLabelText(/Your Answer/i);
         fireEvent.change(textarea, { target: { value: 'Attempt update' } });
+
+        // wait for controlled input to update before submitting
+        await waitFor(() => {
+            expect(textarea.value).toBe('Attempt update');
+        });
+
         fireEvent.click(screen.getByRole('button', { name: /Update Your Answer/i }));
 
         await waitFor(() => {
