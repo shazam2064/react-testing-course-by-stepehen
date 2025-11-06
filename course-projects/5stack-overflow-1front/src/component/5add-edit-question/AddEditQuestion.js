@@ -94,7 +94,7 @@ function AddEditQuestion(props) {
                     <h4 className="alert-heading">An error occurred</h4>
                     {error}
                 </Alert> : null}
-            <Form onSubmit={handleSubmit}>
+            <Form onSubmit={handleSubmit} noValidate>
                 <FormGroup>
                     <label htmlFor="title">Title</label>
                     <input
