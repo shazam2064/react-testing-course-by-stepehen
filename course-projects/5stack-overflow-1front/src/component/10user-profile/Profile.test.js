@@ -64,16 +64,13 @@ describe('Profile component', () => {
 
         await waitFor(() => expect(screen.getByText(sampleAdmin.name)).toBeInTheDocument());
 
-        // email and status present
         expect(screen.getByText(/Email:/i)).toHaveTextContent(sampleAdmin.email);
         expect(screen.getByText(sampleAdmin.status)).toBeInTheDocument();
 
-        // question title renders as a link to view-question/:id
         const qTitle = screen.getByText(sampleAdmin.questions[0].title);
         const qLink = qTitle.closest('a');
         expect(qLink).toHaveAttribute('href', `/view-question/${sampleAdmin.questions[0]._id}`);
 
-        // toggle to Answers view and check answer content and link
         fireEvent.click(screen.getByText('Answers'));
         await waitFor(() => expect(screen.getByText(sampleAdmin.answers[0].content)).toBeInTheDocument());
         const aLink = screen.getByText(sampleAdmin.answers[0].content).closest('a');
@@ -84,7 +81,6 @@ describe('Profile component', () => {
         const fetchMock = jest.fn(() => Promise.reject(new Error('DB fail')));
         useFetchAdminUserById.mockReturnValue(fetchMock);
 
-        // suppress console.error noise from rejected promise
         const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         renderWithProviders(<Profile match={{params: { userId: sampleAdmin._id } }} />, {

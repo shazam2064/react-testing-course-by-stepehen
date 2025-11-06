@@ -54,7 +54,6 @@ describe('SideBar', () => {
     await userEvent.click(screen.getByText(/Questions/i));
     expect(history.location.pathname).toBe('/questions');
 
-    // navigate to tags
     await userEvent.click(screen.getByText(/Tags/i));
     expect(history.location.pathname).toBe('/tags');
   });

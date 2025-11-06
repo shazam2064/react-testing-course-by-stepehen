@@ -45,21 +45,18 @@ describe('Answers component', () => {
 
         expect(screen.getByText(/This is an answer content/i)).toBeInTheDocument();
 
-        // find author link and assert href
         const authorLink = screen.getByText(/User Test 1/i).closest('a');
         expect(authorLink).toHaveAttribute('href', `/profile/${sampleAnswer.creator._id}`);
 
-        // inspect the surrounding container of the author link for the date (avoids multiple matches)
         const metaContainer = authorLink.closest('span') || authorLink.parentElement;
         expect(metaContainer).toBeInTheDocument();
-        // assert the container text includes the year -> flexible against split nodes
         expect(metaContainer.textContent).toMatch(/2025/);
 
         expect(screen.getByText('0')).toBeInTheDocument();
     });
 
     it('calls useVoteAnswer on upvote and triggers reload on success', async () => {
-        mockVote.mockResolvedValueOnce({}); // simulate success
+        mockVote.mockResolvedValueOnce({});
         const triggerReload = jest.fn();
 
         render(

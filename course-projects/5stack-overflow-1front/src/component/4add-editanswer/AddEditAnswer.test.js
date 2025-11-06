@@ -68,14 +68,12 @@ describe('AddEditAnswer', () => {
 
         fireEvent.change(textarea, { target: { value: 'Updated content' } });
 
-        // wait for controlled input to update before submitting
         await waitFor(() => {
             expect(textarea.value).toBe('Updated content');
         });
 
         fireEvent.click(screen.getByRole('button', { name: /Update Your Answer/i }));
 
-        // wait for both the update call and the triggerReload to be called
         await waitFor(() => {
             expect(mockUpdate).toHaveBeenCalledWith('a1', 'Updated content');
             expect(triggerReload).toHaveBeenCalled();
@@ -89,7 +87,6 @@ describe('AddEditAnswer', () => {
             <AddEditAnswer questionId="q1" editMode={false} triggerReloadVote={jest.fn()} />
         );
 
-        // submit with empty textarea
         fireEvent.click(screen.getByRole('button', { name: /Post Your Answer/i }));
 
         await waitFor(() => {
@@ -107,7 +104,6 @@ describe('AddEditAnswer', () => {
         const textarea = screen.getByLabelText(/Your Answer/i);
         fireEvent.change(textarea, { target: { value: 'Will fail' } });
 
-        // wait for controlled input to update before submitting
         await waitFor(() => {
             expect(textarea.value).toBe('Will fail');
         });
@@ -130,7 +126,6 @@ describe('AddEditAnswer', () => {
         const textarea = screen.getByLabelText(/Your Answer/i);
         fireEvent.change(textarea, { target: { value: 'Attempt update' } });
 
-        // wait for controlled input to update before submitting
         await waitFor(() => {
             expect(textarea.value).toBe('Attempt update');
         });

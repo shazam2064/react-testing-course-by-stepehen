@@ -40,7 +40,6 @@ describe('Topbar component', () => {
     renderWithProviders(user);
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByText('Logout')).toBeInTheDocument();
-    // dropdown items should be present
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Edit')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
@@ -80,7 +79,6 @@ describe('Topbar component', () => {
     const user = { isLogged: true, email: 'test@example.com', userId: 'u1', isAdmin: false };
     const { history } = renderWithProviders(user, dispatch);
 
-    // Click the dropdown toggle (email) to expose delete (some renderers show items regardless)
     fireEvent.click(screen.getByText(user.email));
     fireEvent.click(screen.getByText('Delete'));
 

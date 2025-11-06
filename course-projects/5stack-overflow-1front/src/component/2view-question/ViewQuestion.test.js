@@ -30,7 +30,6 @@ jest.mock('../../rest/api.rest', () => ({
 }));
 
 jest.mock('reactstrap', () => {
-    // require React inside factory so jest's hoisting doesn't break JSX rendering
     const React = require('react');
     const Passthrough = ({ children, ...props }) => React.createElement('div', props, children);
     return {

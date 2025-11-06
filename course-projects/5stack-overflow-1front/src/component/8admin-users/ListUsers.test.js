@@ -50,13 +50,10 @@ test("renders users and action buttons", async () => {
 
   renderWithProviders(users);
 
-  // Wait for fetchAdminUsers to resolve and dispatch
   await waitFor(() => expect(mockFetchAdminUsers).toHaveBeenCalled());
 
-  // UserItem should be rendered for each user except logged-in user
   expect(screen.getAllByTestId("user-item").length).toBe(users.length);
 
-  // Action buttons
   expect(screen.getAllByText("Edit")[0]).toBeInTheDocument();
   expect(screen.getAllByText("Delete")[0]).toBeInTheDocument();
 });

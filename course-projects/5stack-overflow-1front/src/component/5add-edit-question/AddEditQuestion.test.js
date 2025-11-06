@@ -45,11 +45,9 @@ describe('AddEditQuestion', () => {
             history
         });
 
-        // fill form
         fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'New Q' } });
         fireEvent.change(screen.getByLabelText(/Content/i), { target: { value: 'Question content' } });
 
-        // select tag
         fireEvent.change(screen.getByLabelText(/Tags/i), { target: { value: 't1' } });
 
         fireEvent.click(screen.getByRole('button', { name: /Save/i }));
@@ -81,13 +79,11 @@ describe('AddEditQuestion', () => {
             history
         });
 
-        // initial values populated
         const titleInput = screen.getByLabelText(/Title/i);
         const contentInput = screen.getByLabelText(/Content/i);
         expect(titleInput.value).toBe('Existing Q');
         expect(contentInput.value).toBe('Existing content');
 
-        // change values and add tag
         fireEvent.change(titleInput, { target: { value: 'Updated Q' } });
         fireEvent.change(contentInput, { target: { value: 'Updated content' } });
         fireEvent.change(screen.getByLabelText(/Tags/i), { target: { value: 't1' } });
@@ -114,7 +110,6 @@ describe('AddEditQuestion', () => {
             history
         });
 
-        // leave empty and submit
         fireEvent.click(screen.getByRole('button', { name: /Save/i }));
 
         await waitFor(() => {

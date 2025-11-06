@@ -7,7 +7,7 @@ import { QuestionsContext, DispatchContext } from '../../contexts/questions.cont
 import { UserContext } from '../../contexts/user.context';
 
 jest.mock('../../rest/useRestQuestions', () => ({
-  useFetchQuestions: () => async () => [], // no-op
+  useFetchQuestions: () => async () => [],
   useFetchQuestionsByTag: () => async () => []
 }));
 
