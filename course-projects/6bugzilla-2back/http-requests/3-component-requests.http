@@ -1,0 +1,64 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Components
+GET http://localhost:3062/components
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.components && response.body.components.length > 0) {
+        client.global.set("component-id1", response.body.components[0]._id)
+        console.log("component-id1:", client.global.get("component-id1"));
+    } else {
+        console.log("No components found");
+    }
+%}
+
+### GET List of Components By ID
+GET http://localhost:3062/components/{{component-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create Components
+POST http://localhost:3062/components
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "product": "6758196fdfa511cec4190999",
+  "name": "Component 1",
+  "description": "This is the content of the first component",
+  "assignee": "6756bf8ac8e787703a453ec3",
+  "CC": ["6756bf8ac8e787703a453ec3"]
+}
+
+
+### Update an Components
+PUT http://localhost:3062/components/{{component-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "product": "6758196fdfa511cec4190999",
+  "name": "Component 1 Updated",
+  "description": "This is the content of the updated component",
+  "assignee": "6756bf8ac8e787703a453ec3",
+  "CC": ["6756bf8ac8e787703a453ec3"]
+}
+
+### Delete an Components
+DELETE http://localhost:3062/components/{{component-id1}}
+Authorization: Bearer {{authToken}}

@@ -1,0 +1,58 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Comments
+GET http://localhost:3062/comments
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.comments && response.body.comments.length > 0) {
+        client.global.set("comment-id1", response.body.comments[0]._id)
+        console.log("comment-id1:", client.global.get("comment-id1"));
+    } else {
+        console.log("No comments found");
+    }
+%}
+
+### GET List of Comments By ID
+GET http://localhost:3062/comments/{{comment-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create a Comment
+POST http://localhost:3062/comments
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "bug": "675ab654def950d12640899a",
+  "text": "This is the content of the first comment"
+}
+
+
+### Update a Comment
+PUT http://localhost:3062/comments/{{comment-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "bug": "675ab654def950d12640899a",
+  "text": "This is the updated content of the comment"
+}
+
+### Delete a Comment
+DELETE http://localhost:3062/comments/{{comment-id1}}
+Authorization: Bearer {{authToken}}

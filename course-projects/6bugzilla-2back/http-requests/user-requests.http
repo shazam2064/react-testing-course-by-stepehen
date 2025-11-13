@@ -1,0 +1,67 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET list of users
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3062/users
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.users && response.body.users.length > 0) {
+        client.global.set("user-id1", response.body.users[0]._id)
+        console.log("user-id1:", client.global.get("user-id1"));
+    } else {
+        console.log("No users found");
+    }
+%}
+
+### GET a user by id - with valid id
+// -----------------------------------------------------------------------------------------------
+GET http://localhost:3062/users/{{user-id1}}
+Authorization: Bearer {{authToken}}
+
+
+### POST a user
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/users
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "email": "user2@test.com",
+  "name": "User2",
+  "password": "123456",
+  "isAdmin": false
+}
+
+### PUT a user
+// -----------------------------------------------------------------------------------------------
+PUT http://localhost:3062/users/6708f5441e4eb09b383f02cf
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "email": "admin2@test.com",
+  "name": "123456",
+  "password": "123456",
+  "isAdmin": true
+}
+
+### DELETE a user
+// -----------------------------------------------------------------------------------------------
+DELETE http://localhost:3062/users/6708f5441e4eb09b383f02cf
+Authorization: Bearer {{authToken}}

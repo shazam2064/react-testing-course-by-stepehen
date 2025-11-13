@@ -1,0 +1,60 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3062
+#@host = https://bugzilla-back.onrender.com
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Classifications
+GET {{host}}/classifications
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.classifications && response.body.classifications.length > 0) {
+        client.global.set("classification-id1", response.body.classifications[0]._id)
+        console.log("classification-id1:", client.global.get("classification-id1"));
+    } else {
+        console.log("No classifications found");
+    }
+%}
+
+### GET List of Classifications By ID
+GET {{host}}/classifications/{{classification-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create an Classifications
+POST {{host}}/classifications
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Classification 1",
+  "description": "This is the content of the first classification"
+}
+
+
+### Update an Classifications
+PUT {{host}}/classifications/{{classification-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Classification 1 Updated",
+  "description": "This is the updated content of the classification"
+}
+
+### Delete an Classifications
+DELETE {{host}}/classifications/{{classification-id1}}
+Authorization: Bearer {{authToken}}

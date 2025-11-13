@@ -1,0 +1,87 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+
+### Auth Login
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+
+### Get all Bugs
+GET http://localhost:3062/bugs
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.bugs && response.body.bugs.length > 0) {
+        client.global.set("bug-id", response.body.bugs[0]._id)
+        console.log("bug-id:", client.global.get("bug-id"));
+    } else {
+        console.log("No bugs found");
+    }
+%}
+
+### Get a single Bug by ID
+GET http://localhost:3062/bugs/{{bug-id}}
+Authorization: Bearer {{authToken}}
+
+### Create a new Bug
+POST http://localhost:3062/bugs
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "product": "6758196fdfa511cec4190999",
+  "component": "67581ba9dfa511cec41909ae",
+  "summary": "Bug summary",
+  "description": "Detailed description of the bug",
+  "severity": "Normal",
+  "priority": "Low",
+  "version": 1.0,
+  "hardware": "PC",
+  "os": "Windows",
+  "status": "Open",
+  "resolution": "",
+  "cc": ["6756bf8ac8e787703a453ec3"],
+  "assignee": "6756bf8ac8e787703a453ec3",
+  "deadline": "2023-12-31T23:59:59Z",
+  "hoursWorked": 0,
+  "hoursLeft": 10,
+  "attachment": "https://cdn-icons-png.flaticon.com/512/237/237510.png"
+}
+
+### Update an existing Bug
+PUT http://localhost:3062/bugs/{{bug-id}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "product": "6758196fdfa511cec4190999",
+  "component": "67581ba9dfa511cec41909ae",
+  "summary": "Updated bug summary",
+  "description": "Updated detailed description of the bug",
+  "severity": "Blocker",
+  "priority": "Highest",
+  "version": 2.0,
+  "hardware": "Laptop",
+  "os": "Linux",
+  "status": "Resolved",
+  "resolution": "Wontfix",
+  "cc": ["6756bf8ac8e787703a453ec3"],
+  "assignee": "6756bf8ac8e787703a453ec3",
+  "deadline": "2024-01-31T23:59:59Z",
+  "hoursWorked": 5,
+  "hoursLeft": 5,
+  "attachment": "https://cdn-icons-png.flaticon.com/512/237/237510.png"
+}
+
+### Delete a Bug
+DELETE http://localhost:3062/bugs/{{bug-id}}
+Authorization: Bearer {{authToken}}

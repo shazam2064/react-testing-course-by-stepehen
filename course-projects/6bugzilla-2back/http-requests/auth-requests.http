@@ -1,0 +1,52 @@
+### Auth Sign up
+PUT http://localhost:3062/auth/signup
+Content-Type: application/json
+
+{
+  "email": "gabrielsalomon.990@gmail.com",
+  "name": "Gabriel",
+  "password": "123456"
+}
+
+
+### Auth Verify Email
+GET localhost:3062/auth/verify/7cf916be788c6a4a0cc5173a04df42508318730f0c655ac0010f969e9dddd0a1
+
+
+### Auth Login 1
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+    "email": "gabrielsalomon990@gmail.com",
+    "password": "123456"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Login 2
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin2@test.com",
+  "password": "admin"
+}
+
+> {% client.global.set("authToken", response.body.token) %}
+
+
+### Auth Login 3
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin3@test.com",
+  "password": "123456"
+}
+
+> {% client.global.set("authToken", response.body.token) %}

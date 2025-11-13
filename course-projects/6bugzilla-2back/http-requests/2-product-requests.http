@@ -1,0 +1,61 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST http://localhost:3062/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of Products
+GET http://localhost:3062/products
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.products && response.body.products.length > 0) {
+        client.global.set("product-id1", response.body.products[0]._id)
+        console.log("product-id1:", client.global.get("product-id1"));
+    } else {
+        console.log("No products found");
+    }
+%}
+
+### GET List of Products By ID
+GET http://localhost:3062/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create Products
+POST http://localhost:3062/products
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "classification": "675818514e2379ee5f565f4c",
+  "name": "Product 1",
+  "description": "This is the content of the first product",
+  "version": 1.0
+}
+
+
+### Update an Products
+PUT http://localhost:3062/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Product 1 Updated",
+  "description": "This is the updated content of the product",
+  "version": 1.1
+}
+
+### Delete an Products
+DELETE http://localhost:3062/products/{{product-id1}}
+Authorization: Bearer {{authToken}}
