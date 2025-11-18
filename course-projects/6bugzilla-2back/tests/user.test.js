@@ -8,6 +8,9 @@ describe('User Controller Tests', () => {
         const { mongoConnect } = require('../util/database');
         await mongoConnect();
 
+        const { ObjectId } = require('mongodb');
+        const adminObjectId = new ObjectId('691c7d023d5b3fbd8397b1fe');
+
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
             { email: 'admin1@test.com' },
@@ -18,6 +21,9 @@ describe('User Controller Tests', () => {
                     name: 'User Test 1',
                     isAdmin: true,
                     status: 'I am new!',
+                },
+                $setOnInsert: {
+                    _id: adminObjectId
                 }
             },
             { upsert: true }
@@ -117,7 +123,6 @@ describe('User Controller Tests', () => {
                 _id: mockUserId,
                 email: 'admin1@test.com',
                 name: 'User Test 1',
-                status: 'I am new!',
                 posts: [],
                 isAdmin: true,
                 createdAt: '2025-07-24T13:20:48.003Z',
@@ -338,7 +343,6 @@ describe('User Controller Tests', () => {
                         _id: createdUserId,
                         email: 'updateduser@test.com',
                         name: 'Updated User',
-                        status: 'Updated Status',
                         isAdmin: true,
                     }),
                 })
