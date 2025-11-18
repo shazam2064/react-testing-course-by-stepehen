@@ -43,7 +43,7 @@ describe('User Controller Tests', () => {
         it('should return 200 and a list of users', async () => {
             const mockUsers = [
                 {
-                    _id: '68823330942eb86d6cf0f79d',
+                    _id: '691c7d023d5b3fbd8397b1fe',
                     email: 'admin1@test.com',
                     name: 'User Test 1',
                     status: 'I am new!',
@@ -66,7 +66,7 @@ describe('User Controller Tests', () => {
                     message: 'Users fetched successfully',
                     users: expect.arrayContaining([
                         expect.objectContaining({
-                            _id: '68823330942eb86d6cf0f79d',
+                            _id: '691c7d023d5b3fbd8397b1fe',
                             email: 'admin1@test.com',
                             name: 'User Test 1',
                             status: 'I am new!',
@@ -111,7 +111,7 @@ describe('User Controller Tests', () => {
         });
 
         it('should return 200 and the user details if the user exists', async () => {
-            const mockUserId = '691b4f6fcdc9c19eda483651';
+            const mockUserId = '691c7d023d5b3fbd8397b1fe';
 
             jest.spyOn(User, 'findById').mockResolvedValueOnce({
                 _id: mockUserId,
@@ -236,7 +236,6 @@ describe('User Controller Tests', () => {
                 })
             );
 
-            // Cleanup
             const createdUserId = createResponse.body.user._id;
             await User.deleteOne({ _id: createdUserId });
         });
