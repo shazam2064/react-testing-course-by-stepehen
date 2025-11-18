@@ -41,11 +41,14 @@ app.use('/', userRoutes);
 const errorHandler = require('./middleware/error-handler.middleware');
 app.use(errorHandler.globalResponse);
 
-// -----------------------------------------------------------------------------------------------
-const { mongoConnect} = require('./util/database.js');
-const PORT = 3062;
-mongoConnect(() => {
-    app.listen(PORT, () => {
-        console.log(`The server is listening on port ${PORT}`);
+module.exports = app;
+
+if (require.main === module) {
+    const { mongoConnect } = require('./util/database.js');
+    const PORT = process.env.PORT_NUMBER;
+    mongoConnect(() => {
+        app.listen(PORT, () => {
+            console.log(`The server is listening on port ${PORT}`);
+        });
     });
-});
+}
