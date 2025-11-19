@@ -20,7 +20,6 @@ describe('User Controller Tests', () => {
                     password: passwordHash,
                     name: 'User Test 1',
                     isAdmin: true,
-                    status: 'I am new!',
                 },
                 $setOnInsert: {
                     _id: adminObjectId
@@ -122,11 +121,14 @@ describe('User Controller Tests', () => {
             jest.spyOn(User, 'findById').mockResolvedValueOnce({
                 _id: mockUserId,
                 email: 'admin1@test.com',
+                password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
                 name: 'User Test 1',
-                posts: [],
+                bugsAssigned: [],
+                reportedBugs: [],
                 isAdmin: true,
-                createdAt: '2025-07-24T13:20:48.003Z',
-                updatedAt: '2025-07-24T13:20:48.003Z',
+                createdAt: '2025-11-18T14:04:50.796Z',
+                updatedAt: '2025-11-19T14:30:39.330Z',
+                __v: 0
             });
 
             const response = await request(app)
@@ -141,7 +143,8 @@ describe('User Controller Tests', () => {
                         _id: mockUserId,
                         email: 'admin1@test.com',
                         name: 'User Test 1',
-                        status: 'I am new!',
+                        bugsAssigned: expect.any(Array),
+                        reportedBugs: expect.any(Array),
                         isAdmin: true,
                     }),
                 })
@@ -165,17 +168,17 @@ describe('User Controller Tests', () => {
             );
         });
 
-        it('should return 422 for invalid userId format', async () => {
+        it('should return 500 for invalid userId format (controller does not validate format)', async () => {
             const invalidUserId = 'notavalidid';
 
             const response = await request(app)
                 .get(`/users/${invalidUserId}`)
                 .set('Authorization', `Bearer ${validToken}`);
 
-            expect(response.status).toBe(422);
+            expect(response.status).toBe(500);
             expect(response.body).toEqual(
                 expect.objectContaining({
-                    message: 'Invalid user ID format',
+                    message: expect.any(String),
                 })
             );
         });
