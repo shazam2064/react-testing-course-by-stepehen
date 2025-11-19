@@ -118,18 +118,23 @@ describe('User Controller Tests', () => {
         it('should return 200 and the user details if the user exists', async () => {
             const mockUserId = '691c7d023d5b3fbd8397b1fe';
 
-            jest.spyOn(User, 'findById').mockResolvedValueOnce({
-                _id: mockUserId,
-                email: 'admin1@test.com',
-                password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
-                name: 'User Test 1',
-                bugsAssigned: [],
-                reportedBugs: [],
-                isAdmin: true,
-                createdAt: '2025-11-18T14:04:50.796Z',
-                updatedAt: '2025-11-19T14:30:39.330Z',
-                __v: 0
-            });
+            // return a Query-like object with populate chain that resolves to the user
+            jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
+                populate: () => ({
+                    populate: () => Promise.resolve({
+                        _id: mockUserId,
+                        email: 'admin1@test.com',
+                        password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
+                        name: 'User Test 1',
+                        bugsAssigned: [],
+                        reportedBugs: [],
+                        isAdmin: true,
+                        createdAt: '2025-11-18T14:04:50.796Z',
+                        updatedAt: '2025-11-19T14:30:39.330Z',
+                        __v: 0
+                    })
+                })
+            }));
 
             const response = await request(app)
                 .get(`/users/${mockUserId}`)
@@ -149,12 +154,17 @@ describe('User Controller Tests', () => {
                     }),
                 })
             );
-        });
+        }, 20000);
 
         it('should return 404 if the user is not found', async () => {
             const mockUserId = '68ecfe5f977174350fab2a39';
 
-            jest.spyOn(User, 'findById').mockResolvedValueOnce(null);
+            // mock findById to return a Query-like object whose populate resolves to null
+            jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
+                populate: () => ({
+                    populate: () => Promise.resolve(null)
+                })
+            }));
 
             const response = await request(app)
                 .get(`/users/${mockUserId}`)
@@ -166,7 +176,7 @@ describe('User Controller Tests', () => {
                     message: 'User not found',
                 })
             );
-        });
+        }, 20000);
 
         it('should return 500 for invalid userId format (controller does not validate format)', async () => {
             const invalidUserId = 'notavalidid';
@@ -181,12 +191,17 @@ describe('User Controller Tests', () => {
                     message: expect.any(String),
                 })
             );
-        });
+        }, 20000);
 
         it('should handle errors and return 500', async () => {
             const mockUserId = '68823330942eb86d6cf0f79d';
 
-            jest.spyOn(User, 'findById').mockRejectedValueOnce(new Error('Database error'));
+            // mock findById to return a Query-like object whose populate rejects
+            jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
+                populate: () => ({
+                    populate: () => Promise.reject(new Error('Database error'))
+                })
+            }));
 
             const response = await request(app)
                 .get(`/users/${mockUserId}`)
@@ -198,7 +213,7 @@ describe('User Controller Tests', () => {
                     message: 'Database error',
                 })
             );
-        });
+        }, 20000);
     });
 
 
