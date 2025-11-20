@@ -7,6 +7,7 @@ jest.mock('../middleware/is-auth.middleware', () => (req, res, next) => {
 const request = require('supertest');
 const app = require('./testUtils');
 const Classification = require('../models/classification.model');
+const validator = require('express-validator');
 
 describe('Classification Controller', () => {
     let authToken;
@@ -214,7 +215,6 @@ describe('Classification Controller', () => {
                         })
                     );
                 } finally {
-                    // restore original to avoid side effects
                     validator.validationResult = origValidationResult;
                 }
             });
@@ -241,5 +241,112 @@ describe('Classification Controller', () => {
                 );
             });
         });
+
+        describe('Classification Controller - UPDATE Classification', () => {
+            afterEach(() => {
+                jest.restoreAllMocks();
+            });
+
+            it('should update a classification and return 200 with updated details', async () => {
+                const id = '691dda59a581743f76150b0e';
+                const existing = {
+                    _id: id,
+                    name: 'Classification 1',
+                    description: 'Old description',
+                    products: [],
+                    save: jest.fn().mockResolvedValueOnce({
+                        _id: id,
+                        name: 'Classification 1 Updated',
+                        description: 'Updated description',
+                        products: []
+                    })
+                };
+
+                jest.spyOn(Classification, 'findById').mockResolvedValueOnce(existing);
+
+                const res = await request(app)
+                    .put(`/classifications/${id}`)
+                    .send({ name: 'Classification 1 Updated', description: 'Updated description', products: [] })
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
+
+                expect(res.status).toBe(200);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Classification updated successfully',
+                        classification: expect.objectContaining({
+                            _id: id,
+                            name: 'Classification 1 Updated',
+                            description: 'Updated description'
+                        })
+                    })
+                );
+            });
+
+            it('should return 404 if the classification is not found', async () => {
+                const id = '610000000000000000000000';
+                jest.spyOn(Classification, 'findById').mockResolvedValueOnce(null);
+
+                const res = await request(app)
+                    .put(`/classifications/${id}`)
+                    .send({ name: 'Does not matter', description: 'Nope', products: [] })
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
+
+                expect(res.status).toBe(404);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Classification not found'
+                    })
+                );
+            });
+
+            it('should return 422 if validation fails', async () => {
+                const validator = require('express-validator');
+                const origValidationResult = validator.validationResult;
+                try {
+                    validator.validationResult = () => ({
+                        isEmpty: () => false,
+                        array: () => [{ msg: 'Name required', param: 'name', location: 'body' }]
+                    });
+
+                    const id = '691dda59a581743f76150b0e';
+                    const res = await request(app)
+                        .put(`/classifications/${id}`)
+                        .send({ name: '', description: '' })
+                        .set('Content-Type', 'application/json')
+                        .set('Authorization', `Bearer ${authToken}`);
+
+                    expect(res.status).toBe(422);
+                    expect(res.body).toEqual(
+                        expect.objectContaining({
+                            message: expect.any(String)
+                        })
+                    );
+                } finally {
+                    validator.validationResult = origValidationResult;
+                }
+            });
+
+            it('should return 500 on database error', async () => {
+                const id = '691dda59a581743f76150b0e';
+                jest.spyOn(Classification, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+                const res = await request(app)
+                    .put(`/classifications/${id}`)
+                    .send({ name: 'Whatever', description: 'Whatever', products: [] })
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
+
+                expect(res.status).toBe(500);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.any(String)
+                    })
+                );
+            });
+        });
+
     });
+
 });
