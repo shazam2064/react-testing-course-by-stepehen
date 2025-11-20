@@ -1,8 +1,20 @@
+jest.mock('../middleware/is-auth.middleware', () => (req, res, next) => {
+    req.userId = '691c7d023d5b3fbd8397b1fe';
+    req.isAdmin = true;
+    return next();
+});
+
 const request = require('supertest');
 const app = require('./testUtils');
 const Classification = require('../models/classification.model');
 
 describe('Classification Controller', () => {
+    let authToken;
+
+    beforeAll(async () => {
+        authToken = 'TEST_DUMMY_TOKEN';
+    });
+
     describe('Classification Controller - GET Classifications', () => {
         afterEach(() => {
             jest.restoreAllMocks();
@@ -36,7 +48,8 @@ describe('Classification Controller', () => {
 
             const res = await request(app)
                 .get('/classifications')
-                .set('Content-Type', 'application/json');
+                .set('Content-Type', 'application/json')
+                .set('Authorization', `Bearer ${authToken}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(
@@ -61,7 +74,8 @@ describe('Classification Controller', () => {
 
             const res = await request(app)
                 .get('/classifications')
-                .set('Content-Type', 'application/json');
+                .set('Content-Type', 'application/json')
+                .set('Authorization', `Bearer ${authToken}`);
 
             expect(res.status).toBe(500);
             expect(res.body).toEqual(
@@ -87,7 +101,8 @@ describe('Classification Controller', () => {
 
                 const res = await request(app)
                     .get(`/classifications/${sample._id}`)
-                    .set('Content-Type', 'application/json');
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
 
                 expect(res.status).toBe(200);
                 expect(res.body).toEqual(
@@ -107,7 +122,8 @@ describe('Classification Controller', () => {
 
                 const res = await request(app)
                     .get('/classifications/610000000000000000000000')
-                    .set('Content-Type', 'application/json');
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
 
                 expect(res.status).toBe(404);
                 expect(res.body).toEqual(
@@ -122,7 +138,8 @@ describe('Classification Controller', () => {
 
                 const res = await request(app)
                     .get(`/classifications/${sample._id}`)
-                    .set('Content-Type', 'application/json');
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
 
                 expect(res.status).toBe(500);
                 expect(res.body).toEqual(
@@ -158,7 +175,8 @@ describe('Classification Controller', () => {
                 const res = await request(app)
                     .post('/classifications')
                     .send(payload)
-                    .set('Content-Type', 'application/json');
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
 
                 expect(res.status).toBe(201);
                 expect(res.body).toEqual(
@@ -184,7 +202,8 @@ describe('Classification Controller', () => {
                 const res = await request(app)
                     .post('/classifications')
                     .send({name: ''})
-                    .set('Content-Type', 'application/json');
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
 
                 expect(res.status).toBe(422);
                 expect(res.body).toEqual(
@@ -205,7 +224,8 @@ describe('Classification Controller', () => {
                 const res = await request(app)
                     .post('/classifications')
                     .send(payload)
-                    .set('Content-Type', 'application/json');
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
 
                 expect(res.status).toBe(500);
                 expect(res.body).toEqual(
