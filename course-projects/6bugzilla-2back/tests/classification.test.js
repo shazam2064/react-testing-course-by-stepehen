@@ -192,25 +192,31 @@ describe('Classification Controller', () => {
             });
 
             it('should return 422 if validation fails', async () => {
-                // mock validationResult to simulate validation errors
                 const validator = require('express-validator');
-                jest.spyOn(validator, 'validationResult').mockReturnValueOnce({
-                    isEmpty: () => false,
-                    array: () => [{msg: 'Name required', param: 'name', location: 'body'}]
-                });
+                const origValidationResult = validator.validationResult;
+                try {
+                    // temporary override (avoids spyOn on non-configurable property)
+                    validator.validationResult = () => ({
+                        isEmpty: () => false,
+                        array: () => [{ msg: 'Name required', param: 'name', location: 'body' }]
+                    });
 
-                const res = await request(app)
-                    .post('/classifications')
-                    .send({name: ''})
-                    .set('Content-Type', 'application/json')
-                    .set('Authorization', `Bearer ${authToken}`);
+                    const res = await request(app)
+                        .post('/classifications')
+                        .send({ name: '' })
+                        .set('Content-Type', 'application/json')
+                        .set('Authorization', `Bearer ${authToken}`);
 
-                expect(res.status).toBe(422);
-                expect(res.body).toEqual(
-                    expect.objectContaining({
-                        message: expect.any(String)
-                    })
-                );
+                    expect(res.status).toBe(422);
+                    expect(res.body).toEqual(
+                        expect.objectContaining({
+                            message: expect.any(String)
+                        })
+                    );
+                } finally {
+                    // restore original to avoid side effects
+                    validator.validationResult = origValidationResult;
+                }
             });
 
             it('should return 500 if there is a server error during save', async () => {
