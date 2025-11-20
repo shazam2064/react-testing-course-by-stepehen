@@ -21,12 +21,10 @@ describe('Classification Controller - GET Classifications', () => {
             }
         ];
 
-        // first find() -> countDocuments()
         jest.spyOn(Classification, 'find')
             .mockImplementationOnce(() => ({
                 countDocuments: () => Promise.resolve(mockTotal)
             }))
-            // second find() -> populate().skip().limit() -> classifications
             .mockImplementationOnce(() => ({
                 populate: () => ({
                     skip: () => ({
@@ -71,5 +69,66 @@ describe('Classification Controller - GET Classifications', () => {
             })
         );
     });
-});
 
+    describe('Classification Controller - GET Classification by ID', () => {
+        const sample = {
+            name: 'Classification 1',
+            description: 'This is the content of the first classification',
+            products: [],
+            _id: '691dda59a581743f76150b0e',
+            createdAt: '2025-11-19T14:55:21.661Z',
+            updatedAt: '2025-11-19T14:55:21.661Z',
+            __v: 0
+        };
+
+        it('should return 200 and the classification when found', async () => {
+            jest.spyOn(Classification, 'findById').mockResolvedValueOnce(sample);
+
+            const res = await request(app)
+                .get(`/classifications/${sample._id}`)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Classification fetched successfully',
+                    classification: expect.objectContaining({
+                        _id: sample._id,
+                        name: sample.name,
+                        description: sample.description
+                    })
+                })
+            );
+        });
+
+        it('should return 404 if the classification is not found', async () => {
+            jest.spyOn(Classification, 'findById').mockResolvedValueOnce(null);
+
+            const res = await request(app)
+                .get('/classifications/610000000000000000000000')
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(404);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Classification not found'
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error', async () => {
+            jest.spyOn(Classification, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const res = await request(app)
+                .get(`/classifications/${sample._id}`)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+});
