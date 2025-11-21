@@ -62,21 +62,25 @@ describe('Product Controller', () => {
                 }
             ];
 
-            // first Product.find() used for countDocuments()
-            jest.spyOn(Product, 'find').mockImplementation(() => ({
-                countDocuments: () => Promise.resolve(mockProducts.length),
-            }));
-
-            // next Product.find() call returns populated chain
-            jest.spyOn(Product, 'find').mockImplementationOnce(() => ({
-                populate: () => ({
+            // single mock for Product.find that handles both controller calls (countDocuments then populated query)
+            let findCall = 0;
+            jest.spyOn(Product, 'find').mockImplementation(() => {
+                findCall += 1;
+                if (findCall === 1) {
+                    // first call: countDocuments()
+                    return { countDocuments: () => Promise.resolve(mockProducts.length) };
+                }
+                // second call: return chainable query for populate().populate().skip().limit()
+                return {
                     populate: () => ({
-                        skip: () => ({
-                            limit: () => Promise.resolve(mockProducts),
+                        populate: () => ({
+                            skip: () => ({
+                                limit: () => Promise.resolve(mockProducts),
+                            }),
                         }),
                     }),
-                }),
-            }));
+                };
+            });
 
             const res = await request(app)
                 .get('/products')
@@ -186,4 +190,3 @@ describe('Product Controller', () => {
         });
     });
 });
-
