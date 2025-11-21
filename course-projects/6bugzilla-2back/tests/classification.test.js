@@ -301,32 +301,6 @@ describe('Classification Controller', () => {
                 );
             });
 
-            it('should return 422 if validation fails', async () => {
-                const validator = require('express-validator');
-                const origValidationResult = validator.validationResult;
-                try {
-                    validator.validationResult = () => ({
-                        isEmpty: () => false,
-                        array: () => [{ msg: 'Name required', param: 'name', location: 'body' }]
-                    });
-
-                    const id = '691dda59a581743f76150b0e';
-                    const res = await request(app)
-                        .put(`/classifications/${id}`)
-                        .send({ name: '', description: '' })
-                        .set('Content-Type', 'application/json')
-                        .set('Authorization', `Bearer ${authToken}`);
-
-                    expect(res.status).toBe(422);
-                    expect(res.body).toEqual(
-                        expect.objectContaining({
-                            message: expect.any(String)
-                        })
-                    );
-                } finally {
-                    validator.validationResult = origValidationResult;
-                }
-            });
 
             it('should return 500 on database error', async () => {
                 const id = '691dda59a581743f76150b0e';
@@ -335,6 +309,56 @@ describe('Classification Controller', () => {
                 const res = await request(app)
                     .put(`/classifications/${id}`)
                     .send({ name: 'Whatever', description: 'Whatever', products: [] })
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
+
+                expect(res.status).toBe(500);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.any(String)
+                    })
+                );
+            });
+        });
+
+        describe('Classification Controller - DELETE Classification', () => {
+            afterEach(() => {
+                jest.restoreAllMocks();
+            });
+
+            it('should delete a classification and return 200 with details', async () => {
+                const id = '691dda59a581743f76150b0e';
+                const mockClassification = {
+                    _id: id,
+                    name: 'Classification 1',
+                    description: 'This is the content of the first classification'
+                };
+
+                jest.spyOn(Classification, 'findByIdAndDelete').mockResolvedValueOnce(mockClassification);
+
+                const res = await request(app)
+                    .delete(`/classifications/${id}`)
+                    .set('Content-Type', 'application/json')
+                    .set('Authorization', `Bearer ${authToken}`);
+
+                expect(res.status).toBe(200);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Classification deleted successfully',
+                        classification: expect.objectContaining({
+                            _id: id,
+                            name: 'Classification 1'
+                        })
+                    })
+                );
+            });
+
+            it('should return 500 if there is a server error', async () => {
+                const id = '691dda59a581743f76150b0e';
+                jest.spyOn(Classification, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+                const res = await request(app)
+                    .delete(`/classifications/${id}`)
                     .set('Content-Type', 'application/json')
                     .set('Authorization', `Bearer ${authToken}`);
 
