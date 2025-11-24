@@ -372,6 +372,121 @@ describe('Bug Controller', () => {
             });
         });
 
-        // ...existing code...
+        describe('PUT /bugs/:bugId (UPDATE Bug)', () => {
+            it('should update a bug and return 201 with message', async () => {
+                const bugId = '692483ab259bde177f30ab0b';
+                const existingBug = {
+                    _id: bugId,
+                    product: '69208fd36fb0905085f395d5',
+                    component: '69247d9aad0e1c26b84eca02',
+                    summary: 'Bug summary',
+                    description: 'Detailed description of the bug',
+                    severity: 'Normal',
+                    priority: 'Low',
+                    version: 1,
+                    hardware: 'PC',
+                    os: 'Windows',
+                    status: 'Open',
+                    resolution: '',
+                    CC: [],
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    reporter: '691c7d023d5b3fbd8397b1fe',
+                    deadline: new Date('2023-12-31T23:59:59Z'),
+                    hoursWorked: 0,
+                    hoursLeft: 10,
+                    dependencies: [],
+                    attachment: 'images/old.png',
+                    comments: [],
+                    history: [],
+                    save: jest.fn().mockResolvedValueOnce(true)
+                };
+
+                // spy findById to return the existing bug
+                jest.spyOn(Bug, 'findById').mockResolvedValueOnce(existingBug);
+
+                // spy the controller's logBugChange so it doesn't perform DB operations
+                const bugController = require('../controllers/bug.controller');
+                jest.spyOn(bugController, 'logBugChange').mockResolvedValueOnce();
+
+                // avoid sending emails by mocking User.find to return empty array
+                const UserModel = require('../models/user.model');
+                jest.spyOn(UserModel, 'find').mockResolvedValueOnce([]);
+
+                const res = await request(app)
+                    .put(`/bugs/${bugId}`)
+                    .set('Authorization', `Bearer ${validToken}`)
+                    .send({
+                        summary: 'Updated summary',
+                        description: 'Updated detailed description',
+                        image: 'images/new.png' // provide image in body so controller doesn't throw "No file picked"
+                    })
+                    .set('Content-Type', 'application/json');
+
+                expect(Bug.findById).toHaveBeenCalledWith(bugId);
+                expect(existingBug.save).toHaveBeenCalled();
+                expect(bugController.logBugChange).toHaveBeenCalled();
+                expect(res.status).toBe(201);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Bug updated successfully'
+                    })
+                );
+            });
+
+            it('should return 404 if the bug is not found', async () => {
+                const bugId = '000000000000000000000000';
+                jest.spyOn(Bug, 'findById').mockResolvedValueOnce(null);
+
+                const res = await request(app)
+                    .put(`/bugs/${bugId}`)
+                    .set('Authorization', `Bearer ${validToken}`)
+                    .send({ image: 'images/new.png', summary: 'x' })
+                    .set('Content-Type', 'application/json');
+
+                expect(Bug.findById).toHaveBeenCalledWith(bugId);
+                expect(res.status).toBe(404);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.stringContaining('Bug not found')
+                    })
+                );
+            });
+
+            it('should return 422 if no file/image is provided', async () => {
+                const bugId = '692483ab259bde177f30ab0b';
+
+                // intentionally omit image field to trigger "No file picked"
+                const res = await request(app)
+                    .put(`/bugs/${bugId}`)
+                    .set('Authorization', `Bearer ${validToken}`)
+                    .send({ summary: 'Updated summary' })
+                    .set('Content-Type', 'application/json');
+
+                expect(res.status).toBe(422);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.stringContaining('No file picked')
+                    })
+                );
+            });
+
+            it('should return 500 if there is a server error', async () => {
+                const bugId = '692483ab259bde177f30ab0b';
+                jest.spyOn(Bug, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+                const res = await request(app)
+                    .put(`/bugs/${bugId}`)
+                    .set('Authorization', `Bearer ${validToken}`)
+                    .send({ image: 'images/new.png', summary: 'Updated summary' })
+                    .set('Content-Type', 'application/json');
+
+                expect(res.status).toBe(500);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Database error'
+                    })
+                );
+            });
+        });
     }
 });
