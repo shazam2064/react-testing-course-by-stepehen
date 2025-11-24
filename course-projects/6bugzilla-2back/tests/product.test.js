@@ -189,4 +189,83 @@ describe('Product Controller', () => {
             );
         });
     });
+
+    describe('Product Controller - CREATE Product', () => {
+        it('should create a product and return 201 with details', async () => {
+            const classificationId = '691dda59a581743f76150b0e';
+            const savedProduct = {
+                _id: '69208fd36fb0905085f395d5',
+                classification: classificationId,
+                name: 'Product 1',
+                description: 'This is the content of the first product',
+                version: 1,
+                components: [],
+                createdAt: '2025-11-21T16:14:11.629Z',
+                updatedAt: '2025-11-21T16:14:11.629Z',
+                __v: 0
+            };
+
+            jest.spyOn(Product.prototype, 'save').mockResolvedValueOnce(savedProduct);
+
+            const savedClassification = {
+                _id: classificationId,
+                name: 'Classification 1',
+                description: 'This is the content of the first classification',
+                products: [savedProduct._id],
+                save: jest.fn().mockResolvedValueOnce(savedProduct) // controller responds with this result
+            };
+            jest.spyOn(Classification, 'findById').mockResolvedValueOnce(savedClassification);
+
+            const res = await request(app)
+                .post('/products')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: classificationId,
+                    name: 'Product 1',
+                    description: 'This is the content of the first product',
+                    version: 1
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(Product.prototype.save).toHaveBeenCalled();
+            expect(Classification.findById).toHaveBeenCalledWith(classificationId);
+
+            expect(res.status).toBe(201);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Product created successfully',
+                    product: expect.objectContaining({
+                        _id: savedProduct._id,
+                        name: savedProduct.name,
+                    })
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error during creation', async () => {
+            const classificationId = '691dda59a581743f76150b0e';
+
+            jest.spyOn(Product.prototype, 'save').mockRejectedValueOnce(new Error('Database error during save'));
+
+            const res = await request(app)
+                .post('/products')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: classificationId,
+                    name: 'Product 1',
+                    description: 'This is the content of the first product',
+                    version: 1
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error during save'
+                })
+            );
+        });
+    });
+
+
 });
