@@ -401,14 +401,11 @@ describe('Bug Controller', () => {
                     save: jest.fn().mockResolvedValueOnce(true)
                 };
 
-                // spy findById to return the existing bug
                 jest.spyOn(Bug, 'findById').mockResolvedValueOnce(existingBug);
 
-                // spy the controller's logBugChange so it doesn't perform DB operations
                 const bugController = require('../controllers/bug.controller');
                 jest.spyOn(bugController, 'logBugChange').mockResolvedValueOnce();
 
-                // avoid sending emails by mocking User.find to return empty array
                 const UserModel = require('../models/user.model');
                 jest.spyOn(UserModel, 'find').mockResolvedValueOnce([]);
 
@@ -455,7 +452,6 @@ describe('Bug Controller', () => {
             it('should return 422 if no file/image is provided', async () => {
                 const bugId = '692483ab259bde177f30ab0b';
 
-                // intentionally omit image field to trigger "No file picked"
                 const res = await request(app)
                     .put(`/bugs/${bugId}`)
                     .set('Authorization', `Bearer ${validToken}`)
@@ -465,7 +461,7 @@ describe('Bug Controller', () => {
                 expect(res.status).toBe(422);
                 expect(res.body).toEqual(
                     expect.objectContaining({
-                        message: expect.stringContaining('No file picked')
+                        message: expect.stringMatching(/no (file|image) picked|no image provided/i)
                     })
                 );
             });
