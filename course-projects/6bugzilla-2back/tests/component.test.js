@@ -284,4 +284,105 @@ describe('Component Controller', () => {
         });
     });
 
+    describe('Component Controller - CREATE Component', () => {
+        it('should create a component and return 201 with details', async () => {
+            const productId = '69208fd36fb0905085f395d5';
+            const savedComponent = {
+                _id: '69247d9aad0e1c26b84eca02',
+                product: productId,
+                name: 'Component 1',
+                description: 'This is the content of the first component',
+                assignee: '691c7d023d5b3fbd8397b1fe',
+                CC: ['691c7d023d5b3fbd8397b1fe'],
+                bugs: [],
+                createdAt: '2025-11-24T15:45:30.123Z',
+                updatedAt: '2025-11-24T15:45:30.123Z',
+                __v: 0
+            };
+
+            jest.spyOn(Component.prototype, 'save').mockResolvedValueOnce(savedComponent);
+
+            const mockProduct = {
+                _id: productId,
+                components: [],
+                save: jest.fn().mockResolvedValueOnce({})
+            };
+            jest.spyOn(Product, 'findById').mockResolvedValueOnce(mockProduct);
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({ email: 'admin1@test.com' });
+
+            const res = await request(app)
+                .post('/components')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: productId,
+                    name: 'Component 1',
+                    description: 'This is the content of the first component',
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    CC: ['691c7d023d5b3fbd8397b1fe']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(Component.prototype.save).toHaveBeenCalled();
+            expect(Product.findById).toHaveBeenCalledWith(productId);
+            expect(res.status).toBe(201);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Component created successfully',
+                    component: expect.objectContaining({
+                        _id: savedComponent._id,
+                        name: 'Component 1',
+                        product: productId
+                    })
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const res = await request(app)
+                .post('/components')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: '',
+                    name: '',
+                    description: '',
+                    assignee: '',
+                    CC: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(422);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error during creation', async () => {
+            const productId = '69208fd36fb0905085f395d5';
+
+            jest.spyOn(Component.prototype, 'save').mockRejectedValueOnce(new Error('Database error during save'));
+
+            const res = await request(app)
+                .post('/components')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: productId,
+                    name: 'Component 1',
+                    description: 'This is the content of the first component',
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    CC: ['691c7d023d5b3fbd8397b1fe']
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error during save'
+                })
+            );
+        });
+    });
+
 });
