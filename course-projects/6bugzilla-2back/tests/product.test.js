@@ -288,5 +288,121 @@ describe('Product Controller', () => {
 
     });
 
+    describe('Product Controller - UPDATE Product', () => {
+        it('should update a product and return 200 with updated details', async () => {
+            const mockProductId = '69208fd36fb0905085f395d5';
+            const existingProduct = {
+                _id: mockProductId,
+                classification: '691dda59a581743f76150b0e',
+                name: 'Product 1',
+                description: 'This is the content of the first product',
+                version: 1,
+                components: [],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockProductId,
+                    classification: '691dda59a581743f76150b0e',
+                    name: 'Product 1 Updated',
+                    description: 'This is the updated content of the product',
+                    version: 1.1,
+                    components: []
+                })
+            };
+
+            jest.spyOn(Product, 'findById').mockResolvedValueOnce(existingProduct);
+
+            const res = await request(app)
+                .put(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: '691dda59a581743f76150b0e',
+                    name: 'Product 1 Updated',
+                    description: 'This is the updated content of the product',
+                    version: 1.1,
+                    components: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(Product.findById).toHaveBeenCalledWith(mockProductId);
+            expect(existingProduct.save).toHaveBeenCalled();
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Product updated successfully',
+                    product: expect.objectContaining({
+                        _id: mockProductId,
+                        name: 'Product 1 Updated',
+                        description: expect.any(String),
+                    })
+                })
+            );
+        });
+
+        it('should return 404 if the product is not found', async () => {
+            const mockProductId = '691000000000000000000000';
+            jest.spyOn(Product, 'findById').mockResolvedValueOnce(null);
+
+            const res = await request(app)
+                .put(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: '',
+                    name: 'Does not matter',
+                    description: 'Does not matter',
+                    version: 1
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(404);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Product not found'),
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const mockProductId = '69208fd36fb0905085f395d5';
+            const res = await request(app)
+                .put(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: '',
+                    name: '',
+                    description: '',
+                    version: ''
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(422);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
+        it('should handle errors and return 500', async () => {
+            const mockProductId = '69208fd36fb0905085f395d5';
+            jest.spyOn(Product, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const res = await request(app)
+                .put(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: '691dda59a581743f76150b0e',
+                    name: 'Product 1 Updated',
+                    description: 'This is the updated content of the product',
+                    version: 1.1
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
 
 });
