@@ -155,21 +155,57 @@ describe('Component Controller', () => {
                 _id: mockComponentId,
                 product: {
                     _id: '69208fd36fb0905085f395d5',
-                    name: 'Product 1'
+                    classification: '691dda59a581743f76150b0e',
+                    name: 'Product 1',
+                    description: 'This is the content of the first product',
+                    version: 1,
+                    components: ['69247d9aad0e1c26b84eca02'],
+                    createdAt: '2025-11-21T16:14:11.629Z',
+                    updatedAt: '2025-11-24T15:45:30.192Z',
+                    __v: 1
                 },
                 name: 'Component 1',
                 description: 'This is the content of the first component',
                 assignee: {
                     _id: '691c7d023d5b3fbd8397b1fe',
                     email: 'admin1@test.com',
-                    name: 'User Test 1'
+                    password: '$2a$12$CuRoR9eFyaEJ.6wj4zihrOdCvPbK4OF9PuaaJ9TpTPyhP9.C40gdm',
+                    name: 'User Test 1',
+                    bugsAssigned: [],
+                    reportedBugs: [],
+                    isAdmin: true,
+                    createdAt: '2025-11-18T14:04:50.796Z',
+                    updatedAt: '2025-11-24T15:47:37.917Z',
+                    __v: 0
                 },
-                CC: [],
-                bugs: []
+                CC: [
+                    {
+                        _id: '691c7d023d5b3fbd8397b1fe',
+                        email: 'admin1@test.com',
+                        password: '$2a$12$CuRoR9eFyaEJ.6wj4zihrOdCvPbK4OF9PuaaJ9TpTPyhP9.C40gdm',
+                        name: 'User Test 1',
+                        bugsAssigned: [],
+                        reportedBugs: [],
+                        isAdmin: true,
+                        createdAt: '2025-11-18T14:04:50.796Z',
+                        updatedAt: '2025-11-24T15:47:37.917Z',
+                        __v: 0
+                    }
+                ],
+                bugs: [],
+                createdAt: '2025-11-24T15:45:30.123Z',
+                updatedAt: '2025-11-24T15:45:30.123Z',
+                __v: 0
             };
 
             jest.spyOn(Component, 'findById').mockImplementationOnce(() => ({
-                populate: () => Promise.resolve(mockComponent),
+                populate: () => ({
+                    populate: () => ({
+                        populate: () => ({
+                            populate: () => Promise.resolve(mockComponent)
+                        })
+                    })
+                })
             }));
 
             const res = await request(app)
@@ -183,7 +219,18 @@ describe('Component Controller', () => {
                     component: expect.objectContaining({
                         _id: mockComponentId,
                         name: 'Component 1',
-                    }),
+                        product: expect.objectContaining({
+                            _id: '69208fd36fb0905085f395d5',
+                            name: 'Product 1'
+                        }),
+                        assignee: expect.objectContaining({
+                            _id: '691c7d023d5b3fbd8397b1fe',
+                            email: 'admin1@test.com'
+                        }),
+                        CC: expect.arrayContaining([
+                            expect.objectContaining({ _id: '691c7d023d5b3fbd8397b1fe' })
+                        ])
+                    })
                 })
             );
         });
@@ -191,7 +238,13 @@ describe('Component Controller', () => {
         it('should return 404 if the component is not found', async () => {
             const mockComponentId = '691000000000000000000000';
             jest.spyOn(Component, 'findById').mockImplementationOnce(() => ({
-                populate: () => Promise.resolve(null),
+                populate: () => ({
+                    populate: () => ({
+                        populate: () => ({
+                            populate: () => Promise.resolve(null)
+                        })
+                    })
+                })
             }));
 
             const res = await request(app)
@@ -209,7 +262,13 @@ describe('Component Controller', () => {
         it('should handle errors and return 500', async () => {
             const mockComponentId = '69247d9aad0e1c26b84eca02';
             jest.spyOn(Component, 'findById').mockImplementationOnce(() => ({
-                populate: () => Promise.reject(new Error('Database error')),
+                populate: () => ({
+                    populate: () => ({
+                        populate: () => ({
+                            populate: () => Promise.reject(new Error('Database error'))
+                        })
+                    })
+                })
             }));
 
             const res = await request(app)
@@ -226,4 +285,3 @@ describe('Component Controller', () => {
     });
 
 });
-
