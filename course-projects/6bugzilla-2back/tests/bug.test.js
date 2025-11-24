@@ -78,23 +78,12 @@ describe('Bug Controller', () => {
                 if (findCall === 1) {
                     return { countDocuments: () => Promise.resolve(1) };
                 }
-                return {
-                    populate: () => ({
-                        populate: () => ({
-                            populate: () => ({
-                                populate: () => ({
-                                    populate: () => ({
-                                        populate: () => ({
-                                            skip: () => ({
-                                                limit: () => Promise.resolve([sampleBug])
-                                            })
-                                        })
-                                    })
-                                })
-                            })
-                        })
-                    })
+                const query = {
+                    populate() { return query; },
+                    skip() { return query; },
+                    limit() { return Promise.resolve([sampleBug]); }
                 };
+                return query;
             });
 
             const res = await request(app)
@@ -155,19 +144,14 @@ describe('Bug Controller', () => {
                 __v: 0
             };
 
-            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => ({
-                populate: () => ({
-                    populate: () => ({
-                        populate: () => ({
-                            populate: () => ({
-                                populate: () => ({
-                                    populate: () => Promise.resolve(sampleBug)
-                                })
-                            })
-                        })
-                    })
-                })
-            }));
+            // findById mock: chainable populate() calls then resolve to the sampleBug
+            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => {
+                const q = {
+                    populate() { return q; },
+                    then(cb) { return Promise.resolve(sampleBug).then(cb); }
+                };
+                return q;
+            });
 
             const res = await request(app)
                 .get(`/bugs/${sampleBug._id}`)
@@ -184,19 +168,13 @@ describe('Bug Controller', () => {
 
         it('should return 404 if bug not found', async () => {
             const id = '000000000000000000000000';
-            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => ({
-                populate: () => ({
-                    populate: () => ({
-                        populate: () => ({
-                            populate: () => ({
-                                populate: () => ({
-                                    populate: () => Promise.resolve(null)
-                                })
-                            })
-                        })
-                    })
-                })
-            }));
+            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => {
+                const q = {
+                    populate() { return q; },
+                    then(cb) { return Promise.resolve(null).then(cb); }
+                };
+                return q;
+            });
 
             const res = await request(app)
                 .get(`/bugs/${id}`)
@@ -208,19 +186,13 @@ describe('Bug Controller', () => {
 
         it('should handle errors and return 500', async () => {
             const id = '692483ab259bde177f30ab0b';
-            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => ({
-                populate: () => ({
-                    populate: () => ({
-                        populate: () => ({
-                            populate: () => ({
-                                populate: () => ({
-                                    populate: () => Promise.reject(new Error('Database error'))
-                                })
-                            })
-                        })
-                    })
-                })
-            }));
+            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => {
+                const q = {
+                    populate() { return q; },
+                    then() { return Promise.reject(new Error('Database error')); }
+                };
+                return q;
+            });
 
             const res = await request(app)
                 .get(`/bugs/${id}`)
@@ -231,4 +203,3 @@ describe('Bug Controller', () => {
         });
     });
 });
-
