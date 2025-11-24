@@ -405,4 +405,68 @@ describe('Product Controller', () => {
         });
     });
 
+    describe('Product Controller - DELETE Product', () => {
+        it('should delete a product and return 200 with message', async () => {
+            const mockProductId = '69208fd36fb0905085f395d5';
+            const mockProduct = {
+                _id: mockProductId,
+                classification: '691dda59a581743f76150b0e'
+            };
+
+            jest.spyOn(Product, 'findById').mockResolvedValueOnce(mockProduct);
+            jest.spyOn(Classification, 'findById').mockResolvedValueOnce({
+                products: { pull: jest.fn() },
+                save: jest.fn().mockResolvedValueOnce({})
+            });
+            jest.spyOn(Product, 'findByIdAndDelete').mockResolvedValueOnce(mockProduct);
+
+            const res = await request(app)
+                .delete(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(Product.findById).toHaveBeenCalledWith(mockProductId);
+            expect(Classification.findById).toHaveBeenCalledWith(mockProduct.classification);
+            expect(Product.findByIdAndDelete).toHaveBeenCalledWith(mockProductId);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Product deleted successfully'
+                })
+            );
+        });
+
+        it('should return 404 if the product is not found', async () => {
+            const mockProductId = '691000000000000000000000';
+            jest.spyOn(Product, 'findById').mockResolvedValueOnce(null);
+
+            const res = await request(app)
+                .delete(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Product not found')
+                })
+            );
+        });
+
+        it('should return 500 on database error', async () => {
+            const mockProductId = '69208fd36fb0905085f395d5';
+            jest.spyOn(Product, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const res = await request(app)
+                .delete(`/products/${mockProductId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
 });
