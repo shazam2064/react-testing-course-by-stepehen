@@ -254,5 +254,124 @@ describe('Bug Controller', () => {
                 expect(res.body).toEqual(expect.objectContaining({ message: 'Database error' }));
             });
         });
+
+        describe('POST /bugs (CREATE Bug)', () => {
+            it('should create a bug and return 201 with details', async () => {
+                const productId = '69208fd36fb0905085f395d5';
+                const componentId = '69247d9aad0e1c26b84eca02';
+                const assigneeId = '691c7d023d5b3fbd8397b1fe';
+                const reporterId = '691c7d023d5b3fbd8397b1fe';
+
+                const savedBug = {
+                    _id: '692483ab259bde177f30ab0b',
+                    product: productId,
+                    component: componentId,
+                    summary: 'Bug summary',
+                    description: 'Detailed description of the bug',
+                    severity: 'Normal',
+                    priority: 'Low',
+                    version: 1,
+                    hardware: 'PC',
+                    os: 'Windows',
+                    status: 'Open',
+                    resolution: '',
+                    CC: [assigneeId],
+                    assignee: assigneeId,
+                    reporter: reporterId,
+                    deadline: '2023-12-31T23:59:59.000Z',
+                    hoursWorked: 0,
+                    hoursLeft: 10,
+                    dependencies: [],
+                    attachment: 'images/2025-11-24T16-11-23.769Z-book-1296045.png'
+                };
+
+                // mock save to resolve to savedBug (controller uses bug.save().then(result => ...))
+                jest.spyOn(require('../models/bug.model').prototype, 'save').mockResolvedValueOnce(savedBug);
+
+                // mock Component.findById to return a component object with bugs array and save()
+                jest.spyOn(require('../models/component.model'), 'findById').mockResolvedValueOnce({
+                    _id: componentId,
+                    bugs: [],
+                    save: jest.fn().mockResolvedValueOnce({})
+                });
+
+                // mock User.findById for assignee and reporter to return user objects with arrays and save()
+                jest.spyOn(require('../models/user.model'), 'findById')
+                    .mockResolvedValueOnce({ _id: assigneeId, email: 'admin1@test.com', bugsAssigned: [], save: jest.fn().mockResolvedValueOnce({}) })
+                    .mockResolvedValueOnce({ _id: reporterId, email: 'admin1@test.com', reportedBugs: [], save: jest.fn().mockResolvedValueOnce({}) });
+
+                // mock User.find({_id: {$in: CC}}) to return an array of users for email notifications
+                jest.spyOn(require('../models/user.model'), 'find').mockResolvedValueOnce([{ email: 'cc@test.com' }]);
+
+                const res = await request(app)
+                    .post('/bugs')
+                    .set('Authorization', `Bearer ${validToken}`)
+                    .field('product', productId)
+                    .field('component', componentId)
+                    .field('summary', 'Bug summary')
+                    .field('description', 'Detailed description of the bug')
+                    .field('severity', 'Normal')
+                    .field('priority', 'Low')
+                    .field('version', '1.0')
+                    .field('hardware', 'PC')
+                    .field('os', 'Windows')
+                    .field('status', 'Open')
+                    .field('cc[]', assigneeId)
+                    .field('assignee', assigneeId)
+                    .field('deadline', '2023-12-31T23:59:59Z')
+                    .field('hoursWorked', '0')
+                    .field('hoursLeft', '10')
+                    .attach('attachment', Buffer.from('fake'), 'book-1296045.png');
+
+                expect(res.status).toBe(201);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Bug created successfully',
+                        bug: expect.objectContaining({
+                            summary: 'Bug summary',
+                            product: productId,
+                            component: componentId,
+                            assignee: assigneeId
+                        })
+                    })
+                );
+            });
+
+            it('should return 422 if validation fails (missing required fields)', async () => {
+                const res = await request(app)
+                    .post('/bugs')
+                    .set('Authorization', `Bearer ${validToken}`)
+                    // send empty multipart (no summary/component/product)
+                    .field('summary', '')
+                    .field('description', '')
+                    .attach('attachment', Buffer.from('fake'), 'book-1296045.png');
+
+                expect(res.status).toBe(422);
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.stringContaining('Validation failed')
+                    })
+                );
+            });
+
+            it('should return 500 if there is a server error during creation', async () => {
+                // make save reject
+                jest.spyOn(require('../models/bug.model').prototype, 'save').mockRejectedValueOnce(new Error('Database error during save'));
+
+                const res = await request(app)
+                    .post('/bugs')
+                    .set('Authorization', `Bearer ${validToken}`)
+                    .field('product', '69208fd36fb0905085f395d5')
+                    .field('component', '69247d9aad0e1c26b84eca02')
+                    .field('summary', 'Bug summary')
+                    .field('description', 'Detailed description of the bug')
+                    .attach('attachment', Buffer.from('fake'), 'book-1296045.png');
+
+                expect(res.status).toBe(500);
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Database error during save' }));
+            });
+        });
+
+        // ...existing code...
     }
 });
