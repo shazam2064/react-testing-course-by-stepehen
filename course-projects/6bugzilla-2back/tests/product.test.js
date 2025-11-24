@@ -265,6 +265,27 @@ describe('Product Controller', () => {
                 })
             );
         });
+
+        it('should return 422 for invalid input', async () => {
+            const response = await request(app)
+                .post('/products')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    classification: '',
+                    name: '',
+                    description: '',
+                    version: ''
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
     });
 
 
