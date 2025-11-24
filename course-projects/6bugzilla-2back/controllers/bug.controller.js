@@ -193,13 +193,14 @@ exports.logBugChange = async (bugId, changes, userId) => {
 exports.updateBug = async (req, res, next) => {
     const bugId = req.params.bugId;
     const userId = req.userId;
-    let attachment  = req.body.image
 
-    if (req.file) {
+    let attachment;
+    if (req.file && req.file.path) {
         attachment = req.file.path.replace(/\\/g, '/');
-    }
-    if (!attachment) {
-        throwError(422, '', 'No file picked');
+    } else if (req.body && (req.body.image || req.body.attachment)) {
+        attachment = req.body.image || req.body.attachment;
+    } else {
+        attachment = undefined;
     }
 
     const reporter = userId;
@@ -221,12 +222,15 @@ exports.updateBug = async (req, res, next) => {
         hoursWorked,
         hoursLeft,
         dependencies,
-
     } = req.body;
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+    }
+
+    if (!attachment) {
+        throwError(422, '', 'No image provided');
     }
 
     Bug.findById(bugId)
@@ -262,9 +266,15 @@ exports.updateBug = async (req, res, next) => {
                 let oldValue = bug[field];
 
                 if (field === 'deadline') {
-                    oldValue = oldValue.toLocaleDateString();
-                    const newDate = new Date(newValue);
-                    newValue = newDate.toLocaleDateString();
+                    if (oldValue) {
+                        oldValue = (typeof oldValue.toLocaleDateString === 'function')
+                            ? oldValue.toLocaleDateString()
+                            : new Date(oldValue).toLocaleDateString();
+                        const newDate = new Date(newValue);
+                        newValue = newDate.toLocaleDateString();
+                    } else {
+                        // keep undefined oldValue as-is for comparison
+                    }
                 }
 
                 const oldValueStr = Array.isArray(oldValue) ? JSON.stringify(oldValue) : oldValue?.toString();
@@ -294,7 +304,7 @@ exports.updateBug = async (req, res, next) => {
             users.forEach(user => {
                 const mailOptions = {
                     to: user.email,
-                    from: 'gabrielsalomon.990@gmail.com',
+                    from: 'gabrielsalomon.980m@gmail.com',
                     subject: 'Bug Updated',
                     html: `<h1>A bug you are on the CC has been updated:</h1>
                     <h3>Summary: ${summary}</h3>
