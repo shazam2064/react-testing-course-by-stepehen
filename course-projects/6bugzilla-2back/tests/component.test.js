@@ -521,4 +521,67 @@ describe('Component Controller', () => {
         });
     });
 
+    describe('Component Controller - DELETE Component', () => {
+        it('should delete a component and return 200 with message', async () => {
+            const mockComponentId = '69247d9aad0e1c26b84eca02';
+            const deletedComponent = {
+                _id: mockComponentId,
+                product: '69208fd36fb0905085f395d5'
+            };
+
+            jest.spyOn(Component, 'findByIdAndDelete').mockResolvedValueOnce(deletedComponent);
+            jest.spyOn(Product, 'findById').mockResolvedValueOnce({
+                components: { pull: jest.fn() },
+                save: jest.fn().mockResolvedValueOnce({})
+            });
+
+            const res = await request(app)
+                .delete(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(Component.findByIdAndDelete).toHaveBeenCalledWith(mockComponentId);
+            expect(Product.findById).toHaveBeenCalledWith(deletedComponent.product);
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Component deleted successfully'
+                })
+            );
+        });
+
+        it('should return 404 if the component is not found', async () => {
+            const mockComponentId = '691000000000000000000000';
+            jest.spyOn(Component, 'findByIdAndDelete').mockResolvedValueOnce(null);
+
+            const res = await request(app)
+                .delete(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(Component.findByIdAndDelete).toHaveBeenCalledWith(mockComponentId);
+            expect(res.status).toBe(404);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Component not found')
+                })
+            );
+        });
+
+        it('should return 500 on database error', async () => {
+            const mockComponentId = '69247d9aad0e1c26b84eca02';
+            jest.spyOn(Component, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+            const res = await request(app)
+                .delete(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(Component.findByIdAndDelete).toHaveBeenCalledWith(mockComponentId);
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
 });
