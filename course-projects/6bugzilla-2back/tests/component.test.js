@@ -395,4 +395,130 @@ describe('Component Controller', () => {
         });
     });
 
+    describe('Component Controller - UPDATE Component', () => {
+        it('should update a component and return 200 with updated details', async () => {
+            const mockComponentId = '69247d9aad0e1c26b84eca02';
+            const existingComponent = {
+                _id: mockComponentId,
+                product: '69208fd36fb0905085f395d5',
+                name: 'Component 1',
+                description: 'This is the content of the first component',
+                assignee: '691c7d023d5b3fbd8397b1fe',
+                CC: ['691c7d023d5b3fbd8397b1fe'],
+                bugs: [],
+                save: jest.fn().mockResolvedValueOnce({
+                    _id: mockComponentId,
+                    product: '69208fd36fb0905085f395d5',
+                    name: 'Component 1 Updated',
+                    description: 'Updated description',
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    CC: ['691c7d023d5b3fbd8397b1fe'],
+                    bugs: []
+                })
+            };
+
+            jest.spyOn(Component, 'findById').mockResolvedValueOnce(existingComponent);
+
+            const res = await request(app)
+                .put(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: '69208fd36fb0905085f395d5',
+                    name: 'Component 1 Updated',
+                    description: 'Updated description',
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    CC: ['691c7d023d5b3fbd8397b1fe'],
+                    bugs: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(Component.findById).toHaveBeenCalledWith(mockComponentId);
+            expect(existingComponent.save).toHaveBeenCalled();
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Component updated successfully',
+                    component: expect.objectContaining({
+                        _id: mockComponentId,
+                        name: 'Component 1 Updated',
+                        description: 'Updated description'
+                    })
+                })
+            );
+        });
+
+        it('should return 404 if the component is not found', async () => {
+            const mockComponentId = '691000000000000000000000';
+            jest.spyOn(Component, 'findById').mockResolvedValueOnce(null);
+
+            const res = await request(app)
+                .put(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: '',
+                    name: 'Does not matter',
+                    description: 'Does not matter',
+                    assignee: '',
+                    CC: [],
+                    bugs: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(404);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Component not found')
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const mockComponentId = '69247d9aad0e1c26b84eca02';
+            const res = await request(app)
+                .put(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: '',
+                    name: '',
+                    description: '',
+                    assignee: '',
+                    CC: [],
+                    bugs: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(422);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
+        it('should handle errors and return 500', async () => {
+            const mockComponentId = '69247d9aad0e1c26b84eca02';
+            jest.spyOn(Component, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const res = await request(app)
+                .put(`/components/${mockComponentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    product: '69208fd36fb0905085f395d5',
+                    name: 'Component 1 Updated',
+                    description: 'Updated description',
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    CC: ['691c7d023d5b3fbd8397b1fe'],
+                    bugs: []
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
 });
