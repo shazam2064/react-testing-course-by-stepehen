@@ -4,7 +4,7 @@ const Product = require('../models/product.model');
 const Classification = require('../models/classification.model');
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
-const { mongoConnect, closeConnection } = require('../util/database');
+const {mongoConnect, closeConnection} = require('../util/database');
 
 describe('Product Controller', () => {
     let validToken;
@@ -14,7 +14,7 @@ describe('Product Controller', () => {
 
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
-            { email: 'admin1@test.com' },
+            {email: 'admin1@test.com'},
             {
                 $set: {
                     email: 'admin1@test.com',
@@ -23,7 +23,7 @@ describe('Product Controller', () => {
                     isAdmin: true,
                 },
             },
-            { upsert: true }
+            {upsert: true}
         );
 
         const loginResponse = await request(app)
@@ -68,7 +68,7 @@ describe('Product Controller', () => {
                 findCall += 1;
                 if (findCall === 1) {
                     // first call: countDocuments()
-                    return { countDocuments: () => Promise.resolve(mockProducts.length) };
+                    return {countDocuments: () => Promise.resolve(mockProducts.length)};
                 }
                 // second call: return chainable query for populate().populate().skip().limit()
                 return {
@@ -103,9 +103,9 @@ describe('Product Controller', () => {
         });
 
         it('should handle errors and return 500', async () => {
-            jest.spyOn(Product, 'find').mockImplementation(() => {
-                throw new Error('Database error');
-            });
+            jest.spyOn(Product, 'find').mockImplementationOnce(() => ({
+                countDocuments: () => Promise.reject(new Error('Database error')),
+            }));
 
             const res = await request(app)
                 .get('/products')
@@ -125,7 +125,7 @@ describe('Product Controller', () => {
             const mockProductId = '69208fd36fb0905085f395d5';
             const mockProduct = {
                 _id: mockProductId,
-                classification: { _id: '691dda59a581743f76150b0e', name: 'Classification 1' },
+                classification: {_id: '691dda59a581743f76150b0e', name: 'Classification 1'},
                 name: 'Product 1',
                 description: 'This is the content of the first product',
                 version: 1,
