@@ -151,4 +151,91 @@ describe('Comments Controller', () => {
         });
     });
 
+    describe('Comment Controller - CREATE Comment', () => {
+        it('should create a new comment and return 201 with details', async () => {
+            const mockBugId = '692483ab259bde177f30ab0b';
+            const mockComment = {
+                _id: '69271aa2a96041c76125fbc9',
+                bug: mockBugId,
+                text: 'This is the content of the first comment',
+                creator: '691c7d023d5b3fbd8397b1fe',
+                createdAt: '2025-11-26T15:20:02.564Z',
+                updatedAt: '2025-11-26T15:20:02.564Z',
+                __v: 0
+            };
+
+            jest.spyOn(Comment.prototype, 'save').mockResolvedValueOnce(mockComment);
+
+            jest.spyOn(Bug, 'findById').mockResolvedValueOnce({
+                _id: mockBugId,
+                comments: [],
+                CC: [],
+                save: jest.fn().mockResolvedValueOnce({}),
+                commentsPush: function (c) { this.comments.push(c); }
+            });
+
+            jest.spyOn(User, 'find').mockResolvedValueOnce([]);
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    bug: mockBugId,
+                    text: 'This is the content of the first comment'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(201);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment created successfully',
+                    comment: expect.objectContaining({
+                        text: mockComment.text,
+                        bug: mockBugId,
+                        creator: mockComment.creator
+                    })
+                })
+            );
+        });
+
+        it('should return 422 for invalid input', async () => {
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    bug: '',
+                    text: ''
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Validation failed')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error during save', async () => {
+            const mockBugId = '692483ab259bde177f30ab0b';
+            jest.spyOn(Comment.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    bug: mockBugId,
+                    text: 'This is the content of the first comment'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
 });
