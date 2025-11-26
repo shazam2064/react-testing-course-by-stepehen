@@ -371,4 +371,68 @@ describe('Comments Controller', () => {
         });
     });
 
+    describe('Comment Controller - DELETE Comment', () => {
+        it('should return 404 if the comment is not found', async () => {
+            const commentId = '6927167ca96041c76125fbb8';
+            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.stringContaining('Comment not found')
+                })
+            );
+        });
+
+        it('should return 500 if there is a server error during delete', async () => {
+            const commentId = '6927167ca96041c76125fbb8';
+            jest.spyOn(Comment, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+
+        it('should delete a comment and return 200 with message', async () => {
+            const commentId = '6927167ca96041c76125fbb8';
+            const bugId = '692483ab259bde177f30ab0b';
+            const deletedComment = {
+                _id: commentId,
+                bug: bugId,
+                creator: '691c7d023d5b3fbd8397b1fe'
+            };
+
+            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce(deletedComment);
+
+            jest.spyOn(Bug, 'findById').mockResolvedValueOnce({
+                _id: bugId,
+                comments: { pull: jest.fn() },
+                save: jest.fn().mockResolvedValueOnce({})
+            });
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment deleted successfully'
+                })
+            );
+        });
+    });
+
+
 });
