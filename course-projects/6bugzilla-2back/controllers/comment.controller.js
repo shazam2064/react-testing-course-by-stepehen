@@ -35,7 +35,11 @@ exports.createComment = async (req, res, next) => {
     console.log('The createComment controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        // Changed: return a proper 422 HTTP response instead of throwing to ensure tests receive a response
+        return res.status(422).json({
+            message: 'Validation failed, entered data is incorrect',
+            errors: errors.array()
+        });
     }
     const bugId = req.body.bug;
     const text = req.body.text;
@@ -91,7 +95,11 @@ exports.updateComment = async (req, res, next) => {
     console.log('The updateComment controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        // Changed: return a proper 422 HTTP response instead of throwing to ensure tests receive a response
+        return res.status(422).json({
+            message: 'Validation failed, entered data is incorrect',
+            errors: errors.array()
+        });
     }
     const commentId = req.params.commentId;
     const text = req.body.text;
