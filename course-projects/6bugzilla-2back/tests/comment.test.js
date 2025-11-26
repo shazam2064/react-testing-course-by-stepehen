@@ -133,7 +133,6 @@ describe('Comments Controller', () => {
 
         it('should handle errors and return 500', async () => {
             const mockBugId = '692483ab259bde177f30ab0b';
-            // make the countDocuments call reject (matches controller's use of find().countDocuments())
             jest.spyOn(Comment, 'find').mockImplementationOnce(() => {
                 return { countDocuments: jest.fn().mockRejectedValue(new Error('Database error')) };
             });
@@ -166,12 +165,16 @@ describe('Comments Controller', () => {
 
             jest.spyOn(Comment.prototype, 'save').mockResolvedValueOnce(mockComment);
 
-            jest.spyOn(Bug, 'findById').mockResolvedValueOnce({
-                _id: mockBugId,
-                comments: [],
-                CC: [],
-                save: jest.fn().mockResolvedValueOnce({}),
-                commentsPush: function (c) { this.comments.push(c); }
+            jest.spyOn(Bug, 'findById').mockImplementationOnce(() => {
+                const bugDoc = {
+                    _id: mockBugId,
+                    comments: [],
+                    CC: [],
+                    save: jest.fn().mockResolvedValueOnce(true)
+                };
+                return {
+                    populate: jest.fn().mockResolvedValueOnce(bugDoc)
+                };
             });
 
             jest.spyOn(User, 'find').mockResolvedValueOnce([]);
