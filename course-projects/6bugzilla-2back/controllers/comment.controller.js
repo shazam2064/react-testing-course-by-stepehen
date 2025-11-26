@@ -95,7 +95,6 @@ exports.updateComment = async (req, res, next) => {
     console.log('The updateComment controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        // Changed: return a proper 422 HTTP response instead of throwing to ensure tests receive a response
         return res.status(422).json({
             message: 'Validation failed, entered data is incorrect',
             errors: errors.array()
@@ -103,6 +102,20 @@ exports.updateComment = async (req, res, next) => {
     }
     const commentId = req.params.commentId;
     const text = req.body.text;
+
+    if (typeof text !== 'string' || text.trim() === '') {
+        return res.status(422).json({
+            message: 'Validation failed, entered data is incorrect',
+            errors: [{
+                type: 'field',
+                value: text,
+                msg: 'Invalid value',
+                path: 'text',
+                location: 'body'
+            }]
+        });
+    }
+
     Comment.findById(commentId)
         .then(comment => {
             if (!comment) {
