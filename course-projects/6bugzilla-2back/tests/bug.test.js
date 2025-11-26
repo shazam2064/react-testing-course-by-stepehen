@@ -123,7 +123,6 @@ describe('Bug Controller', () => {
         });
     });
 
-    // Replace the GET /bugs/:bugId describe block with the updated tests
     {
         describe('GET /bugs/:bugId', () => {
             it('should return 200 and the bug details if found', async () => {
@@ -513,6 +512,57 @@ describe('Bug Controller', () => {
         });
 
         describe('DELETE /bugs/:bugId (DELETE Bug)', () => {
+            let componentDoc;
+            let createdBugId;
+
+            beforeAll(async () => {
+                const Component = require('../models/component.model');
+                componentDoc = await Component.create({
+                    product: '69208fd36fb0905085f395d5',
+                    name: 'Test Component For Delete',
+                    description: 'Component for delete tests',
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    CC: [],
+                    bugs: []
+                });
+
+                const bug = await Bug.create({
+                    product: '69208fd36fb0905085f395d5',
+                    component: componentDoc._id,
+                    summary: 'Bug to be deleted',
+                    description: 'Created by test for deletion',
+                    severity: 'Normal',
+                    priority: 'Low',
+                    version: 1,
+                    hardware: 'PC',
+                    os: 'Windows',
+                    status: 'Open',
+                    resolution: '',
+                    CC: [],
+                    assignee: '691c7d023d5b3fbd8397b1fe',
+                    reporter: '691c7d023d5b3fbd8397b1fe',
+                    deadline: new Date('2023-12-31T23:59:59Z'),
+                    hoursWorked: 0,
+                    hoursLeft: 10,
+                    dependencies: [],
+                    attachment: 'images/test-delete.png',
+                    comments: [],
+                    history: []
+                });
+
+                createdBugId = bug._id.toString();
+
+                componentDoc.bugs.push(createdBugId);
+                await componentDoc.save();
+            });
+
+            afterAll(async () => {
+                const Component = require('../models/component.model');
+                if (componentDoc && componentDoc._id) {
+                    await Component.findByIdAndDelete(componentDoc._id).catch(() => {});
+                }
+            });
+
             it('should return 404 if the bug does not exist', async () => {
                 const nonExistentId = '000000000000000000000000';
                 jest.spyOn(Bug, 'findByIdAndDelete').mockResolvedValueOnce(null);
@@ -528,11 +578,11 @@ describe('Bug Controller', () => {
             });
 
             it('should handle errors and return 500', async () => {
-                const bugId = '692483ab259bde177f30ab0b';
+                // mock a DB error for this single call (won't delete the real bug)
                 jest.spyOn(Bug, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
 
                 const res = await request(app)
-                    .delete(`/bugs/${bugId}`)
+                    .delete(`/bugs/${createdBugId}`)
                     .set('Authorization', `Bearer ${validToken}`);
 
                 expect(res.status).toBe(500);
@@ -542,38 +592,23 @@ describe('Bug Controller', () => {
             });
 
             it('should delete a bug successfully with a valid bug ID', async () => {
-                const bugId = '692483ab259bde177f30ab0b';
-                const componentId = '69247d9aad0e1c26b84eca02';
-
-                const deletedBug = {
-                    _id: bugId,
-                    component: componentId,
-                    comments: ['c1', 'c2'],
-                };
-
-                jest.spyOn(Bug, 'findByIdAndDelete').mockResolvedValueOnce(deletedBug);
-
-                jest.spyOn(require('../models/comment.model'), 'deleteMany').mockResolvedValueOnce({deletedCount: 2});
-
-                jest.spyOn(require('../models/component.model'), 'findById').mockResolvedValueOnce({
-                    _id: componentId,
-                    bugs: [bugId],
-                    pull: function (id) {
-                        this.bugs = this.bugs.filter(b => b !== id);
-                    },
-                    save: jest.fn().mockResolvedValueOnce({})
-                });
-
-                jest.spyOn(require('../models/bug-history.model'), 'deleteMany').mockResolvedValueOnce({deletedCount: 1});
-
                 const res = await request(app)
-                    .delete(`/bugs/${bugId}`)
+                    .delete(`/bugs/${createdBugId}`)
                     .set('Authorization', `Bearer ${validToken}`);
 
                 expect(res.status).toBe(200);
-                expect(res.body).toEqual(expect.objectContaining({
-                    message: 'Bug deleted successfully'
-                }));
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Bug deleted successfully'
+                    })
+                );
+
+                // verify component no longer references the bug
+                const Component = require('../models/component.model');
+                const freshComponent = await Component.findById(componentDoc._id);
+                expect(freshComponent).toBeTruthy();
+                expect(Array.isArray(freshComponent.bugs)).toBe(true);
+                expect(freshComponent.bugs.map(b => b.toString())).not.toContain(createdBugId);
             });
         });
     }
