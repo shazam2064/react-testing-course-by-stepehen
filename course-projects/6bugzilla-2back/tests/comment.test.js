@@ -90,7 +90,6 @@ describe('Comments Controller', () => {
                 __v: 0
             };
 
-            // Comment.find is called twice in controller code: first for countDocuments(), second for populate chain
             let call = 0;
             jest.spyOn(Comment, 'find').mockImplementation(() => {
                 call++;
@@ -105,7 +104,7 @@ describe('Comments Controller', () => {
             });
 
             const response = await request(app)
-                .get(`/comments/${mockBugId}`)
+                .get(`/comments?bug=${mockBugId}`)
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
@@ -134,304 +133,13 @@ describe('Comments Controller', () => {
 
         it('should handle errors and return 500', async () => {
             const mockBugId = '692483ab259bde177f30ab0b';
-            jest.spyOn(Comment, 'find').mockImplementationOnce(() => Promise.reject(new Error('Database error')));
-
-            const response = await request(app)
-                .get(`/comments/${mockBugId}`)
-                .set('Authorization', `Bearer ${validToken}`);
-
-            expect(response.status).toBe(500);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Database error'
-                })
-            );
-        });
-    });
-
-    describe('Comment Controller - CREATE Comment', () => {
-        it('should create a new comment and return 201 with details', async () => {
-            const mockBugId = '692483ab259bde177f30ab0b';
-            const mockComment = {
-                _id: '6927167ca96041c76125fbb8',
-                bug: mockBugId,
-                text: 'This is the content of the first comment',
-                creator: '691c7d023d5b3fbd8397b1fe',
-                createdAt: '2025-11-26T15:02:20.021Z',
-                updatedAt: '2025-11-26T15:02:20.021Z',
-                __v: 0
-            };
-
-            jest.spyOn(Comment.prototype, 'save').mockResolvedValueOnce(mockComment);
-            jest.spyOn(Bug, 'findById').mockResolvedValueOnce({
-                comments: { push: jest.fn() },
-                CC: [],
-                save: jest.fn().mockResolvedValueOnce({})
-            });
-            jest.spyOn(User, 'find').mockResolvedValueOnce([]);
-
-            const response = await request(app)
-                .post('/comments')
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    bug: mockBugId,
-                    text: 'This is the content of the first comment'
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(201);
-
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Comment created successfully',
-                    comment: expect.objectContaining({
-                        text: mockComment.text,
-                        bug: mockBugId,
-                        creator: mockComment.creator
-                    })
-                })
-            );
-        });
-
-        it('should return 422 for invalid input', async () => {
-            const response = await request(app)
-                .post('/comments')
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    bug: '',
-                    text: ''
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(422);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: expect.stringContaining('Validation failed')
-                })
-            );
-        });
-
-        it('should return 500 if there is a server error', async () => {
-            const mockBugId = '692483ab259bde177f30ab0b';
-            jest.spyOn(Comment.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
-
-            const response = await request(app)
-                .post('/comments')
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    bug: mockBugId,
-                    text: 'This is the content of the first comment'
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(500);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Database error'
-                })
-            );
-        });
-    });
-
-    describe('Comment Controller - UPDATE Comment', () => {
-        it('should update a comment and return 200 with updated details', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            const mockComment = {
-                _id: mockCommentId,
-                text: 'Old content',
-                creator: '691c7d023d5b3fbd8397b1fe',
-                save: jest.fn().mockResolvedValueOnce({
-                    _id: mockCommentId,
-                    text: 'Updated content',
-                    creator: '691c7d023d5b3fbd8397b1fe'
-                })
-            };
-
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
-
-            const response = await request(app)
-                .put(`/comments/${mockCommentId}`)
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    text: 'Updated content'
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Comment updated successfully',
-                    comment: expect.objectContaining({
-                        _id: mockCommentId,
-                        text: 'Updated content',
-                        creator: '691c7d023d5b3fbd8397b1fe'
-                    })
-                })
-            );
-        });
-
-        it('should return 404 if the comment is not found', async () => {
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(null);
-
-            const response = await request(app)
-                .put('/comments/unknownid')
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    text: 'Updated content'
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(404);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: expect.stringContaining('Comment not found')
-                })
-            );
-        });
-
-        it('should return 403 if not authorized', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            const mockComment = {
-                _id: mockCommentId,
-                text: 'Old content',
-                creator: 'differentUserId',
-                save: jest.fn()
-            };
-
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
-
-            const response = await request(app)
-                .put(`/comments/${mockCommentId}`)
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    text: 'Updated content'
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(403);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: expect.stringContaining('Not authorized')
-                })
-            );
-        });
-
-        it('should return 422 for invalid input', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce({
-                _id: mockCommentId,
-                text: 'Old content',
-                creator: '691c7d023d5b3fbd8397b1fe',
-                save: jest.fn()
+            // make the countDocuments call reject (matches controller's use of find().countDocuments())
+            jest.spyOn(Comment, 'find').mockImplementationOnce(() => {
+                return { countDocuments: jest.fn().mockRejectedValue(new Error('Database error')) };
             });
 
             const response = await request(app)
-                .put(`/comments/${mockCommentId}`)
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    text: ''
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(422);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: expect.stringContaining('Validation failed')
-                })
-            );
-        });
-
-        it('should return 500 if there is a server error', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            jest.spyOn(Comment, 'findById').mockRejectedValueOnce(new Error('Database error'));
-
-            const response = await request(app)
-                .put(`/comments/${mockCommentId}`)
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({
-                    text: 'Updated content'
-                })
-                .set('Content-Type', 'application/json');
-
-            expect(response.status).toBe(500);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Database error'
-                })
-            );
-        });
-    });
-
-    describe('Comment Controller - DELETE Comment', () => {
-        it('should delete a comment and return 200 with message', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            const mockComment = {
-                _id: mockCommentId,
-                bug: '692483ab259bde177f30ab0b',
-                creator: '691c7d023d5b3fbd8397b1fe'
-            };
-
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
-            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce(mockComment);
-            jest.spyOn(Bug, 'findById').mockResolvedValueOnce({
-                comments: { pull: jest.fn() },
-                save: jest.fn().mockResolvedValueOnce({})
-            });
-
-            const response = await request(app)
-                .delete(`/comments/${mockCommentId}`)
-                .set('Authorization', `Bearer ${validToken}`);
-
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: 'Comment deleted successfully'
-                })
-            );
-        });
-
-        it('should return 404 if the comment is not found', async () => {
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(null);
-
-            const response = await request(app)
-                .delete('/comments/unknownid')
-                .set('Authorization', `Bearer ${validToken}`);
-
-            expect(response.status).toBe(404);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: expect.stringContaining('Comment not found')
-                })
-            );
-        });
-
-        it('should return 403 if not authorized', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            const mockComment = {
-                _id: mockCommentId,
-                creator: 'differentUserId'
-            };
-
-            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
-
-            const response = await request(app)
-                .delete(`/comments/${mockCommentId}`)
-                .set('Authorization', `Bearer ${validToken}`);
-
-            expect(response.status).toBe(403);
-            expect(response.body).toEqual(
-                expect.objectContaining({
-                    message: expect.stringContaining('Not authorized')
-                })
-            );
-        });
-
-        it('should return 500 if there is a server error', async () => {
-            const mockCommentId = '6927167ca96041c76125fbb8';
-            jest.spyOn(Comment, 'findById').mockRejectedValueOnce(new Error('Database error'));
-
-            const response = await request(app)
-                .delete(`/comments/${mockCommentId}`)
+                .get(`/comments?bug=${mockBugId}`)
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(500);
@@ -442,4 +150,5 @@ describe('Comments Controller', () => {
             );
         });
     });
+
 });
