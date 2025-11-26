@@ -381,7 +381,6 @@ describe('Bug Controller', () => {
             });
 
             it('should return 500 if there is a server error during creation', async () => {
-                // make save reject
                 jest.spyOn(require('../models/bug.model').prototype, 'save').mockRejectedValueOnce(new Error('Database error during save'));
 
                 const res = await request(app)
@@ -603,7 +602,6 @@ describe('Bug Controller', () => {
                     })
                 );
 
-                // verify component no longer references the bug
                 const Component = require('../models/component.model');
                 const freshComponent = await Component.findById(componentDoc._id);
                 expect(freshComponent).toBeTruthy();
@@ -611,6 +609,58 @@ describe('Bug Controller', () => {
                 expect(freshComponent.bugs.map(b => b.toString())).not.toContain(createdBugId);
             });
         });
+
+        describe('logBugChange (utility)', () => {
+            const BugHistory = require('../models/bug-history.model');
+            const BugModel = require('../models/bug.model');
+            const bugController = require('../controllers/bug.controller');
+
+            it('should create a BugHistory entry and append its id to the bug.history then save', async () => {
+                const bugId = 'b1';
+                const userId = 'u1';
+                const changes = [{ field: 'summary', oldValue: 'old', newValue: 'new' }];
+
+                const createdHistory = { _id: 'hid1' };
+                jest.spyOn(BugHistory, 'create').mockResolvedValueOnce(createdHistory);
+
+                const mockBug = { history: [], save: jest.fn().mockResolvedValueOnce(true) };
+                jest.spyOn(BugModel, 'findById').mockResolvedValueOnce(mockBug);
+
+                await bugController.logBugChange(bugId, changes, userId);
+
+                expect(BugHistory.create).toHaveBeenCalledWith(expect.objectContaining({
+                    bug: bugId,
+                    fields: ['summary'],
+                    oldValues: ['old'],
+                    newValues: ['new'],
+                    changedBy: userId
+                }));
+                expect(BugModel.findById).toHaveBeenCalledWith(bugId);
+                expect(mockBug.history).toContain(createdHistory._id);
+                expect(mockBug.save).toHaveBeenCalled();
+            });
+
+            it('should reject when BugHistory.create fails', async () => {
+                const bugId = 'b2';
+                const userId = 'u2';
+                const changes = [{ field: 'status', oldValue: 'Open', newValue: 'Closed' }];
+
+                jest.spyOn(BugHistory, 'create').mockRejectedValueOnce(new Error('DB error'));
+
+                await expect(bugController.logBugChange(bugId, changes, userId)).rejects.toThrow('DB error');
+            });
+
+            it('should reject when Bug.findById returns null', async () => {
+                const bugId = 'b3';
+                const userId = 'u3';
+                const changes = [{ field: 'priority', oldValue: 'Low', newValue: 'High' }];
+
+                jest.spyOn(BugHistory, 'create').mockResolvedValueOnce({ _id: 'hid3' });
+                jest.spyOn(BugModel, 'findById').mockResolvedValueOnce(null);
+
+                await expect(bugController.logBugChange(bugId, changes, userId)).rejects.toBeTruthy();
+            });
+        });
+
     }
 });
-
