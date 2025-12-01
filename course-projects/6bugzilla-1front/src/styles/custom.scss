@@ -1,0 +1,145 @@
+@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+
+.App {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: #c6c6c6;
+}
+
+/*a,
+a:hover,
+a:focus {
+  color: #4558c5;
+  text-decoration: 0077cc;
+  transition: all 0.3s;
+}*/
+
+:root {
+  --primary-color: #404d6c;
+  --secondary-color: #667089;
+  --font-size-small: 12px;
+  --font-size-medium: 14px;
+  --font-size-large: 16px;
+  --padding-small: 5px;
+  --padding-medium: 10px;
+  --padding-large: 20px;
+}
+
+.link-like {
+  color: #0d6dfb;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    color: darken(#0d6dfb, 10%);
+    text-decoration: none;
+  }
+}
+
+.bg-blue {
+    background-color: var(--primary-color);
+}
+
+// Navbar.scss
+.top-nav {
+  background-color: var(--primary-color);
+  color: white;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  margin: var(--padding-small) auto;
+  top: 0;
+  z-index: 1000;
+}
+
+
+.bot-nav {
+  background-color: var(--secondary-color);
+  color: white;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  margin: var(--padding-small) auto;
+  bottom: 0;
+  z-index: 500;
+}
+
+.search-group {
+  width: 40%;
+}
+
+@media (min-width: 768px) {
+  .search-group {
+    width: 20%;
+  }
+}
+
+.search-bar {
+  width: 50px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-right: 0px;
+}
+
+.search-button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0.62rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Dropdown
+
+.dropdown-item:hover,
+.dropdown-item:active {
+  background-color: #c6c6c6;
+}
+
+/* Custom checkbox styling */
+.custom-checkbox {
+  input[type="checkbox"] {
+    /* Hide the default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.4s, border-color 0.4s;
+    margin-right: 5px;
+
+    &:checked {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 6px;
+        width: 6px;
+        height: 12px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+  }
+}
