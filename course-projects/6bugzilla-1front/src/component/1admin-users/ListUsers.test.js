@@ -53,9 +53,10 @@ test("renders users and action buttons", async () => {
 
   renderWithProviders(users);
 
-  await waitFor(() => expect(mockFetchAdminUsers).toHaveBeenCalled());
-
-  expect(screen.getAllByTestId("user-item").length).toBe(users.length);
+  await waitFor(() => {
+    expect(mockFetchAdminUsers).toHaveBeenCalled();
+    expect(screen.getAllByTestId("user-item").length).toBe(users.length);
+  });
 
   expect(screen.getAllByText("Edit")[0]).toBeInTheDocument();
   expect(screen.getAllByText("Delete")[0]).toBeInTheDocument();
@@ -87,7 +88,11 @@ test("edit button navigates to edit page", async () => {
 
   renderWithProviders(users, undefined, undefined, history);
 
-  await waitFor(() => expect(mockFetchAdminUsers).toHaveBeenCalled());
+  // wait for user items to be rendered before clicking Edit
+  await waitFor(() => {
+    expect(mockFetchAdminUsers).toHaveBeenCalled();
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+  });
 
   fireEvent.click(screen.getByText("Edit"));
   expect(history.location.pathname).toBe("/admin/edit-user/1");
@@ -100,7 +105,11 @@ test("delete button calls deleteAdminUser and refreshes", async () => {
 
   renderWithProviders(users);
 
-  await waitFor(() => expect(mockFetchAdminUsers).toHaveBeenCalled());
+  // wait for DOM update
+  await waitFor(() => {
+    expect(mockFetchAdminUsers).toHaveBeenCalled();
+    expect(screen.getByText("Delete")).toBeInTheDocument();
+  });
 
   fireEvent.click(screen.getByText("Delete"));
 
@@ -115,7 +124,11 @@ test("shows error if delete fails", async () => {
 
   renderWithProviders(users);
 
-  await waitFor(() => expect(mockFetchAdminUsers).toHaveBeenCalled());
+  // wait for DOM update
+  await waitFor(() => {
+    expect(mockFetchAdminUsers).toHaveBeenCalled();
+    expect(screen.getByText("Delete")).toBeInTheDocument();
+  });
 
   fireEvent.click(screen.getByText("Delete"));
 
