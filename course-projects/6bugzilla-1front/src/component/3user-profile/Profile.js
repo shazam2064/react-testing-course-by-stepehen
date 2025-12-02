@@ -18,7 +18,10 @@ function Profile(props) {
     const { userId } = props.match.params;
     const loggedUser = useContext(UserContext);
     const isCreator = adminUser._id === loggedUser.userId;
-    const { setTitle } = useContext(TitleContext);
+
+    // Guard TitleContext so tests without provider won't crash
+    const titleCtx = useContext(TitleContext) || {};
+    const setTitle = typeof titleCtx.setTitle === 'function' ? titleCtx.setTitle : () => {};
 
     useEffect(() => {
         fetchAdminUserById(userId).then(adminUser => {
