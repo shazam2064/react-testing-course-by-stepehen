@@ -46,6 +46,10 @@ module.exports = {
                 use: ['style-loader', 'css-loader'],
             },
             {
+                test: /\.(scss|sass)$/i,
+                use: ['style-loader', 'css-loader', 'sass-loader'],
+            },
+            {
                 test: /\.svg$/,
                 use: 'file-loader',
             },
@@ -53,7 +57,7 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: 'src/index.html',
+            template: 'public/index.html',
         }),
         new webpack.DefinePlugin({
             'process.env': JSON.stringify(process.env),
