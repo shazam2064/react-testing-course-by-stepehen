@@ -3,17 +3,20 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Login from './Login';
 import axios from 'axios';
 import { UserContext, DispatchContext } from '../../contexts/user.context';
+import { TitleContext } from '../../contexts/title.context'; // added import
 
 jest.mock('axios');
 
 const mockHistory = { push: jest.fn() };
 
-function renderLogin(mockDispatch = jest.fn()) {
+function renderLogin(mockDispatch = jest.fn(), mockSetTitle = jest.fn()) { // added mockSetTitle param
     return render(
         <UserContext.Provider value={null}>
-            <DispatchContext.Provider value={mockDispatch}>
-                <Login history={mockHistory} />
-            </DispatchContext.Provider>
+            <TitleContext.Provider value={{ setTitle: mockSetTitle }}> {/* added provider */}
+                <DispatchContext.Provider value={mockDispatch}>
+                    <Login history={mockHistory} />
+                </DispatchContext.Provider>
+            </TitleContext.Provider>
         </UserContext.Provider>
     );
 }
