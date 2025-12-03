@@ -26,12 +26,13 @@
     "uuid": "^13.0.0",
     "web-streams-polyfill": "^4.2.0",
     "web-vitals": "^2.1.4",
-    "whatwg-fetch": "^3.6.20"
+    "whatwg-fetch": "^3.6.20",
+    "react-scripts": "^5.0.1"
   },
   "scripts": {
     "start": "set PORT=3006 && react-scripts start",
     "build": "react-scripts build",
-    "test": "jest --no-cache --config jest.config.js --watch\"",
+    "test": "jest --no-cache --config jest.config.js --watch",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -71,7 +72,6 @@
     "jest-environment-jsdom": "^30.2.0",
     "msw": "^2.12.3",
     "node-fetch": "^3.3.2",
-    "react-scripts": "^0.0.0",
     "sass": "^1.85.0",
     "sass-loader": "^16.0.5",
     "style-loader": "^4.0.0",
