@@ -65,7 +65,8 @@ describe('Profile component', () => {
         await waitFor(() => expect(screen.getByText(sampleAdmin.name)).toBeInTheDocument());
 
         expect(screen.getByText(/Email:/i)).toHaveTextContent(sampleAdmin.email);
-        expect(screen.getByText(sampleAdmin.status)).toBeInTheDocument();
+        // status in the DOM is prefixed with "Status:" so match via RegExp (substring)
+        expect(screen.getByText(new RegExp(sampleAdmin.status))).toBeInTheDocument();
 
         const qTitle = screen.getByText(sampleAdmin.questions[0].title);
         const qLink = qTitle.closest('a');
@@ -95,4 +96,3 @@ describe('Profile component', () => {
         spy.mockRestore();
     });
 });
-
