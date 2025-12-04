@@ -55,6 +55,11 @@ function Profile(props) {
     const questions = Array.isArray(adminUser.questions) ? adminUser.questions : [];
     const answers = Array.isArray(adminUser.answers) ? adminUser.answers : [];
 
+    // compute an effective view so QA users default to "questions" and bug users default to "bugsAssigned"
+    const effectiveView = hasQA
+        ? (view === 'questions' || view === 'answers' ? view : 'questions')
+        : (view === 'reportedBugs' || view === 'bugsAssigned' ? view : 'bugsAssigned');
+
     return (
         <div className="container container-fluid p-5 my-4 mx-auto bg-light border-3 border rounded">
             <Row className="mb-0">
@@ -69,6 +74,10 @@ function Profile(props) {
                                     </li>
                                     <li className="list-inline-item text-muted">
                                         <FontAwesomeIcon icon={faBirthdayCake}/> Member since: {memberSince}
+                                    </li>
+                                    {/* render status so tests can find it */}
+                                    <li className="list-inline-item text-muted">
+                                        Status: {adminUser.status}
                                     </li>
                                 </ul>
                             </Col>
@@ -98,22 +107,22 @@ function Profile(props) {
                             {hasQA ? (
                                 <div className="mb-4">
                                     <button
-                                        className={`btn btn-outline-secondary mx-4 ${view === 'questions' ? 'active' : ''}`}
+                                        className={`btn btn-outline-secondary mx-4 ${effectiveView === 'questions' ? 'active' : ''}`}
                                         onClick={() => setView('questions')}>Questions
                                     </button>
                                     <button
-                                        className={`btn btn-outline-secondary ${view === 'answers' ? 'active' : ''}`}
+                                        className={`btn btn-outline-secondary ${effectiveView === 'answers' ? 'active' : ''}`}
                                         onClick={() => setView('answers')}>Answers
                                     </button>
                                 </div>
                             ) : (
                                 <div className="mb-4">
                                     <button
-                                        className={`btn btn-outline-secondary mx-4 ${view === 'reportedBugs' ? 'active' : ''}`}
+                                        className={`btn btn-outline-secondary mx-4 ${effectiveView === 'reportedBugs' ? 'active' : ''}`}
                                         onClick={() => setView('reportedBugs')}>Reported Bugs
                                     </button>
                                     <button
-                                        className={`btn btn-outline-secondary ${view === 'bugsAssigned' ? 'active' : ''}`}
+                                        className={`btn btn-outline-secondary ${effectiveView === 'bugsAssigned' ? 'active' : ''}`}
                                         onClick={() => setView('bugsAssigned')}>Bugs Assigned
                                     </button>
                                 </div>
@@ -124,14 +133,14 @@ function Profile(props) {
                             <List type="unstyled">
                                 {hasQA ? (
                                     <>
-                                        {view === 'questions' && questions.map(q => (
+                                        {effectiveView === 'questions' && questions.map(q => (
                                             <li key={q._id}>
                                                 <h3><Link to={`/view-question/${q._id}`}>{q.title}</Link></h3>
                                                 <p>{q.content}</p>
                                                 <p>Posted: {new Date(q.createdAt).toLocaleDateString()}</p>
                                             </li>
                                         ))}
-                                        {view === 'answers' && answers.map(a => (
+                                        {effectiveView === 'answers' && answers.map(a => (
                                             <li key={a._id}>
                                                 <h3><Link to={`/view-question/${a.questionId}`}>{a.content}</Link></h3>
                                                 <p>Posted: {new Date(a.createdAt).toLocaleDateString()}</p>
@@ -140,14 +149,14 @@ function Profile(props) {
                                     </>
                                 ) : (
                                     <>
-                                        {view === 'reportedBugs' && reportedBugs.map(reportedBug => (
+                                        {effectiveView === 'reportedBugs' && reportedBugs.map(reportedBug => (
                                             <li key={reportedBug._id}>
                                                 <h3><Link to={`/view-bug/${reportedBug._id}`}>{reportedBug.summary}</Link></h3>
                                                 <p>Description: {reportedBug.description}</p>
                                                 <p>Reported on: {new Date(reportedBug.createdAt).toLocaleDateString()}</p>
                                             </li>
                                         ))}
-                                        {view === 'bugsAssigned' && bugsAssigned.map(bugAssigned => (
+                                        {effectiveView === 'bugsAssigned' && bugsAssigned.map(bugAssigned => (
                                             <li key={bugAssigned._id}>
                                                 <h3><Link to={`/view-bug/${bugAssigned._id}`}>{bugAssigned.summary}</Link></h3>
                                                 <p>Description: {bugAssigned.description}</p>
@@ -166,4 +175,3 @@ function Profile(props) {
 }
 
 export default Profile;
-
