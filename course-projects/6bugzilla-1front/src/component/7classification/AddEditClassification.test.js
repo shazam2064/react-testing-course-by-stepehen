@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import AddEditClassification from './AddEditClassification';
 import { TitleContext } from '../../contexts/title.context';
 import { UserContext } from '../../contexts/user.context';
-import { MemoryRouter } from 'react-router-dom'; // added
+import { MemoryRouter, Router, Route } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
 
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
@@ -20,22 +21,47 @@ afterEach(() => {
   cleanup();
 });
 
-const renderWithProviders = (ui, { user = { isAdmin: true }, mockSetTitle = jest.fn() } = {}) => {
+// render helper: if history provided and routePath provided, render via Router + Route and clone element so route props (match.params) are injected.
+// if history provided but no routePath, render inside Router to allow withRouter navigation assertions.
+// otherwise use MemoryRouter.
+const renderWithProviders = (ui, { user = { isAdmin: true }, mockSetTitle = jest.fn() } = {}, history = null, routePath = null) => {
+  const Wrapper = ({ children }) => (
+    <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
+      <UserContext.Provider value={user}>
+        {children}
+      </UserContext.Provider>
+    </TitleContext.Provider>
+  );
+
+  if (history && routePath) {
+    return render(
+      <Wrapper>
+        <Router history={history}>
+          <Route path={routePath} render={(routeProps) => React.cloneElement(ui, routeProps)} />
+        </Router>
+      </Wrapper>
+    );
+  }
+
+  if (history) {
+    return render(
+      <Wrapper>
+        <Router history={history}>{ui}</Router>
+      </Wrapper>
+    );
+  }
+
   return render(
-    <MemoryRouter>
-      <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
-        <UserContext.Provider value={user}>
-          {ui}
-        </UserContext.Provider>
-      </TitleContext.Provider>
-    </MemoryRouter>
+    <Wrapper>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </Wrapper>
   );
 };
 
 describe('AddEditClassification', () => {
   it('renders form fields in add mode and sets title', () => {
     const mockSetTitle = jest.fn();
-    renderWithProviders(<AddEditClassification match={{ params: {} }} history={{ push: jest.fn() }} />, { mockSetTitle });
+    renderWithProviders(<AddEditClassification />, { mockSetTitle });
     expect(screen.getByLabelText(/Name:/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Description:/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
@@ -43,7 +69,7 @@ describe('AddEditClassification', () => {
   });
 
   it('shows unauthorized message when user is not admin', () => {
-    renderWithProviders(<AddEditClassification match={{ params: {} }} history={{ push: jest.fn() }} />, { user: { isAdmin: false } });
+    renderWithProviders(<AddEditClassification />, { user: { isAdmin: false } });
     expect(screen.getByText(/Unauthorized!/i)).toBeInTheDocument();
     expect(screen.getByText(/not authorized/i)).toBeInTheDocument();
   });
@@ -53,7 +79,8 @@ describe('AddEditClassification', () => {
     mockCreate.mockResolvedValueOnce({}); // succeed
     const mockSetTitle = jest.fn();
 
-    renderWithProviders(<AddEditClassification match={{ params: {} }} history={{ push: mockPush }} />, { mockSetTitle });
+    const history = createMemoryHistory();
+    renderWithProviders(<AddEditClassification />, { mockSetTitle }, history);
 
     fireEvent.change(screen.getByLabelText(/Name:/i), { target: { value: 'Test Class' } });
     fireEvent.change(screen.getByLabelText(/Description:/i), { target: { value: 'Desc' } });
@@ -62,14 +89,15 @@ describe('AddEditClassification', () => {
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ name: 'Test Class', description: 'Desc' }));
-      expect(mockPush).toHaveBeenCalledWith('/admin/classifications');
+      // navigation uses the history we provided
+      expect(history.location.pathname).toBe('/admin/classifications');
     });
   });
 
   it('shows error alert when create fails', async () => {
     mockCreate.mockRejectedValueOnce(new Error('Create failed'));
 
-    renderWithProviders(<AddEditClassification match={{ params: {} }} history={{ push: jest.fn() }} />);
+    renderWithProviders(<AddEditClassification />);
 
     fireEvent.change(screen.getByLabelText(/Name:/i), { target: { value: 'Bad' } });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -87,7 +115,10 @@ describe('AddEditClassification', () => {
     const mockPush = jest.fn();
     const mockSetTitle = jest.fn();
 
-    renderWithProviders(<AddEditClassification match={{ params: { classificationId: 'c1' } }} history={{ push: mockPush }} />, { mockSetTitle });
+    const history = createMemoryHistory({ initialEntries: ['/admin/classifications/edit/c1'] });
+    const routePath = '/admin/classifications/edit/:classificationId';
+
+    renderWithProviders(<AddEditClassification />, { mockSetTitle }, history, routePath);
 
     // Wait for fetch to populate form
     await waitFor(() => expect(screen.getByLabelText(/Name:/i).value).toBe('Existing'));
@@ -100,13 +131,16 @@ describe('AddEditClassification', () => {
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ _id: 'c1', name: 'Existing Updated' }));
-      expect(mockPush).toHaveBeenCalledWith('/admin/classifications');
+      expect(history.location.pathname).toBe('/admin/classifications');
     });
   });
 
   it('shows error when fetch in edit mode fails', async () => {
     mockFetchById.mockRejectedValueOnce(new Error('Fetch failed'));
-    renderWithProviders(<AddEditClassification match={{ params: { classificationId: 'bad' } }} history={{ push: jest.fn() }} />);
+    const history = createMemoryHistory({ initialEntries: ['/admin/classifications/edit/bad'] });
+    const routePath = '/admin/classifications/edit/:classificationId';
+
+    renderWithProviders(<AddEditClassification />, {}, history, routePath);
 
     await waitFor(() => {
       expect(screen.getByText(/Classification could not be fetched/i)).toBeInTheDocument();
