@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import AddEditClassification from './AddEditClassification';
 import { TitleContext } from '../../contexts/title.context';
 import { UserContext } from '../../contexts/user.context';
+import { MemoryRouter } from 'react-router-dom'; // added
 
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
@@ -21,11 +22,13 @@ afterEach(() => {
 
 const renderWithProviders = (ui, { user = { isAdmin: true }, mockSetTitle = jest.fn() } = {}) => {
   return render(
-    <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
-      <UserContext.Provider value={user}>
-        {ui}
-      </UserContext.Provider>
-    </TitleContext.Provider>
+    <MemoryRouter>
+      <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
+        <UserContext.Provider value={user}>
+          {ui}
+        </UserContext.Provider>
+      </TitleContext.Provider>
+    </MemoryRouter>
   );
 };
 
@@ -111,4 +114,3 @@ describe('AddEditClassification', () => {
     });
   });
 });
-
