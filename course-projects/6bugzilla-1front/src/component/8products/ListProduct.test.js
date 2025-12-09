@@ -8,16 +8,26 @@ import * as restHooks from '../../rest/useRestProducts';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 
-jest.mock('./ProductItem', () => ({ product, actionButtons }) => (
-  <tr data-testid="product-item">
-    <td>{product.name}</td>
-    <td>{product.description}</td>
-    <td>{product.version}</td>
-    <td>{product.classification ? product.classification.name || product.classification : ''}</td>
-    <td>{product.components ? product.components.length : 0}</td>
-    <td>{actionButtons}</td>
-  </tr>
-));
+jest.mock('./ProductItem', () => ({ product, actionButtons }) => {
+  // defensive rendering: avoid rendering plain objects directly (which React disallows)
+  const classificationText = product.classification
+    ? (typeof product.classification === 'string'
+        ? product.classification
+        : (product.classification && product.classification.name ? product.classification.name : ''))
+    : '';
+  const componentsCount = Array.isArray(product.components) ? product.components.length : 0;
+
+  return (
+    <tr data-testid="product-item">
+      <td>{product.name}</td>
+      <td>{product.description}</td>
+      <td>{product.version}</td>
+      <td>{classificationText}</td>
+      <td>{componentsCount}</td>
+      <td>{actionButtons}</td>
+    </tr>
+  );
+});
 
 const mockDispatch = jest.fn();
 const mockFetchProducts = jest.fn();
@@ -126,4 +136,3 @@ test('delete button calls deleteProduct and dispatches and refreshes', async () 
   await waitFor(() => expect(mockDeleteProduct).toHaveBeenCalledWith('p1'));
   expect(mockDispatch).toHaveBeenCalledWith({ type: 'DELETE_PRODUCT', payload: { _id: 'p1' } });
 });
-
