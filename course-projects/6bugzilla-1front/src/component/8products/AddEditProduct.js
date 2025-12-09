@@ -43,13 +43,20 @@ function AddEditProduct(props) {
             setTitle('Add Product');
         }
 
-        fetchClassifications().then(classifications => {
-            dispatch({ type: 'SET_CLASSIFICATIONS', classifications: classifications });
-        }).catch(error => {
-            dispatch({ type: 'SET_CLASSIFICATIONS', classifications: [] });
-            setError(error.message);
-        });
-    }, [productId, isEditMode, setTitle]);
+        if (typeof fetchClassifications === 'function') {
+            fetchClassifications().then(classifications => {
+                dispatch({ type: 'SET_CLASSIFICATIONS', classifications: classifications });
+            }).catch(error => {
+                dispatch({ type: 'SET_CLASSIFICATIONS', classifications: [] });
+                setError(error.message);
+            });
+        } else {
+            try {
+                dispatch({ type: 'SET_CLASSIFICATIONS', classifications: [] });
+            } catch (e) {
+            }
+        }
+    }, [productId, isEditMode, setTitle, fetchClassifications, dispatch]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -147,7 +154,7 @@ function AddEditProduct(props) {
                     />
                 </FormGroup>
                 <FormGroup>
-                    <Label for="price">Version:</Label>
+                    <Label for="version">Version:</Label>
                     <Input
                         type="number"
                         id="version"
