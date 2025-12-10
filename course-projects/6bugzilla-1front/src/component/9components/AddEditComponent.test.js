@@ -81,9 +81,12 @@ const renderWithProviders = (
   }
 
   if (history) {
+    // Render via a Route so routeProps (including history) are injected into the component
     return render(
       <Wrapper>
-        <Router history={history}>{ui}</Router>
+        <Router history={history}>
+          <Route path="/" render={(routeProps) => React.cloneElement(ui, routeProps)} />
+        </Router>
       </Wrapper>
     );
   }
@@ -226,4 +229,3 @@ describe('AddEditComponent', () => {
     });
   });
 });
-
