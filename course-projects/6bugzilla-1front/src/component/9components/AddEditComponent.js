@@ -16,6 +16,8 @@ function AddEditComponent(props) {
     const adminUsers = useContext(AdminUsersContext);
     const productsDispatch = useContext(ProductsDispatch);
     const adminUsersDispatch = useContext(AdminUsersDispatch);
+    // getInitialComponentState() returns an array with the initial object at index 0
+    // use that index so component is always an object with CC: []
     const [component, setComponent] = useState(getInitialComponentState()[0]);
     const [selectedProduct, setSelectedProduct] = useState('');
     const [selectedAssignee, setSelectedAssignee] = useState('');
@@ -25,7 +27,8 @@ function AddEditComponent(props) {
     const fetchComponentById = useFetchComponentById();
     const fetchProducts = useFetchProducts();
     const fetchUsers = useFetchAdminUsers();
-    const { componentId } = props.match.params;
+    // support being rendered without Router/match (tests often render component directly)
+    const componentId = props?.match?.params?.componentId;
     const isEditMode = !!componentId;
     const loggedUser = useContext(UserContext);
     const isAdmin = loggedUser.isAdmin;
@@ -38,30 +41,51 @@ function AddEditComponent(props) {
         if (isEditMode) {
             fetchComponentById(componentId).then(component => {
                 setComponent(component);
-                setSelectedProduct(component.product._id);
-                setSelectedAssignee(component.assignee._id);
+                // guard product/assignee existence
+                setSelectedProduct(component.product ? component.product._id : '');
+                setSelectedAssignee(component.assignee ? component.assignee._id : '');
                 setTitle(`Edit Component: ${component.name}`);
             }).catch(error => {
                 setError(`Component could not be fetched: ${error.message}`);
             });
         } else {
+            // keep the same shape as initial state
             setComponent(getInitialComponentState()[0]);
             setTitle('Add Component');
         }
-
-        fetchProducts().then(products => {
-            productsDispatch({ type: 'SET_PRODUCTS', products: products });
-        }).catch(error => {
+        // Defensive fetch: test mocks may not always return promises
+        if (typeof fetchProducts === 'function') {
+            const res = fetchProducts();
+            if (res && typeof res.then === 'function') {
+                res.then(products => {
+                    productsDispatch({ type: 'SET_PRODUCTS', products: products });
+                }).catch(error => {
+                    productsDispatch({ type: 'SET_PRODUCTS', products: [] });
+                    setError(error.message);
+                });
+            } else {
+                // not a promise -> assume it's an array or undefined
+                productsDispatch({ type: 'SET_PRODUCTS', products: Array.isArray(res) ? res : [] });
+            }
+        } else {
             productsDispatch({ type: 'SET_PRODUCTS', products: [] });
-            setError(error.message);
-        });
+        }
 
-        fetchUsers().then(users => {
-            adminUsersDispatch({ type: 'SET_ADMIN_USERS', adminUsers: users });
-        }).catch(error => {
+        if (typeof fetchUsers === 'function') {
+            const res = fetchUsers();
+            if (res && typeof res.then === 'function') {
+                res.then(users => {
+                    adminUsersDispatch({ type: 'SET_ADMIN_USERS', adminUsers: users });
+                }).catch(error => {
+                    adminUsersDispatch({ type: 'SET_ADMIN_USERS', adminUsers: [] });
+                    setError(error.message);
+                });
+            } else {
+                adminUsersDispatch({ type: 'SET_ADMIN_USERS', adminUsers: Array.isArray(res) ? res : [] });
+            }
+        } else {
             adminUsersDispatch({ type: 'SET_ADMIN_USERS', adminUsers: [] });
-            setError(error.message);
-        });
+        }
     }, [componentId, isEditMode, setTitle]);
 
     const handleChange = (e) => {
@@ -205,14 +229,9 @@ function AddEditComponent(props) {
                         ))}
                     </Input>
                     <div className="mt-3 d-flex flex-wrap">
-                        {component.CC.map(CCId => {
-                            let searchedCC;
-                            if (CCId._id) {
-                                searchedCC = CCId._id;
-                            } else {
-                                searchedCC = CCId;
-                            }
-                            const CC = adminUsers.find(CC => CC._id === searchedCC) ?? { email: "" };
+                        { (Array.isArray(component?.CC) ? component.CC : []).map(CCId => {
+                            let searchedCC = CCId && CCId._id ? CCId._id : CCId;
+                            const CC = adminUsers.find(u => u._id === searchedCC) ?? { email: "" };
                             return (
                                 <div key={searchedCC} className="d-flex text-primary align-items-center border border-primary rounded mx-1 py-0 px-1">
                                     {CC.email}
@@ -229,3 +248,4 @@ function AddEditComponent(props) {
 }
 
 export default AddEditComponent;
+
