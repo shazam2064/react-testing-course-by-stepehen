@@ -5,7 +5,7 @@ import { TitleContext } from '../../contexts/title.context';
 import { UserContext } from '../../contexts/user.context';
 import * as restBugs from '../../rest/useRestBugs';
 import * as restProducts from '../../rest/useRestProducts';
-import * as restComponents from '../../rest/useRestComponents';
+import * as restComponents from '../../rest/useRestComponent';
 import * as restUsers from '../../rest/useRestAdminUsers';
 import { Router, Route } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -16,18 +16,20 @@ const mockFetchById = jest.fn();
 const mockFetchProducts = jest.fn();
 const mockFetchComponents = jest.fn();
 const mockFetchUsers = jest.fn();
+const mockFetchBugs = jest.fn().mockResolvedValue([]);
 
 jest.mock('../../rest/useRestBugs', () => ({
   useCreateBug: () => mockCreate,
   useUpdateBug: () => mockUpdate,
   useFetchBugById: () => mockFetchById,
+  useFetchBugs: () => mockFetchBugs,
 }));
 
 jest.mock('../../rest/useRestProducts', () => ({
   useFetchProducts: () => mockFetchProducts,
 }));
 
-jest.mock('../../rest/useRestComponents', () => ({
+jest.mock('../../rest/useRestComponent', () => ({
   useFetchComponents: () => mockFetchComponents,
 }));
 
@@ -190,4 +192,3 @@ describe('AddEditBug', () => {
     });
   });
 });
-
