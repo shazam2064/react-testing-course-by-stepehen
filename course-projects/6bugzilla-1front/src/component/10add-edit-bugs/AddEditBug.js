@@ -412,19 +412,14 @@ function AddEditBug(props) {
                     <Label for="CC">CC</Label>
                     <Input id="CC" onChange={handleCCChange} type="select">
                         <option value="" key="" name="">Select a CC</option>
-                        {adminUsers.map(user => (
+                        {adminUsersList.map(user => (
                             <option key={user._id} value={user._id}>{user.email}</option>
                         ))}
                     </Input>
                     <div className="mt-3 d-flex flex-wrap">
-                        {bug.CC.map(CCId => {
-                            let searchedCC;
-                            if (CCId._id) {
-                                searchedCC = CCId._id;
-                            } else {
-                                searchedCC = CCId;
-                            }
-                            const CC = adminUsers.find(CC => CC._id === searchedCC) ?? {email: ""};
+                        {(Array.isArray(bug.CC) ? bug.CC : []).map(CCId => {
+                            let searchedCC = CCId && CCId._id ? CCId._id : CCId;
+                            const CC = (adminUsersList.find(u => u._id === searchedCC) ?? { email: "" });
                             return (
                                 <div key={searchedCC} className="d-flex text-primary align-items-center border border-primary rounded mx-1 py-0 px-1">
                                     {CC.email}
@@ -470,3 +465,4 @@ function AddEditBug(props) {
 }
 
 export default AddEditBug;
+
