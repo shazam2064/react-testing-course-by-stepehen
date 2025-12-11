@@ -24,7 +24,14 @@ function AddEditBug(props) {
     const productsList = Array.isArray(products) ? products : [];
     const adminUsersList = Array.isArray(adminUsers) ? adminUsers : [];
 
-    const [bug, setBug] = useState(getInitialBugState()[0]);
+    // ensure initial bug object shape (some test mocks return minimal objects)
+    const initialFromReducer = getInitialBugState();
+    const initialBug = Array.isArray(initialFromReducer) ? initialFromReducer[0] : (initialFromReducer || {});
+    const [bug, setBug] = useState(() => ({
+        ...initialBug,
+        CC: Array.isArray(initialBug?.CC) ? initialBug.CC : [],
+        dependencies: Array.isArray(initialBug?.dependencies) ? initialBug.dependencies : []
+    }));
     const [selectedComponent, setSelectedComponent] = useState('');
     const [selectedProduct, setSelectedProduct] = useState('');
     const [selectedAssignee, setSelectedAssignee] = useState('');
@@ -66,12 +73,17 @@ function AddEditBug(props) {
     useEffect(() => {
         if (isEditMode) {
             fetchBugById(bugId).then(bug => {
-                setBug(bug);
+                // coerce arrays so UI mapping is safe even when backend returns minimal objects
+                setBug(prev => ({
+                    ...bug,
+                    CC: Array.isArray(bug?.CC) ? bug.CC : [],
+                    dependencies: Array.isArray(bug?.dependencies) ? bug.dependencies : []
+                }));
                 setSelectedComponent(bug.component?._id || '');
                 setSelectedProduct(bug.product?._id || '');
                 setSelectedAssignee(bug.assignee?._id || '');
                 setTitle(`Edit Bug: ${bug.summary}`);
-                const filtered = componentsList.filter(component => (component.product && component.product._id) === (bug.product?._id));
+                const filtered = componentsList.filter(component => component.product && component.product._id && (component.product._id === (bug.product?._id)));
                 setFilteredComponents(filtered);
             }).catch(error => {
                 setError(`Bug could not be fetched: ${error.message}`);
@@ -179,7 +191,8 @@ function AddEditBug(props) {
             product: selectedProductId,
             component: '' // Reset component when product changes
         }));
-        const filtered = components.filter(component => component.product._id === selectedProductId);
+        // guard component.product access
+        const filtered = (Array.isArray(components) ? components : []).filter(component => component.product && component.product._id === selectedProductId);
         setFilteredComponents(filtered);
     }
 
@@ -196,18 +209,19 @@ function AddEditBug(props) {
             return;
         }
         const searchedCC = e.target.value;
-        if (searchedCC && !bug.CC.some(cc => (cc._id ? cc._id : cc) === searchedCC)) {
-            setBug(prevState => ({
-                ...prevState,
-                CC: [...prevState.CC, searchedCC]
-            }));
-        }
+        setBug(prevState => {
+            const existingCC = Array.isArray(prevState.CC) ? prevState.CC : [];
+            if (searchedCC && !existingCC.some(cc => (cc._id ? cc._id : cc) === searchedCC)) {
+                return { ...prevState, CC: [...existingCC, searchedCC] };
+            }
+            return prevState;
+        });
     }
 
     const handleRemoveCC = (searchedCC) => {
         setBug(prevState => ({
             ...prevState,
-            CC: prevState.CC.filter(cc => (cc._id ? cc._id : cc) !== searchedCC)
+            CC: (Array.isArray(prevState.CC) ? prevState.CC : []).filter(cc => (cc._id ? cc._id : cc) !== searchedCC)
         }));
     };
 
@@ -216,18 +230,19 @@ function AddEditBug(props) {
             return;
         }
         const searchedDependency = e.target.value;
-        if (searchedDependency && !bug.dependencies.some(dep => (dep._id ? dep._id : dep) === searchedDependency)) {
-            setBug(prevBug => ({
-                ...prevBug,
-                dependencies: [...prevBug.dependencies, searchedDependency]
-            }));
-        }
+        setBug(prevBug => {
+            const deps = Array.isArray(prevBug.dependencies) ? prevBug.dependencies : [];
+            if (searchedDependency && !deps.some(dep => (dep._id ? dep._id : dep) === searchedDependency)) {
+                return { ...prevBug, dependencies: [...deps, searchedDependency] };
+            }
+            return prevBug;
+        });
     };
 
     const handleRemoveDependency = (searchedDependency) => {
         setBug(prevBug => ({
             ...prevBug,
-            dependencies: prevBug.dependencies.filter(dep => (dep._id ? dep._id : dep) !== searchedDependency)
+            dependencies: (Array.isArray(prevBug.dependencies) ? prevBug.dependencies : []).filter(dep => (dep._id ? dep._id : dep) !== searchedDependency)
         }));
     };
 
@@ -440,13 +455,8 @@ function AddEditBug(props) {
                             ))}
                     </Input>
                     <div className="mt-3 d-flex flex-wrap">
-                        {bug.dependencies.map(depId => {
-                            let searchedDependency;
-                            if (depId._id) {
-                                searchedDependency = depId._id;
-                            } else {
-                                searchedDependency = depId;
-                            }
+                        {(Array.isArray(bug.dependencies) ? bug.dependencies : []).map(depId => {
+                            let searchedDependency = depId && depId._id ? depId._id : depId;
                             const dependency = allBugs.find(dep => dep._id === searchedDependency) ?? {summary: ""};
                             return (
                                 <div key={searchedDependency} className="d-flex text-primary align-items-center border border-primary rounded mx-1 py-0 px-1">
