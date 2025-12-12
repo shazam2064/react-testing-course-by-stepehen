@@ -54,22 +54,6 @@ function AddEditBug(props) {
 
     const onDismiss = () => setVisible(false);
 
-    // early unauthorized UI to satisfy tests that render without admin privileges
-    if (!isAdmin) {
-        return (
-            <div className="container p-s5 my-4 col-8 mx-auto">
-                <Alert color="warning">
-                    <h4 className="alert-heading">Unauthorized!</h4>
-                    <p>Hey, you are not authorized to view this page.</p>
-                    <hr />
-                    <p className="mb-0">
-                        Go <a className="alert-link" onClick={() => props.history?.push?.('/')}>back</a>.
-                    </p>
-                </Alert>
-            </div>
-        );
-    }
-
     useEffect(() => {
         if (isEditMode) {
             fetchBugById(bugId).then(bug => {
@@ -278,6 +262,22 @@ function AddEditBug(props) {
         const hours = String(d.getHours()).padStart(2, '0');
         const minutes = String(d.getMinutes()).padStart(2, '0');
         return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    // Moved unauthorized return AFTER hooks so hooks order is stable
+    if (!isAdmin) {
+        return (
+            <div className="container p-s5 my-4 col-8 mx-auto">
+                <Alert color="warning">
+                    <h4 className="alert-heading">Unauthorized!</h4>
+                    <p>Hey, you are not authorized to view this page.</p>
+                    <hr />
+                    <p className="mb-0">
+                        Go <a className="alert-link" onClick={() => props.history?.push?.('/')}>back</a>.
+                    </p>
+                </Alert>
+            </div>
+        );
     }
 
     return (
