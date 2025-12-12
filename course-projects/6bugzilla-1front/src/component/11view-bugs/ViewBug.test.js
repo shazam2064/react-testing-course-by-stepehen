@@ -14,7 +14,6 @@ jest.mock('../13comments/Comments', () => (props) => <div data-testid="comment-d
 
 // Mocks for hooks
 const mockFetchBugs = jest.fn();
-const mockUseFetchBugs = jest.fn(() => mockFetchBugs);
 jest.spyOn(restBugs, 'useFetchBugs').mockImplementation(() => mockFetchBugs);
 
 const mockDeleteComment = jest.fn();
@@ -95,9 +94,9 @@ describe('ViewBug', () => {
 
         renderWithProviders(<ViewBug />, {}, history, routePath);
 
-        await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
+        // wait for the UI to update with fetched bug data
+        await waitFor(() => expect(screen.getByText(/Bug Summary/i)).toBeInTheDocument());
 
-        expect(screen.getByText(/Bug Summary/i)).toBeInTheDocument();
         expect(screen.getByText(/Prod1/i)).toBeInTheDocument();
         expect(screen.getByText(/Comp1/i)).toBeInTheDocument();
         expect(screen.getByText(/Dep1/i)).toBeInTheDocument();
@@ -116,8 +115,8 @@ describe('ViewBug', () => {
 
         renderWithProviders(<ViewBug />, {}, history, routePath);
 
-        await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
-        expect(screen.getByText(/Bug not found/i)).toBeInTheDocument();
+        // wait for UI to reflect not-found state
+        await waitFor(() => expect(screen.getByText(/Bug not found/i)).toBeInTheDocument());
     });
 
     it('shows error when fetch fails', async () => {
@@ -163,6 +162,7 @@ describe('ViewBug', () => {
 
         renderWithProviders(<ViewBug />, {}, history, routePath);
 
+        // wait for comment to be rendered
         await waitFor(() => expect(screen.getByText(/To be deleted/i)).toBeInTheDocument());
 
         // Delete button exists (rendered because user is admin)
@@ -205,11 +205,10 @@ describe('ViewBug', () => {
 
         renderWithProviders(<ViewBug />, {}, history, routePath);
 
-        await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
+        await waitFor(() => expect(screen.getByText(/Bug Three/i)).toBeInTheDocument());
 
         const editBtn = screen.getByText(/Edit Bug/i);
         fireEvent.click(editBtn);
         expect(history.location.pathname).toBe('/edit-bug/b3');
     });
 });
-
