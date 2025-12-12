@@ -140,6 +140,8 @@ describe('AddEditBug', () => {
     renderWithProviders(<AddEditBug />);
 
     fireEvent.change(screen.getByLabelText(/Summary/i), { target: { value: 'Bad' } });
+    fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'Will fail' } });
+
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
 
     await waitFor(() => {
