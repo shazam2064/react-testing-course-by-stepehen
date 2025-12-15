@@ -47,11 +47,8 @@ test('renders edited info when updatedBy is present', () => {
     </MemoryRouter>
   );
 
-  // original content
   expect(screen.getByText(/Original text/)).toBeInTheDocument();
 
-  // edited by info
   expect(screen.getByText(/Edited by Editor/i)).toBeInTheDocument();
-  // updatedAt loose check
   expect(screen.getByText(/2023/)).toBeInTheDocument();
 });
