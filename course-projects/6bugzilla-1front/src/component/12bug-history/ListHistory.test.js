@@ -56,25 +56,21 @@ test('renders bug history entries with old/new values (arrays and scalars)', asy
 
   renderWithRouter(<ListHistory />, { route: '/bugs/history/b1', routePath: '/bugs/history/:bugId' });
 
-  // wait for fetch to complete and the entry to render
-  await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
+  await waitFor(() => expect(screen.getByText(/Alice/)).toBeInTheDocument());
 
-  // key pieces from the first history entry should be visible
-  expect(screen.getByText(/Alice/)).toBeInTheDocument();
-  expect(screen.getByText(/Status/)).toBeInTheDocument();
+  expect(screen.getByText(/Status, CC/)).toBeInTheDocument();
   expect(screen.getByText(/Open/)).toBeInTheDocument();
   expect(screen.getByText(/Closed/)).toBeInTheDocument();
 
-  // array handling for CC: removed and added values should be rendered as comma-separated
-  expect(screen.getByText(/u1/)).toBeInTheDocument();
-  expect(screen.getByText(/u2/)).toBeInTheDocument();
+  const u1Matches = screen.getAllByText(/u1/);
+  expect(u1Matches.length).toBeGreaterThanOrEqual(1);
+  expect(u1Matches.some(node => node.textContent.includes('Removed'))).toBeTruthy();
+  expect(screen.getByText(/u1, u2/)).toBeInTheDocument();
 
-  // second entry summary change should be visible
   expect(screen.getByText(/Bob/)).toBeInTheDocument();
   expect(screen.getByText(/Old summary/)).toBeInTheDocument();
   expect(screen.getByText(/New summary/)).toBeInTheDocument();
 
-  // page heading
   expect(screen.getByText(/Bug History/i)).toBeInTheDocument();
 });
 
@@ -86,7 +82,6 @@ test('shows Loading... when no matching bug exists', async () => {
 
   await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
 
-  // component currently returns "Loading..." while bug is null / not found
   expect(screen.getByText(/Loading\.\.\./i)).toBeInTheDocument();
 });
 
@@ -95,10 +90,7 @@ test('shows Loading... when fetch fails', async () => {
 
   renderWithRouter(<ListHistory />, { route: '/bugs/history/b1', routePath: '/bugs/history/:bugId' });
 
-  // wait for fetch to have been invoked
   await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
 
-  // component shows Loading... (no explicit error UI in current implementation)
   expect(screen.getByText(/Loading\.\.\./i)).toBeInTheDocument();
 });
-
