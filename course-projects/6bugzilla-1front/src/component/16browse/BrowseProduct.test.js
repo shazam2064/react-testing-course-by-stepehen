@@ -75,16 +75,16 @@ test('renders product, components and navigates when links clicked', async () =>
   fireEvent.click(screen.getByText('Comp A'));
   await waitFor(() => expect(history.location.pathname).toBe('/bug-browse/compA'));
 
-  // go back and click assignee link
   history.push('/browse-prod/prod1');
   await waitFor(() => expect(history.location.pathname).toBe('/browse-prod/prod1'));
 
-  fireEvent.click(screen.getByText('Alice'));
+  const aliceLink = await screen.findByText('Alice');
+  fireEvent.click(aliceLink);
+
   await waitFor(() => expect(history.location.pathname).toBe('/profile/userA'));
 });
 
 test('shows "Product not found" when product missing', async () => {
-  // fetch returns no products
   mockFetchProducts.mockResolvedValueOnce([]);
   const { history } = renderWithProviders({ products: [] }, '/browse-prod/missing');
 
@@ -100,4 +100,3 @@ test('displays error alert when fetchProducts fails', async () => {
   expect(await screen.findByText(/An error occurred/i)).toBeInTheDocument();
   expect(screen.getByText(/Fetch failed/i)).toBeInTheDocument();
 });
-

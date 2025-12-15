@@ -17,16 +17,25 @@ function BrowseProduct(props) {
 
     useEffect(() => {
         // fetch products and dispatch only when dispatch is a function
-        fetchProducts().then(fetchedProducts => {
-            if (typeof dispatch === 'function') {
-                dispatch({ type: 'SET_PRODUCTS', products: fetchedProducts });
-            }
-        }).catch(err => {
+        // Use Promise.resolve so tests where the hook mock returns undefined/non-promise won't throw
+        try {
+            const maybePromise = (typeof fetchProducts === 'function') ? fetchProducts() : fetchProducts;
+            Promise.resolve(maybePromise).then(fetchedProducts => {
+                if (typeof dispatch === 'function') {
+                    dispatch({ type: 'SET_PRODUCTS', products: fetchedProducts });
+                }
+            }).catch(err => {
+                if (typeof dispatch === 'function') {
+                    dispatch({ type: 'SET_PRODUCTS', products: [] });
+                }
+                setError(err && err.message ? err.message : String(err));
+            });
+        } catch (err) {
             if (typeof dispatch === 'function') {
                 dispatch({ type: 'SET_PRODUCTS', products: [] });
             }
-            setError(err.message);
-        });
+            setError(err && err.message ? err.message : String(err));
+        }
 
         setTitle('Product Management');
     }, [setTitle, fetchProducts, dispatch]);
