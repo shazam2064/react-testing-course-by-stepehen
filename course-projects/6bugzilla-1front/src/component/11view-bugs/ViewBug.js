@@ -7,7 +7,7 @@ import AddEditComment from "../14add-edit-comments/AddEditComment";
 import Comment from "../13comments/Comments";
 import {useDeleteComment} from "../../rest/useRestComments";
 import {API_URL} from "../../rest/api.rest";
-import {CardBody, Col, FormGroup, Input, Label, Modal, ModalBody, ModalHeader, Row} from "reactstrap";
+import {CardBody, Col, FormGroup, Input, Label, Modal, ModalBody, ModalHeader, Row, Alert} from "reactstrap";
 
 function ViewBug(props) {
     const bugs = useContext(BugsContext);
@@ -20,8 +20,8 @@ function ViewBug(props) {
     const [editCommentId, setEditCommentId] = useState(null);
     const {bugId} = props.match.params;
     const loggedUser = useContext(UserContext);
-    const isAdmin = loggedUser.isAdmin;
-    const isCreator = bug.reporter._id === loggedUser.userId;
+    const isAdmin = loggedUser?.isAdmin;
+    const isCreator = bug?.reporter?._id === loggedUser?.userId;
     const [reload, setReload] = useState(true);
 
     useEffect(() => {
@@ -46,7 +46,7 @@ function ViewBug(props) {
             setEditCommentId(null);
             setReload(false);
         }
-    }, [bugId, reload]);
+    }, [bugId, reload, fetchBugs, dispatch]);
 
     if (!bug) {
         return (
@@ -98,17 +98,21 @@ function ViewBug(props) {
         <div className="container container-fluid p-5 my-4 mx-auto bg-light border-3 border rounded">
             <h1 className="display-5 text-secondary mb-3">{bugId}: <span className="display-5 text-black">{bug.summary}</span>
             </h1>
+
+            {/* show fetch/delete errors in UI for tests to assert */}
+            {error && <Alert color="danger">{error}</Alert>}
+
             <Row className="mb-3">
                 <Col>
                     <p><span className="text-muted">Status:</span> {bug.status} {bug.resolution && <span>({bug.resolution})</span>}</p>
-                    <p><span className="text-muted">Product:</span> {bug.product.name}</p>
-                    <p><span className="text-muted">Component:</span> {bug.component.name}</p>
+                    <p><span className="text-muted">Product:</span> {bug.product?.name}</p>
+                    <p><span className="text-muted">Component:</span> {bug.component?.name}</p>
                     <p><span className="text-muted">Version:</span> {bug.version}</p>
                     <p><span className="text-muted">Hardware:</span> {bug.hardware} {bug.os}</p>
                     <p><span className="text-muted">Importance:</span> {bug.severity} - Priority: {bug.priority}</p>
                     <p><span className="text-muted">Deadline:</span> {bug.deadline}</p>
-                    <p><span className="text-muted">Assignee:</span> {bug.assignee.name}</p>
-                    <p><span className="text-muted">Dependencies:</span> {bug.dependencies.length > 0 ? (
+                    <p><span className="text-muted">Assignee:</span> {bug.assignee?.name}</p>
+                    <p><span className="text-muted">Dependencies:</span> {Array.isArray(bug.dependencies) && bug.dependencies.length > 0 ? (
                         bug.dependencies.map(dep => (
                             <span key={dep._id} onClick={() => handleViewDependency(dep._id)}
                                   className="link-like">{dep.summary} </span>
@@ -120,17 +124,17 @@ function ViewBug(props) {
                 </Col>
                 <Col>
                     <p><span className="text-muted">Reported by:</span> <span
-                        onClick={() => handleViewProfile(bug.reporter._id)}
-                        className="link-like">{bug.reporter.name}</span> on {new Date(bug.createdAt).toLocaleDateString()}
+                        onClick={() => handleViewProfile(bug.reporter?._id)}
+                        className="link-like">{bug.reporter?.name}</span> on {bug.createdAt ? new Date(bug.createdAt).toLocaleDateString() : '' }
                     </p>
-                    <p><span className="text-muted">Modified on:</span> {new Date(bug.updatedAt).toLocaleDateString()}
+                    <p><span className="text-muted">Modified on:</span> {bug.updatedAt ? new Date(bug.updatedAt).toLocaleDateString() : ''}
                         <span onClick={handleViewHistory}
                               className="link-like">(History)</span>
                     </p>
                     <FormGroup>
                         <Label for="cc" className="text-muted">CC List:</Label>
                         <Input type="select" id="cc" className="">
-                            {bug.CC.map(cc => (
+                            {(Array.isArray(bug.CC) ? bug.CC : []).map(cc => (
                                 <option key={cc._id} value={cc._id}>{cc.email}</option>
                             ))}
                         </Input>
@@ -157,10 +161,10 @@ function ViewBug(props) {
                 </Col>
             </Row>
             <div>
-                <h2 className="display-6 text-center"> {bug.comments.length} Comments</h2>
+                <h2 className="display-6 text-center"> {Array.isArray(bug.comments) ? bug.comments.length : 0} Comments</h2>
                 <ul className="list-unstyled">
-                    {bug.comments.map(comment => {
-                        const isCommentCreator = comment.creator._id === loggedUser.userId;
+                    {(Array.isArray(bug.comments) ? bug.comments : []).map(comment => {
+                        const isCommentCreator = comment.creator?._id === loggedUser?.userId;
                         return (
                             <li key={comment._id}>
                                 <div className="mb-3">
@@ -199,3 +203,4 @@ function ViewBug(props) {
 }
 
 export default ViewBug;
+
