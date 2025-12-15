@@ -6,8 +6,9 @@ import { TitleContext } from "../../contexts/title.context";
 import {Alert} from "reactstrap";
 
 function BrowseProduct(props) {
-    const { prodId } = props.match.params;
-    const products = useContext(ProductsContext);
+    // accept both :productId and :prodId route param names
+    const productId = props && props.match && (props.match.params.productId || props.match.params.prodId);
+    const products = useContext(ProductsContext) || [];
     const dispatch = useContext(DispatchContext);
     const [error, setError] = useState('');
     const fetchProducts = useFetchProducts();
@@ -15,25 +16,36 @@ function BrowseProduct(props) {
     const { setTitle } = useContext(TitleContext);
 
     useEffect(() => {
-        fetchProducts().then(products => {
-            dispatch({ type: 'SET_PRODUCTS', products: products });
-        }).catch(error => {
-            dispatch({ type: 'SET_PRODUCTS', products: [] });
-            setError(error.message);
+        // fetch products and dispatch only when dispatch is a function
+        fetchProducts().then(fetchedProducts => {
+            if (typeof dispatch === 'function') {
+                dispatch({ type: 'SET_PRODUCTS', products: fetchedProducts });
+            }
+        }).catch(err => {
+            if (typeof dispatch === 'function') {
+                dispatch({ type: 'SET_PRODUCTS', products: [] });
+            }
+            setError(err.message);
         });
 
         setTitle('Product Management');
-    }, [setTitle]);
+    }, [setTitle, fetchProducts, dispatch]);
 
-    const handleComponentClick = (componentId) => {
-        props.history.push(`/bug-browse/${componentId}`);
+    const handleComponentClick = (e, componentId) => {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (props && props.history && typeof props.history.push === 'function') {
+            props.history.push(`/bug-browse/${componentId}`);
+        }
     };
 
-    const handleUserClick = (userId) => {
-        props.history.push(`/profile/${userId}`);
+    const handleUserClick = (e, userId) => {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (props && props.history && typeof props.history.push === 'function') {
+            props.history.push(`/profile/${userId}`);
+        }
     };
 
-    const selectedProduct = products.find(product => product._id === prodId);
+    const selectedProduct = (products || []).find(product => product._id === productId);
 
     return (
         <div className="container p-5 my-4 mx-auto bg-light border-3 border rounded">
@@ -49,11 +61,12 @@ function BrowseProduct(props) {
                     <hr/>
                     <p>Select a component to see open bugs in that component:</p>
                     <ul>
-                        {selectedProduct.components.map(component => (
+                        {(selectedProduct.components || []).map(component => (
                             <li key={component._id}>
-                                <span className="text-muted"> Assignee - </span><a href="" onClick={() => handleUserClick(component.assignee._id)}>{component.assignee.name}</a>
+                                <span className="text-muted"> Assignee - </span>
+                                <a href="#" onClick={(e) => handleUserClick(e, component.assignee && component.assignee._id)}>{component.assignee && component.assignee.name}</a>
                                 <br/>
-                                <a href="" onClick={() => handleComponentClick(component._id)}>{component.name}</a>: {component.description}
+                                <a href="#" onClick={(e) => handleComponentClick(e, component._id)}>{component.name}</a>: {component.description}
                             </li>
                         ))}
                     </ul>
