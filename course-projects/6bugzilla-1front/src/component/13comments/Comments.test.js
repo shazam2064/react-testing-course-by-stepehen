@@ -20,15 +20,12 @@ test('renders comment author link, date and text', () => {
     </MemoryRouter>
   );
 
-  // author name is rendered as a link to profile
   const authorLink = screen.getByText(/Alice/);
   expect(authorLink).toBeInTheDocument();
   expect(authorLink.closest('a')).toHaveAttribute('href', '/profile/u1');
 
-  // date rendered (loose check for year to avoid locale differences)
   expect(screen.getByText(/2023/)).toBeInTheDocument();
 
-  // comment text
   expect(screen.getByText(/This is a comment/)).toBeInTheDocument();
 });
 
@@ -49,6 +46,9 @@ test('renders edited info when updatedBy is present', () => {
 
   expect(screen.getByText(/Original text/)).toBeInTheDocument();
 
-  expect(screen.getByText(/Edited by Editor/i)).toBeInTheDocument();
-  expect(screen.getByText(/2023/)).toBeInTheDocument();
+  const editedLabel = screen.getByText(/Edited by Editor/i);
+  expect(editedLabel).toBeInTheDocument();
+
+  const editedContainer = editedLabel.closest('.text-muted') || editedLabel.parentElement;
+  expect(editedContainer).toHaveTextContent(/2023/);
 });
