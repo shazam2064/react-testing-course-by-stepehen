@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 import { Router, Route } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import SearchBug from './SearchBug';
@@ -26,7 +26,8 @@ afterEach(() => {
   cleanup();
 });
 
-const renderWithProvidersAndRoute = (route, routePath = '/search-bug/:query') => {
+// make query param optional so route '/search-bug/' renders the component
+const renderWithProvidersAndRoute = (route, routePath = '/search-bug/:query?') => {
   const history = createMemoryHistory({ initialEntries: [route] });
   const mockDispatch = jest.fn();
   const mockSetTitle = jest.fn();
@@ -55,15 +56,14 @@ test('when query present and fetch resolves, shows bug rows and links', async ()
 
   renderWithProvidersAndRoute('/search-bug/First');
 
-  await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
-
-  // two mocked BugItem rows
-  const items = screen.getAllByTestId('bug-item');
+  // wait for UI to render the bug rows
+  const items = await screen.findAllByTestId('bug-item');
   expect(items.length).toBe(2);
 
   // link for first bug points to /bugs/b1
-  const link = screen.getByText('First bug').closest('a');
-  expect(link).toHaveAttribute('href', '/bugs/b1');
+  const firstLink = within(items[0]).getByRole('link');
+  expect(firstLink).toHaveAttribute('href', '/bugs/b1');
+  expect(firstLink).toHaveTextContent('First bug');
 });
 
 test('when query present and fetch resolves empty, shows "No bugs found."', async () => {
@@ -71,9 +71,9 @@ test('when query present and fetch resolves empty, shows "No bugs found."', asyn
 
   renderWithProvidersAndRoute('/search-bug/nomatch');
 
-  await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
-
-  expect(screen.getByText(/No bugs found\./i)).toBeInTheDocument();
+  // wait for the "No bugs found." alert to appear
+  const noBugs = await screen.findByText(/No bugs found\./i);
+  expect(noBugs).toBeInTheDocument();
 });
 
 test('when fetch rejects, shows error alert with message', async () => {
@@ -81,18 +81,18 @@ test('when fetch rejects, shows error alert with message', async () => {
 
   renderWithProvidersAndRoute('/search-bug/errorcase');
 
-  await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
-
-  expect(screen.getByText(/An error occurred/i)).toBeInTheDocument();
+  // wait for error alert and message
+  const heading = await screen.findByText(/An error occurred/i);
+  expect(heading).toBeInTheDocument();
   expect(screen.getByText(/Fetch failed/i)).toBeInTheDocument();
 });
 
 test('clicking search with non-empty input navigates to /search-bug/<term>', async () => {
-  // Start at search page without query
+  // Start at search page without query (route set to '/search-bug/')
   const { history } = renderWithProvidersAndRoute('/search-bug/');
 
   // find input and button (SearchBug uses span with onClick)
-  const input = screen.getByPlaceholderText(/Search bugs.../i);
+  const input = await screen.findByPlaceholderText(/Search bugs.../i);
   fireEvent.change(input, { target: { value: 'findme' } });
 
   const btn = screen.getByText(/Search Bugs/i);
@@ -107,7 +107,7 @@ test('clicking search with non-empty input navigates to /search-bug/<term>', asy
 test('clicking search with empty input does not navigate', async () => {
   const { history } = renderWithProvidersAndRoute('/search-bug/');
 
-  const input = screen.getByPlaceholderText(/Search bugs.../i);
+  const input = await screen.findByPlaceholderText(/Search bugs.../i);
   fireEvent.change(input, { target: { value: '' } });
 
   const btn = screen.getByText(/Search Bugs/i);
@@ -118,4 +118,3 @@ test('clicking search with empty input does not navigate', async () => {
     expect(history.location.pathname).toBe('/search-bug/');
   });
 });
-
