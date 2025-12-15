@@ -165,8 +165,11 @@ describe('ViewBug', () => {
         // wait for comment to be rendered
         await waitFor(() => expect(screen.getByText(/To be deleted/i)).toBeInTheDocument());
 
-        // Delete button exists (rendered because user is admin)
-        const deleteBtn = screen.getByText(/Delete/i);
+        // pick Delete button element specifically (by role) to avoid matching "To be deleted" comment text
+        const deleteButtons = screen.getAllByRole('button', { name: /Delete/i });
+        // find the actual delete button in the rendered comment actions (there may be multiples in page in other tests)
+        const deleteBtn = deleteButtons.find(btn => btn.className && btn.className.includes('btn-outline-danger')) || deleteButtons[0];
+
         fireEvent.click(deleteBtn);
 
         await waitFor(() => {
