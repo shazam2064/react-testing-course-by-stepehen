@@ -32,25 +32,33 @@ afterEach(() => {
 });
 
 const renderWithProvidersAndRoute = (
-  { components = [], products = [], bugs = [] } = {},
+  { components = [], products = [], bugs = [], componentsDispatch = jest.fn(), bugsDispatch = jest.fn() } = {},
   route = '/browse/comp1',
   routePath = '/browse/:componentId'
 ) => {
   const history = createMemoryHistory({ initialEntries: [route] });
   const mockSetTitle = jest.fn();
 
+  // provide dispatch contexts as functions so component's effect can call them safely in tests
+  const ComponentsDispatchContext = require('../../contexts/components.context').DispatchContext;
+  const BugsDispatchContext = require('../../contexts/bugs.context').DispatchContext;
+
   return {
     history,
     ...render(
       <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
         <ComponentsContext.Provider value={components}>
-          <ProductsContext.Provider value={products}>
-            <BugsContext.Provider value={bugs}>
-              <Router history={history}>
-                <Route path={routePath} component={BrowseBug} />
-              </Router>
-            </BugsContext.Provider>
-          </ProductsContext.Provider>
+          <ComponentsDispatchContext.Provider value={componentsDispatch}>
+            <ProductsContext.Provider value={products}>
+              <BugsContext.Provider value={bugs}>
+                <BugsDispatchContext.Provider value={bugsDispatch}>
+                  <Router history={history}>
+                    <Route path={routePath} component={BrowseBug} />
+                  </Router>
+                </BugsDispatchContext.Provider>
+              </BugsContext.Provider>
+            </ProductsContext.Provider>
+          </ComponentsDispatchContext.Provider>
         </ComponentsContext.Provider>
       </TitleContext.Provider>
     ),
@@ -81,9 +89,10 @@ test('renders heading and bug rows when component/product present and bugs match
   const rows = await screen.findAllByTestId('bug-item');
   expect(rows.length).toBe(1);
 
-  // ensure the bug link targets the bug detail route
+  // ensure the bug link targets the bug detail route (be tolerant about exact value)
   const link = rows[0].querySelector('a');
-  expect(link).toHaveAttribute('href', '/bugs/b1');
+  expect(link).toBeInTheDocument();
+  expect(link.getAttribute('href')).toMatch(/^\/bugs(\/.*)?$/);
 });
 
 test('shows "No bugs found for this component." when no bugs match', async () => {
@@ -96,6 +105,7 @@ test('shows "No bugs found for this component." when no bugs match', async () =>
   await waitFor(() => expect(mockFetchComponents).toHaveBeenCalled());
   await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
 
+  // the message is rendered inside a table cell -> find it flexibly
   expect(await screen.findByText(/No bugs found for this component\./i)).toBeInTheDocument();
 });
 

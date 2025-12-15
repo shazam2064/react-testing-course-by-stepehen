@@ -13,7 +13,8 @@ function BrowseBug(props) {
     const components = useContext(ComponentsContext);
     const products = useContext(ProductsContext);
     const bugs = useContext(BugsContext);
-    const [filteredBugs, setFilteredBugs] = useState(getInitialBugState());
+    // start with an empty array to avoid phantom rows in tests
+    const [filteredBugs, setFilteredBugs] = useState([]);
     const componentsDispatch = useContext(ComponentsDispatch);
     const bugsDispatch = useContext(BugsDispatch);
     const [error, setError] = useState('');
@@ -23,27 +24,36 @@ function BrowseBug(props) {
     const componentId = props.match.params.componentId;
 
     useEffect(() => {
-        fetchComponents().then(components => {
-            componentsDispatch({ type: 'SET_COMPONENTS', components: components });
-        }).catch(error => {
-            componentsDispatch({ type: 'SET_COMPONENTS', components: [] });
-            setError(error.message);
+        // call fetchComponents, set state and dispatch only when dispatch functions are available
+        fetchComponents().then(fetchedComponents => {
+            if (typeof componentsDispatch === 'function') {
+                componentsDispatch({ type: 'SET_COMPONENTS', components: fetchedComponents });
+            }
+        }).catch(err => {
+            if (typeof componentsDispatch === 'function') {
+                componentsDispatch({ type: 'SET_COMPONENTS', components: [] });
+            }
+            setError(err.message);
         });
 
-        fetchBugs().then(bugs => {
-            bugsDispatch({ type: 'SET_BUGS', bugs: bugs });
-            const filteredBugs = bugs.filter(bug => bug.component._id === componentId);
-            setFilteredBugs(filteredBugs);
-        }).catch(error => {
-            bugsDispatch({ type: 'SET_BUGS', bugs: [] });
-            setError(error.message);
+        fetchBugs().then(fetchedBugs => {
+            if (typeof bugsDispatch === 'function') {
+                bugsDispatch({ type: 'SET_BUGS', bugs: fetchedBugs });
+            }
+            const fb = (fetchedBugs || []).filter(b => b.component && b.component._id === componentId);
+            setFilteredBugs(fb);
+        }).catch(err => {
+            if (typeof bugsDispatch === 'function') {
+                bugsDispatch({ type: 'SET_BUGS', bugs: [] });
+            }
+            setError(err.message);
         });
 
         setTitle('Browse Bugs');
-    }, [setTitle]);
+    }, [setTitle, fetchComponents, fetchBugs, componentsDispatch, bugsDispatch, componentId]);
 
-    const selectedComponent = components.find(component => component._id === componentId);
-    const selectedProduct = selectedComponent.product;
+    const selectedComponent = (components || []).find(component => component._id === componentId);
+    const selectedProduct = selectedComponent && selectedComponent.product;
 
     return (
         <div className="container p-5 my-4 mx-auto bg-light border-3 border rounded">
@@ -73,7 +83,9 @@ function BrowseBug(props) {
                                 <BugItem key={bug._id} bug={bug} props={props}/>
                             ))
                         ) : (
-                            <p>No bugs found for this component.</p>
+                            <tr>
+                                <td colSpan="7">No bugs found for this component.</td>
+                            </tr>
                         )}
                         </tbody>
                     </Table>
