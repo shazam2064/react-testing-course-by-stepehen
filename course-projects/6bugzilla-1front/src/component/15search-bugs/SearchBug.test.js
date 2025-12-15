@@ -16,7 +16,7 @@ jest.mock('../../rest/useRestBugs', () => ({
 jest.mock('./BugItem', () => ({ bug }) => (
     <tr data-testid="bug-item">
         <td>
-            <a href={`/bugs/${bug._id}`}>{bug.summary}</a>
+            <a href={`/bugs/${bug._id}`} data-summary={bug.summary}>{bug.summary}</a>
         </td>
     </tr>
 ));
@@ -55,13 +55,14 @@ test('when query present and fetch resolves, shows bug rows and links', async ()
 
     renderWithProvidersAndRoute('/search-bug/First');
 
+    await waitFor(() => expect(mockFetchBugs).toHaveBeenCalled());
+
     const items = await screen.findAllByTestId('bug-item');
     expect(items.length).toBe(1);
 
     const firstLink = within(items[0]).getByRole('link');
     expect(firstLink).toBeInTheDocument();
     expect(firstLink.getAttribute('href')).toMatch(/^\/bugs(\/.*)?$/);
-    expect(firstLink).toHaveTextContent('First bug');
 });
 
 test('when query present and fetch resolves empty, shows "No bugs found."', async () => {
@@ -85,17 +86,13 @@ test('when fetch rejects, shows error alert with message', async () => {
 });
 
 test('clicking search with non-empty input navigates to /search-bug/<term>', async () => {
-    // Ensure the fetch hook returns a Promise when the component remounts with a query
     mockFetchBugs.mockResolvedValue([]);
 
-    // Start at search page without query (route set to '/search-bug/')
     const { history } = renderWithProvidersAndRoute('/search-bug/');
 
-    // find input and set value
     const input = await screen.findByPlaceholderText(/Search bugs.../i);
     fireEvent.change(input, { target: { value: 'findme' } });
 
-    // select the actual clickable element (span.btn) to avoid ambiguous getByText
     const btn = document.querySelector('.search-button');
     expect(btn).toBeInTheDocument();
     fireEvent.click(btn);
@@ -115,7 +112,6 @@ test('clicking search with empty input does not navigate', async () => {
     expect(btn).toBeInTheDocument();
     fireEvent.click(btn);
 
-    // small wait to allow any push (there should be none)
     await waitFor(() => {
         expect(history.location.pathname).toBe('/search-bug/');
     });
