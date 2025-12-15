@@ -12,18 +12,24 @@ function BrowseClassification(props) {
     const { setTitle } = useContext(TitleContext);
 
     useEffect(() => {
-        fetchClassifications().then(classifications => {
-            dispatch({ type: 'SET_CLASSIFICATIONS', classifications: classifications });
-        }).catch(error => {
-            dispatch({ type: 'SET_CLASSIFICATIONS', classifications: [] });
-            setError(error.message);
+        fetchClassifications().then(fetched => {
+            if (typeof dispatch === 'function') {
+                dispatch({ type: 'SET_CLASSIFICATIONS', classifications: fetched });
+            }
+        }).catch(err => {
+            if (typeof dispatch === 'function') {
+                dispatch({ type: 'SET_CLASSIFICATIONS', classifications: [] });
+            }
+            setError(err.message);
         });
 
         setTitle('Browse Classifications');
-    }, [setTitle]);
+    }, [setTitle, fetchClassifications, dispatch]);
 
     const handleProductClick = (productId) => {
-        props.history.push(`/browse-prod/${productId}`);
+        if (props && props.history && typeof props.history.push === 'function') {
+            props.history.push(`/browse-prod/${productId}`);
+        }
     };
 
     return (
@@ -35,18 +41,24 @@ function BrowseClassification(props) {
                     {error}
                 </Alert>
             ) : (
-                classifications.map(classification => (
-                    <div key={classification._id} className="container p-1 my-2 mx-auto">
+                <>
+                  {(!classifications || classifications.length === 0) ? (
+                    <p>No classifications found.</p>
+                  ) : (
+                    classifications.map(classification => (
+                      <div key={classification._id} className="container p-1 my-2 mx-auto">
                         <p><em>{classification.name}: {classification.description}</em></p>
                         <ul>
-                            {classification.products.map(product => (
-                                <li key={product._id}>
-                                    <a href="" onClick={() => handleProductClick(product._id)}>{product.name}</a>: {product.description}
-                                </li>
-                            ))}
+                          {classification.products && classification.products.map(product => (
+                            <li key={product._id}>
+                              <a href="#" onClick={(e) => { e.preventDefault(); handleProductClick(product._id); }}>{product.name}</a>: {product.description}
+                            </li>
+                          ))}
                         </ul>
-                    </div>
-                ))
+                      </div>
+                    ))
+                  )}
+                </>
             )}
         </div>
     );
