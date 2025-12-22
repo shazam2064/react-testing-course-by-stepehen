@@ -19,7 +19,16 @@ const mongoConnect = callback => {
         });
 }
 
-// -----------------------------------------------------------------------------------------------
+const closeConnection = async () => {
+    try {
+        await mongoose.connection.close();
+        console.log('The MongoDB connection has been closed successfully.');
+    } catch (err) {
+        console.log('Error while closing the MongoDB connection: ', err);
+    }
+};
+
 module.exports = {
     mongoConnect,
+    closeConnection,
 };
