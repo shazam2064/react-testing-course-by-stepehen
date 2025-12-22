@@ -48,14 +48,19 @@ describe('User Controller Tests', () => {
         it('should return 200 and a list of users', async () => {
             const mockUsers = [
                 {
+                    following: [],
+                    followers: [],
                     _id: '680be1b42894596771cbe2f8',
                     email: 'gabrielsalomon.990@gmail.com',
+                    password: '$2a$12$dzgWAGgKBBTE3bMNVCp/iuujMS5y.JUt7/Ks0MJk3hdOJSVNKadde',
                     name: 'User Test 1',
-                    status: 'I am new!',
-                    posts: [],
+                    image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
+                    tweets: ['680be1e32894596771cbe311'],
+                    comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
                     isAdmin: true,
-                    createdAt: '2025-07-24T13:20:48.003Z',
-                    updatedAt: '2025-07-24T13:20:48.003Z',
+                    createdAt: '2025-04-25T19:25:40.889Z',
+                    updatedAt: '2025-12-22T14:53:35.201Z',
+                    __v: 6
                 },
             ];
 
@@ -121,16 +126,21 @@ describe('User Controller Tests', () => {
             jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
                 populate: () => ({
                     populate: () => Promise.resolve({
+                        following: [],
+                        followers: [],
                         _id: mockUserId,
                         email: 'gabrielsalomon.990@gmail.com',
                         password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
                         name: 'User Test 1',
+                        image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
+                        tweets: ['680be1e32894596771cbe311'],
+                        comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
                         bugsAssigned: [],
                         reportedBugs: [],
                         isAdmin: true,
                         createdAt: '2025-11-18T14:04:50.796Z',
                         updatedAt: '2025-11-19T14:30:39.330Z',
-                        __v: 0
+                        __v: 6
                     })
                 })
             }));
@@ -528,8 +538,19 @@ describe('User Controller Tests', () => {
             const mockUserId = '688ccf9a0ab0514c3e06390f';
 
             jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                following: [],
+                followers: [],
                 _id: mockUserId,
                 email: 'dummyuser@test.com',
+                password: '$2a$12$examplehash',
+                name: 'Dummy User',
+                image: 'images/default.png',
+                tweets: [],
+                comments: [],
+                isAdmin: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                __v: 0
             });
             jest.spyOn(User, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
 
