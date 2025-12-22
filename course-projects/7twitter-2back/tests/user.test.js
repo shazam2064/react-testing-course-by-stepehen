@@ -79,7 +79,6 @@ describe('User Controller Tests', () => {
                             _id: '680be1b42894596771cbe2f8',
                             email: 'gabrielsalomon.990@gmail.com',
                             name: 'User Test 1',
-                            status: 'I am new!',
                             isAdmin: true,
                         }),
                     ]),
