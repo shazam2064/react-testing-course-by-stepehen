@@ -1,0 +1,64 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3072
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of comments
+GET {{host}}/comments
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.comments && response.body.comments.length > 0) {
+        client.global.set("comment-id1", response.body.comments[0]._id)
+        console.log("comment-id1:", client.global.get("comment-id1"));
+    } else {
+        console.log("No comments found");
+    }
+%}
+
+### GET List of comments By ID
+GET {{host}}/comments/{{comment-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create a comment
+POST {{host}}/comments
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "tweet": "67dbe07e87c4a74171e2e4a8",
+  "text": "comment 1"
+}
+
+
+### Update a comment
+PUT {{host}}/comments/{{comment-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "tweet": "67dbe07e87c4a74171e2e4a8",
+  "text": "comment 1 updated"
+}
+
+### Like/Unlike a comment
+PUT {{host}}/comments/like/{{comment-id1}}
+Authorization: Bearer {{authToken}}
+
+### Delete an comments
+DELETE {{host}}/comments/{{comment-id1}}
+Authorization: Bearer {{authToken}}

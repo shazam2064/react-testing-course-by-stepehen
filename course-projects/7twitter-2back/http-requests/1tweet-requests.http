@@ -1,0 +1,80 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3072
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of tweets
+GET {{host}}/tweets
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.tweets && response.body.tweets.length > 0) {
+        client.global.set("tweet-id1", response.body.tweets[0]._id)
+        console.log("tweet-id1:", client.global.get("tweet-id1"));
+    } else {
+        console.log("No tweets found");
+    }
+%}
+
+### GET List of tweets By ID
+GET {{host}}/tweets/{{tweet-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create a tweet
+POST {{host}}/tweets
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+tweet 1
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="IMG_2194.JPG"
+Content-Type: image/jpeg
+
+< ../images/IMG_2194.JPG
+--WebAppBoundary
+
+
+### Update a tweet
+PUT {{host}}/tweets/{{tweet-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="text"
+
+tweet 1 updated
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="IMG_2194.JPG"
+Content-Type: image/jpeg
+
+< ../images/IMG_2194.JPG
+--WebAppBoundary
+
+### Like/Unlike a tweet
+PUT {{host}}/tweets/like/{{tweet-id1}}
+Authorization: Bearer {{authToken}}
+
+### Retweet a tweet
+PUT {{host}}/tweets/retweet/{{tweet-id1}}
+Authorization: Bearer {{authToken}}
+
+### Delete an tweets
+DELETE {{host}}/tweets/{{tweet-id1}}
+Authorization: Bearer {{authToken}}
