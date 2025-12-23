@@ -239,7 +239,21 @@ exports.deleteTweet = async (req, res, next) => {
             return User.findById(tweet.creator);
         })
         .then(user => {
-            user.tweets.pull(tweetId);
+            // guard for plain JS objects (tests) vs Mongoose documents
+            if (!user) {
+                throwError(404, '', 'User not found');
+            }
+
+            if (user.tweets && typeof user.tweets.pull === 'function') {
+                // Mongoose array
+                user.tweets.pull(tweetId);
+            } else if (Array.isArray(user.tweets)) {
+                // plain array from tests/mocks
+                user.tweets = user.tweets.filter(id => String(id) !== String(tweetId));
+            } else {
+                user.tweets = [];
+            }
+
             return user.save();
         })
         .then(result => {
