@@ -1,6 +1,8 @@
 const request = require('supertest');
 const app = require('./testUtils');
 const Tweet = require('../models/tweet.model');
+const User = require('../models/user.model');
+const bcrypt = require('bcryptjs');
 const {mongoConnect, closeConnection} = require('../util/database');
 
 function makePopulateMock(result, shouldReject = false) {
@@ -21,9 +23,24 @@ function makePopulateMock(result, shouldReject = false) {
 }
 
 describe('Tweet Controller Tests', () => {
-    // shared lifecycle for all tweet tests
     beforeAll(async () => {
         await mongoConnect();
+
+        // ensure a test user exists so we can obtain an auth token
+        const passwordHash = await bcrypt.hash('123456', 12);
+        await User.updateOne(
+            { email: 'gabrielsalomon.990@gmail.com' },
+            {
+                $set: {
+                    email: 'gabrielsalomon.990@gmail.com',
+                    password: passwordHash,
+                    name: 'User Test 1',
+                    isAdmin: true,
+                    image: 'images/default.png',
+                }
+            },
+            { upsert: true }
+        );
     });
 
     afterAll(async () => {
@@ -154,6 +171,82 @@ describe('Tweet Controller Tests', () => {
             const response = await request(app)
                 .get(`/tweets/${tweetId}`)
                 .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
+    describe('POST /tweets', () => {
+        let validToken;
+        let userDoc;
+
+        beforeAll(async () => {
+            // login to get a valid token
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: 'gabrielsalomon.990@gmail.com', password: '123456' })
+                .set('Content-Type', 'application/json');
+
+            expect(loginRes.status).toBe(200);
+            validToken = loginRes.body.token;
+
+            userDoc = await User.findOne({ email: 'gabrielsalomon.990@gmail.com' }).lean();
+        });
+
+        test('creates a tweet and returns 201 with tweet and creator', async () => {
+            // prepare a tweet instance data (the controller constructs new Tweet internally)
+            const tweetText = 'tweet 1';
+
+            // mock Tweet.prototype.save to resolve to the instance (this)
+            jest.spyOn(Tweet.prototype, 'save').mockImplementationOnce(function () {
+                // simulate mongodb assigning an _id on save
+                this._id = this._id || 'mockTweetId1';
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: userDoc._id,
+                name: userDoc.name,
+                tweets: [],
+                save: jest.fn().mockResolvedValue(true)
+            });
+
+            const response = await request(app)
+                .post('/tweets')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', tweetText)
+                .attach('image', Buffer.from('fakeimage'), 'image.jpg');
+
+            expect(response.status).toBe(201);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tweet created successfully',
+                    tweet: expect.objectContaining({
+                        text: tweetText
+                    }),
+                    creator: expect.objectContaining({
+                        name: expect.any(String)
+                    })
+                })
+            );
+        });
+
+        test('returns 500 when Tweet.save fails', async () => {
+            // ensure login token still available
+            const tweetText = 'tweet 2';
+
+            // mock save to reject
+            jest.spyOn(Tweet.prototype, 'save').mockImplementationOnce(() => Promise.reject(new Error('Database error')));
+
+            const response = await request(app)
+                .post('/tweets')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', tweetText);
 
             expect(response.status).toBe(500);
             expect(response.body).toEqual(
