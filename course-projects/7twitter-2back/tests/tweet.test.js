@@ -420,4 +420,101 @@ describe('Tweet Controller Tests', () => {
             );
         });
     });
+
+    describe('DELETE /tweets/:id', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: 'gabrielsalomon.990@gmail.com', password: '123456' })
+                .set('Content-Type', 'application/json');
+
+            expect(loginRes.status).toBe(200);
+            validToken = loginRes.body.token;
+        });
+
+        test('deletes a tweet and returns 200 with deleted tweet', async () => {
+            const tweetId = '5f50c31b9d1b2c0017a1aDEL';
+            const creatorId = '680be1b42894596771cbe2f8';
+
+            // findById(populate) -> returns tweet with empty comments
+            jest.spyOn(Tweet, 'findById').mockImplementationOnce(() =>
+                makePopulateMock({ _id: tweetId, creator: creatorId, comments: [] })
+            );
+
+            // findByIdAndDelete -> resolves to deleted tweet
+            jest.spyOn(Tweet, 'findByIdAndDelete').mockResolvedValueOnce({ _id: tweetId, creator: creatorId });
+
+            // User.findById -> returns user doc with tweets array and save()
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: creatorId,
+                tweets: [tweetId],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            const response = await request(app)
+                .delete(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tweet deleted successfully',
+                    tweet: expect.any(Object)
+                })
+            );
+        });
+
+        test('returns 404 when tweet not found', async () => {
+            const tweetId = '000000000000000000000404';
+
+            // findById(populate) -> resolves to null
+            jest.spyOn(Tweet, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const response = await request(app)
+                .delete(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Tweet not found' }));
+        });
+
+        test('returns 500 when Tweet.findById rejects', async () => {
+            const tweetId = '5f50c31b9d1b2c0017a1aERR';
+
+            jest.spyOn(Tweet, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const response = await request(app)
+                .delete(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+        });
+
+        test('returns 500 when removing tweet from user fails (user.save rejects)', async () => {
+            const tweetId = '5f50c31b9d1b2c0017a1aUSR';
+            const creatorId = '680be1b42894596771cbe2f8';
+
+            jest.spyOn(Tweet, 'findById').mockImplementationOnce(() =>
+                makePopulateMock({ _id: tweetId, creator: creatorId, comments: [] })
+            );
+            jest.spyOn(Tweet, 'findByIdAndDelete').mockResolvedValueOnce({ _id: tweetId, creator: creatorId });
+
+            // user.save rejects
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: creatorId,
+                tweets: [tweetId],
+                save: jest.fn().mockRejectedValueOnce(new Error('User save failed'))
+            });
+
+            const response = await request(app)
+                .delete(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
+        });
+    });
 });
