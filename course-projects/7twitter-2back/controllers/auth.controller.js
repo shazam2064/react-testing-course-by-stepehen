@@ -27,6 +27,8 @@ exports.signup = (req, res, next) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationTokenExpiration = Date.now() + 3600000; // 1 hour
 
+    let savedUser;
+
     bcrypt.hash(password, 12)
         .then(hashedPassword => {
             const user = new User({
@@ -41,6 +43,7 @@ exports.signup = (req, res, next) => {
             return user.save();
         })
         .then(result => {
+            savedUser = result;
             console.log('The auth postSignup() saved the user:', result);
             return transporter.sendMail({
                 to: email,
@@ -49,10 +52,17 @@ exports.signup = (req, res, next) => {
                 html: `<h1>You successfully signed up!</h1>
                        <p>Please verify your email by clicking the link below:</p>
                        <a href="http://localhost:3007/verify/${verificationToken}">Verify Email</a>`
+            })
+            .then(() => {
+                res.status(201).json({ message: 'User created! Please check your email to verify your account.', userId: savedUser._id });
+            })
+            .catch(emailErr => {
+                console.log('Email sending failed (non-fatal):', emailErr);
+                res.status(201).json({
+                    message: 'User created! (email sending failed — please contact support to verify your account).',
+                    userId: savedUser._id
+                });
             });
-        })
-        .then(result => {
-            res.status(201).json({ message: 'User created! Please check your email to verify your account.', userId: result._id });
         })
         .catch(err => {
             handleError(err, next, 'User creation failed');
