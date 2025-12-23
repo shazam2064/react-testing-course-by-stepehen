@@ -218,6 +218,8 @@ exports.deleteTweet = async (req, res, next) => {
     console.log('the deleteTweet controller was called');
     const tweetId = req.params.tweetId;
 
+    let deletedTweet; // <--- capture deleted tweet to return later
+
     Tweet.findById(tweetId)
         .populate('comments')
         .then(tweet => {
@@ -235,7 +237,8 @@ exports.deleteTweet = async (req, res, next) => {
             return Tweet.findByIdAndDelete(tweetId);
         })
         .then(tweet => {
-            console.log('tweet deleted successfully', tweet);
+            deletedTweet = tweet; // store deleted tweet
+            console.log('tweet deleted successfully', deletedTweet);
             return User.findById(tweet.creator);
         })
         .then(user => {
@@ -254,7 +257,8 @@ exports.deleteTweet = async (req, res, next) => {
                 user.tweets = [];
             }
 
-            return user.save();
+            // save user, then return the deleted tweet object (not the user.save() result)
+            return user.save().then(() => deletedTweet);
         })
         .then(result => {
             res.status(200).json({
