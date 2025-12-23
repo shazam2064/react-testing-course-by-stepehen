@@ -87,5 +87,72 @@ describe('Tweet Controller - GET Tweets', () => {
             })
         );
     });
-});
 
+    test('GET /tweets/:id returns 200 and the tweet when found', async () => {
+        const tweetId = '5f50c31b9d1b2c0017a1a1a1';
+        const mockTweet = {
+            _id: tweetId,
+            text: 'Single tweet',
+            image: 'images/default.png',
+            creator: { _id: '680be1b42894596771cbe2f8', name: 'User Test 1' },
+            comments: [
+                { _id: 'c1', text: 'Nice', creator: { _id: 'u2', name: 'Commenter' } }
+            ],
+            likes: [],
+            retweets: [],
+            createdAt: '2025-01-01T00:00:00.000Z',
+            updatedAt: '2025-01-01T00:00:00.000Z',
+            __v: 0
+        };
+
+        jest.spyOn(Tweet, 'findById').mockImplementationOnce(() => makePopulateMock(mockTweet));
+
+        const response = await request(app)
+            .get(`/tweets/${tweetId}`)
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Tweet fetched successfully',
+                tweet: expect.objectContaining({
+                    _id: tweetId,
+                    text: mockTweet.text,
+                    creator: expect.objectContaining({ name: 'User Test 1' }),
+                })
+            })
+        );
+    });
+
+    test('GET /tweets/:id returns 404 when tweet not found', async () => {
+        const tweetId = '000000000000000000000000';
+        jest.spyOn(Tweet, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+        const response = await request(app)
+            .get(`/tweets/${tweetId}`)
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Tweet not found'
+            })
+        );
+    });
+
+    test('GET /tweets/:id returns 500 on DB error', async () => {
+        const tweetId = '5f50c31b9d1b2c0017a1a1a2';
+        jest.spyOn(Tweet, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+        const response = await request(app)
+            .get(`/tweets/${tweetId}`)
+            .set('Content-Type', 'application/json');
+
+        expect(response.status).toBe(500);
+        expect(response.body).toEqual(
+            expect.objectContaining({
+                message: 'Database error'
+            })
+        );
+    });
+});
