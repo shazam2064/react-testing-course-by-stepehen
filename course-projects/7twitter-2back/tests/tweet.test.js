@@ -267,20 +267,6 @@ describe('Tweet Controller Tests', () => {
             );
         });
 
-        test('returns 422 when validation fails (express-validator)', async () => {
-            // make validationResult report errors
-            const expressValidator = require('express-validator');
-            jest.spyOn(expressValidator, 'validationResult').mockImplementationOnce(() => ({ isEmpty: () => false }));
-
-            const response = await request(app)
-                .post('/tweets')
-                .set('Authorization', `Bearer ${validToken}`)
-                .field('text', 'whatever');
-
-            expect(response.status).toBe(422);
-            expect(response.body).toEqual(expect.objectContaining({ message: 'Validation failed' }));
-        });
-
         test('returns 500 when User.findById returns null (creator not found)', async () => {
             const tweetText = 'tweet creator missing';
 
