@@ -331,4 +331,93 @@ describe('Tweet Controller Tests', () => {
             );
         });
     });
+
+    describe('PUT /tweets/:id', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: 'gabrielsalomon.990@gmail.com', password: '123456' })
+                .set('Content-Type', 'application/json');
+
+            expect(loginRes.status).toBe(200);
+            validToken = loginRes.body.token;
+        });
+
+        test('updates a tweet and returns 200 with updated tweet', async () => {
+            const tweetId = '5f50c31b9d1b2c0017a1a1a9';
+            const existingTweet = {
+                _id: tweetId,
+                text: 'old text',
+                image: null,
+                save: jest.fn().mockImplementation(function () {
+                    // simulate that save returns the updated tweet
+                    return Promise.resolve(Object.assign(this));
+                })
+            };
+
+            // findById should resolve to the tweet-like object
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(existingTweet);
+
+            const newText = 'updated text';
+
+            const response = await request(app)
+                .put(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', newText);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tweet updated successfully',
+                    tweet: expect.objectContaining({
+                        // controller returns the saved result
+                        text: newText
+                    })
+                })
+            );
+        });
+
+        test('returns 404 when tweet not found', async () => {
+            const tweetId = '000000000000000000000000';
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', 'does not matter');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tweet not found'
+                })
+            );
+        });
+
+        test('returns 500 when saving the tweet fails', async () => {
+            const tweetId = '5f50c31b9d1b2c0017a1a1b0';
+            const faultyTweet = {
+                _id: tweetId,
+                text: 'old text',
+                image: null,
+                save: jest.fn().mockRejectedValueOnce(new Error('Save failed'))
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(faultyTweet);
+
+            const response = await request(app)
+                .put(`/tweets/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', 'new text');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Save failed'
+                })
+            );
+        });
+    });
 });
