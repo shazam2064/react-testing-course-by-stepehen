@@ -76,7 +76,10 @@ exports.updateUser = async (req, res, next) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, '', 'Validation failed');
+        // avoid throwing inside async handler — pass error to next so express error middleware responds
+        const err = new Error('Validation failed');
+        err.statusCode = 422;
+        return next(err);
     }
 
     try {
@@ -206,11 +209,16 @@ exports.createUser = async (req, res, next) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, '', 'Validation failed');
+        // avoid throwing inside async handler — pass error to next so express error middleware responds
+        const err = new Error('Validation failed');
+        err.statusCode = 422;
+        return next(err);
     }
 
     if (!email || !name || !password || typeof password !== 'string' || password.length < 6) {
-        throwError(422, '', 'Validation failed');
+        const err = new Error('Validation failed');
+        err.statusCode = 422;
+        return next(err);
     }
 
     bcrypt.hash(password, 12)
