@@ -1,11 +1,13 @@
 const request = require('supertest');
 const app = require('./testUtils');
 const Tweet = require('../models/tweet.model');
-const { mongoConnect, closeConnection } = require('../util/database');
+const {mongoConnect, closeConnection} = require('../util/database');
 
 function makePopulateMock(result, shouldReject = false) {
     return {
-        populate() { return this; },
+        populate() {
+            return this;
+        },
         then(onFulfilled, onRejected) {
             if (shouldReject) {
                 return Promise.reject(result).then(onFulfilled, onRejected);
@@ -18,27 +20,29 @@ function makePopulateMock(result, shouldReject = false) {
     };
 }
 
-describe('Tweet Controller - GET Tweets', () => {
-    beforeAll(async () => {
-        await mongoConnect();
-    });
+// shared lifecycle for all tweet tests
+beforeAll(async () => {
+    await mongoConnect();
+});
 
-    afterAll(async () => {
-        await closeConnection();
-    });
+afterAll(async () => {
+    await closeConnection();
+});
 
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
+afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+});
 
+describe('GET /tweets', () => {
     test('returns 200 and a list of tweets (with populated creator and comments)', async () => {
         const mockTweet = {
             _id: '5f50c31b9d1b2c0017a1a1a1',
             text: 'Hello world',
             image: 'images/default.png',
-            creator: { _id: '680be1b42894596771cbe2f8', name: 'User Test 1' },
+            creator: {_id: '680be1b42894596771cbe2f8', name: 'User Test 1'},
             comments: [
-                { _id: 'a1', text: 'Nice', creator: { _id: 'u2', name: 'Commenter' } }
+                {_id: 'a1', text: 'Nice', creator: {_id: 'u2', name: 'Commenter'}}
             ],
             likes: [],
             retweets: [],
@@ -68,7 +72,7 @@ describe('Tweet Controller - GET Tweets', () => {
         expect(t).toEqual(expect.objectContaining({
             _id: mockTweet._id,
             text: mockTweet.text,
-            creator: expect.objectContaining({ name: 'User Test 1' }),
+            creator: expect.objectContaining({name: 'User Test 1'}),
             comments: expect.any(Array)
         }));
     });
@@ -87,16 +91,18 @@ describe('Tweet Controller - GET Tweets', () => {
             })
         );
     });
+});
 
+describe('GET /tweets/:id', () => {
     test('GET /tweets/:id returns 200 and the tweet when found', async () => {
         const tweetId = '5f50c31b9d1b2c0017a1a1a1';
         const mockTweet = {
             _id: tweetId,
             text: 'Single tweet',
             image: 'images/default.png',
-            creator: { _id: '680be1b42894596771cbe2f8', name: 'User Test 1' },
+            creator: {_id: '680be1b42894596771cbe2f8', name: 'User Test 1'},
             comments: [
-                { _id: 'c1', text: 'Nice', creator: { _id: 'u2', name: 'Commenter' } }
+                {_id: 'c1', text: 'Nice', creator: {_id: 'u2', name: 'Commenter'}}
             ],
             likes: [],
             retweets: [],
@@ -118,7 +124,7 @@ describe('Tweet Controller - GET Tweets', () => {
                 tweet: expect.objectContaining({
                     _id: tweetId,
                     text: mockTweet.text,
-                    creator: expect.objectContaining({ name: 'User Test 1' }),
+                    creator: expect.objectContaining({name: 'User Test 1'}),
                 })
             })
         );
