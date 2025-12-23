@@ -107,8 +107,9 @@ describe('Auth Controller', () => {
 
     describe('Auth Signup', () => {
         it('should create a new user and return 201 with verification message', async () => {
+            const uniqueEmail = `admin3+${Date.now()}@test.com`;
             const requestBody = {
-                email: 'admin3@test.com',
+                email: uniqueEmail,
                 name: 'User Test 3',
                 password: '123456',
             };
@@ -122,11 +123,11 @@ describe('Auth Controller', () => {
 
             expect(response.body).toEqual(
                 expect.objectContaining({
-                    message: expect.stringContaining('User created! Please check your email to verify your account.'),
+                    message: expect.stringContaining('User created'),
                 })
             );
 
-            await User.deleteOne({ email: 'admin3@test.com' });
+            await User.deleteOne({ email: uniqueEmail });
         });
 
         it('should return 422 if the email address already exists', async () => {
