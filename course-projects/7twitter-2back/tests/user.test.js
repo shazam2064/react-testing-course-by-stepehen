@@ -3,6 +3,22 @@ const app = require('./testUtils');
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 
+function makePopulateMock(result, shouldReject = false) {
+    return {
+        populate() { return this; },
+        then(onFulfilled, onRejected) {
+            if (shouldReject) {
+                return Promise.reject(result).then(onFulfilled, onRejected);
+            }
+            return Promise.resolve(result).then(onFulfilled, onRejected);
+        },
+        catch(onRejected) {
+            return this.then(undefined, onRejected);
+        }
+    };
+}
+// --- end helper ---
+
 describe('User Controller Tests', () => {
     beforeAll(async () => {
         const { mongoConnect } = require('../util/database');
@@ -122,27 +138,26 @@ describe('User Controller Tests', () => {
         it('should return 200 and the user details if the user exists', async () => {
             const mockUserId = '680be1b42894596771cbe2f8';
 
-            jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
-                populate: () => ({
-                    populate: () => Promise.resolve({
-                        following: [],
-                        followers: [],
-                        _id: mockUserId,
-                        email: 'gabrielsalomon.990@gmail.com',
-                        password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
-                        name: 'User Test 1',
-                        image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
-                        tweets: ['680be1e32894596771cbe311'],
-                        comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
-                        bugsAssigned: [],
-                        reportedBugs: [],
-                        isAdmin: true,
-                        createdAt: '2025-11-18T14:04:50.796Z',
-                        updatedAt: '2025-11-19T14:30:39.330Z',
-                        __v: 6
-                    })
+            // return a chainable Query-like object so multiple .populate() calls and .then() work
+            jest.spyOn(User, 'findById').mockImplementationOnce(() =>
+                makePopulateMock({
+                    following: [],
+                    followers: [],
+                    _id: mockUserId,
+                    email: 'gabrielsalomon.990@gmail.com',
+                    password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
+                    name: 'User Test 1',
+                    image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
+                    tweets: ['680be1e32894596771cbe311'],
+                    comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
+                    bugsAssigned: [],
+                    reportedBugs: [],
+                    isAdmin: true,
+                    createdAt: '2025-11-18T14:04:50.796Z',
+                    updatedAt: '2025-11-19T14:30:39.330Z',
+                    __v: 6
                 })
-            }));
+            );
 
             const response = await request(app)
                 .get(`/users/${mockUserId}`)
@@ -167,12 +182,8 @@ describe('User Controller Tests', () => {
         it('should return 404 if the user is not found', async () => {
             const mockUserId = '68ecfe5f977174350fab2a39';
 
-            // mock findById to return a Query-like object whose populate resolves to null
-            jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
-                populate: () => ({
-                    populate: () => Promise.resolve(null)
-                })
-            }));
+            // mock findById to return a chainable Query-like object that resolves to null
+            jest.spyOn(User, 'findById').mockImplementationOnce(() => makePopulateMock(null));
 
             const response = await request(app)
                 .get(`/users/${mockUserId}`)
@@ -204,12 +215,8 @@ describe('User Controller Tests', () => {
         it('should handle errors and return 500', async () => {
             const mockUserId = '68823330942eb86d6cf0f79d';
 
-            // mock findById to return a Query-like object whose populate rejects
-            jest.spyOn(User, 'findById').mockImplementationOnce(() => ({
-                populate: () => ({
-                    populate: () => Promise.reject(new Error('Database error'))
-                })
-            }));
+            // mock findById to return a chainable Query-like object that rejects
+            jest.spyOn(User, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
 
             const response = await request(app)
                 .get(`/users/${mockUserId}`)
