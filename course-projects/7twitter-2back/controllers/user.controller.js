@@ -209,6 +209,10 @@ exports.createUser = async (req, res, next) => {
         throwError(422, '', 'Validation failed');
     }
 
+    if (!email || !name || !password || typeof password !== 'string' || password.length < 6) {
+        throwError(422, '', 'Validation failed');
+    }
+
     bcrypt.hash(password, 12)
         .then(hashedPassword => {
             const user = new User({
