@@ -236,6 +236,95 @@ describe('Tweet Controller Tests', () => {
             );
         });
 
+        test('creates a tweet without an image (no file attached)', async () => {
+            const tweetText = 'tweet no image';
+
+            // mock save to resolve to the instance
+            jest.spyOn(Tweet.prototype, 'save').mockImplementationOnce(function () {
+                this._id = this._id || 'mockTweetNoImage';
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: userDoc._id,
+                name: userDoc.name,
+                tweets: [],
+                save: jest.fn().mockResolvedValue(true)
+            });
+
+            const response = await request(app)
+                .post('/tweets')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', tweetText);
+
+            expect(response.status).toBe(201);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Tweet created successfully',
+                    tweet: expect.objectContaining({ text: tweetText }),
+                    creator: expect.objectContaining({ name: expect.any(String) })
+                })
+            );
+        });
+
+        test('returns 422 when validation fails (express-validator)', async () => {
+            // make validationResult report errors
+            const expressValidator = require('express-validator');
+            jest.spyOn(expressValidator, 'validationResult').mockImplementationOnce(() => ({ isEmpty: () => false }));
+
+            const response = await request(app)
+                .post('/tweets')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', 'whatever');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Validation failed' }));
+        });
+
+        test('returns 500 when User.findById returns null (creator not found)', async () => {
+            const tweetText = 'tweet creator missing';
+
+            jest.spyOn(Tweet.prototype, 'save').mockImplementationOnce(function () {
+                this._id = this._id || 'mockTweetMissingCreator';
+                return Promise.resolve(this);
+            });
+
+            // user not found
+            jest.spyOn(User, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .post('/tweets')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', tweetText);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+        });
+
+        test('returns 500 when saving the user (user.save rejects)', async () => {
+            const tweetText = 'tweet user save fail';
+
+            jest.spyOn(Tweet.prototype, 'save').mockImplementationOnce(function () {
+                this._id = this._id || 'mockTweetUserSaveFail';
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: userDoc._id,
+                name: userDoc.name,
+                tweets: [],
+                save: jest.fn().mockRejectedValueOnce(new Error('User save failed'))
+            });
+
+            const response = await request(app)
+                .post('/tweets')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('text', tweetText);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
+        });
+
         test('returns 500 when Tweet.save fails', async () => {
             // ensure login token still available
             const tweetText = 'tweet 2';
