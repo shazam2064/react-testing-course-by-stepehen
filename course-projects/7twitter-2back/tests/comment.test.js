@@ -119,5 +119,69 @@ describe('Comment Controller Tests', () => {
             })
         );
     });
-});
 
+    describe('GET /comments/:id', () => {
+        test('GET /comments/:id returns 200 and the comment when found', async () => {
+            const commentId = 'c1';
+            const mockComment = {
+                _id: commentId,
+                text: 'A single comment',
+                tweet: { _id: 't1', text: 'Tweet 1' },
+                creator: { _id: 'u1', name: 'User 1' },
+                likes: [],
+                createdAt: '2025-01-01T00:00:00.000Z'
+            };
+
+            jest.spyOn(Comment, 'findById').mockImplementationOnce(() => makePopulateMock(mockComment));
+
+            const response = await request(app)
+                .get(`/comments/${commentId}`)
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.headers['content-type']).toMatch(/application\/json/);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment fetched successfully',
+                    comment: expect.objectContaining({
+                        _id: commentId,
+                        text: mockComment.text,
+                        tweet: expect.objectContaining({ _id: 't1' })
+                    })
+                })
+            );
+        });
+
+        test('GET /comments/:id returns 404 when comment not found', async () => {
+            const commentId = 'missingId';
+            jest.spyOn(Comment, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const response = await request(app)
+                .get(`/comments/${commentId}`)
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment not found'
+                })
+            );
+        });
+
+        test('GET /comments/:id returns 500 on DB error', async () => {
+            const commentId = 'errId';
+            jest.spyOn(Comment, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const response = await request(app)
+                .get(`/comments/${commentId}`)
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+});

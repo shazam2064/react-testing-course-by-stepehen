@@ -26,7 +26,6 @@ describe('Tweet Controller Tests', () => {
     beforeAll(async () => {
         await mongoConnect();
 
-        // ensure a test user exists so we can obtain an auth token
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
             { email: 'gabrielsalomon.990@gmail.com' },
@@ -69,7 +68,6 @@ describe('Tweet Controller Tests', () => {
                 __v: 0
             };
 
-            // Tweet.find() -> chainable populate -> resolves to array of tweets
             jest.spyOn(Tweet, 'find').mockImplementationOnce(() => makePopulateMock([mockTweet]));
 
             const response = await request(app)
