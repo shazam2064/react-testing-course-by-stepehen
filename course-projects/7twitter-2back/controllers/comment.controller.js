@@ -32,6 +32,30 @@ exports.getComments = async (req, res, next) => {
         });
 };
 
+// new: fetch single comment by id (supports :id or :commentId route param)
+exports.getComment = async (req, res, next) => {
+    // #swagger.description = 'Retrieve a single comment by ID.'
+    // #swagger.tags = ['Comments']
+    const commentId = req.params.commentId || req.params.id;
+    console.log('The getComment controller was called with id:', commentId);
+
+    Comment.findById(commentId)
+        .populate('tweet')
+        .populate('creator')
+        .then(comment => {
+            if (!comment) {
+                throwError(404, [], 'Comment not found');
+            }
+            res.status(200).json({
+                message: 'Comment fetched successfully',
+                comment
+            });
+        })
+        .catch(err => {
+            handleError(err, next, 'Comment fetch failed');
+        });
+};
+
 exports.createComment = async (req, res, next) => {
     // #swagger.description = 'Creates a new comment for a specific tweet.'
     // #swagger.tags = ['Comments'] #swagger.security = [{ "bearerAuth": [] }]
@@ -86,7 +110,7 @@ exports.updateComment = async (req, res, next) => {
     if (!errors.isEmpty()) {
         throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
     }
-    const commentId = req.params.commentId;
+    const commentId = req.params.commentId || req.params.id;
     const text = req.body.text;
     Comment.findById(commentId)
         .then(comment => {
@@ -115,7 +139,7 @@ exports.likeComment = async (req, res, next) => {
     // #swagger.description = 'Likes or unlikes a comment.'
     // #swagger.tags = ['Comments'] #swagger.security = [{ "bearerAuth": [] }]
     console.log('the likeComment controller was called');
-    const commentId = req.params.commentId;
+    const commentId = req.params.commentId || req.params.id;
     Comment.findById(commentId)
         .then(comment => {
             if (!comment) {
@@ -144,7 +168,7 @@ exports.deleteComment = async (req, res, next) => {
     // #swagger.description = 'Deletes a comment.'
     // #swagger.tags = ['Comments'] #swagger.security = [{ "bearerAuth": [] }]
     console.log('The deleteComment controller was called with params:', req.params);
-    const commentId = req.params.commentId;
+    const commentId = req.params.commentId || req.params.id;
     let deletedComment;
 
     Comment.findByIdAndDelete(commentId)
@@ -158,7 +182,12 @@ exports.deleteComment = async (req, res, next) => {
         })
         .then(tweet => {
             if (tweet) {
-                tweet.comments.pull(commentId);
+                // guard for plain arrays vs mongoose arrays
+                if (tweet.comments && typeof tweet.comments.pull === 'function') {
+                    tweet.comments.pull(commentId);
+                } else if (Array.isArray(tweet.comments)) {
+                    tweet.comments = tweet.comments.filter(id => String(id) !== String(commentId));
+                }
                 return tweet.save();
             }
         })
@@ -167,7 +196,11 @@ exports.deleteComment = async (req, res, next) => {
         })
         .then(user => {
             if (user) {
-                user.comments.pull(commentId);
+                if (user.comments && typeof user.comments.pull === 'function') {
+                    user.comments.pull(commentId);
+                } else if (Array.isArray(user.comments)) {
+                    user.comments = user.comments.filter(id => String(id) !== String(commentId));
+                }
                 return user.save();
             }
         })
