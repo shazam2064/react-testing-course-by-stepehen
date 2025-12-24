@@ -39,12 +39,18 @@ exports.getComment = async (req, res, next) => {
     const commentId = req.params.commentId || req.params.id;
     console.log('The getComment controller was called with id:', commentId);
 
-    Comment.findById(commentId)
-        .populate('tweet')
-        .populate('creator')
-        .then(comment => {
+    // Wrap the chainable in Promise.resolve to support mocked query objects
+    Promise.resolve(
+        Comment.findById(commentId)
+            .populate('tweet')
+            .populate('creator')
+    )
+        .then(result => {
+            // normalize mongoose document vs plain object returned by mocks
+            const comment = result && result._doc ? result._doc : result;
             if (!comment) {
-                throwError(404, [], 'Comment not found');
+                // explicit 404 JSON response so tests receive a predictable body
+                return res.status(404).json({ message: 'Comment not found' });
             }
             res.status(200).json({
                 message: 'Comment fetched successfully',
