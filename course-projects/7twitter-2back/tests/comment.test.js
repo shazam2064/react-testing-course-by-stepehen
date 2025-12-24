@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('./testUtils');
 const Comment = require('../models/comment.model');
+const User = require('../models/user.model');
 const { mongoConnect, closeConnection } = require('../util/database');
 
 function makePopulateMock(result, shouldReject = false) {
@@ -151,11 +152,9 @@ describe('Comment Controller Tests', () => {
             expect(response.headers['content-type']).toMatch(/application\/json/);
 
             const returned = response.body.comment;
-            // basic fields
             expect(returned._id).toBe(commentId);
             expect(returned.text).toBe('comment 1');
 
-            // tweet may be an id string or populated object; assert the id matches the provided one
             if (typeof returned.tweet === 'string') {
                 expect(returned.tweet).toBe('694bfd7c33176dd45a63853c');
             } else if (returned.tweet && returned.tweet._id) {
@@ -204,6 +203,173 @@ describe('Comment Controller Tests', () => {
                     message: 'Database error'
                 })
             );
+        });
+    });
+
+    // append POST /comments tests
+    describe('POST /comments', () => {
+        let validToken;
+        const testUserEmail = 'gabrielsalomon.990@gmail.com';
+        const testUserPassword = '123456';
+        const tweetId = '694bfd7c33176dd45a63853c';
+
+        beforeAll(async () => {
+            // ensure a user exists for login
+            const bcrypt = require('bcryptjs');
+            const passwordHash = await bcrypt.hash(testUserPassword, 12);
+            await User.updateOne(
+                { email: testUserEmail },
+                {
+                    $set: {
+                        email: testUserEmail,
+                        password: passwordHash,
+                        name: 'User Test 1',
+                        isAdmin: true,
+                        image: 'images/default.png'
+                    }
+                },
+                { upsert: true }
+            );
+
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: testUserEmail, password: testUserPassword })
+                .set('Content-Type', 'application/json');
+
+            expect(loginRes.status).toBe(200);
+            validToken = loginRes.body.token;
+        });
+
+        afterEach(() => {
+            jest.clearAllMocks();
+            jest.restoreAllMocks();
+        });
+
+        test('creates a comment and returns 201 with comment and creator', async () => {
+            const commentId = '694bfd8933176dd45a638541';
+            const commentText = 'comment 1';
+
+            jest.spyOn(Comment.prototype, 'save').mockImplementationOnce(function () {
+                this._id = commentId;
+                this.createdAt = '2025-12-24T14:49:45.740Z';
+                this.updatedAt = this.createdAt;
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: '680be1b42894596771cbe2f8',
+                comments: [],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce({
+                _id: tweetId,
+                comments: [],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ tweet: tweetId, text: commentText })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(201);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment created successfully',
+                    comment: expect.objectContaining({
+                        _id: commentId,
+                        text: commentText
+                    }),
+                    creator: expect.objectContaining({
+                        _id: expect.any(String)
+                    })
+                })
+            );
+        });
+
+        test('returns 500 when Comment.save fails', async () => {
+            jest.spyOn(Comment.prototype, 'save').mockImplementationOnce(() => Promise.reject(new Error('Save failed')));
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ tweet: tweetId, text: 'should fail' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Save failed' }));
+        });
+
+        test('returns 500 when User.findById returns null (creator not found)', async () => {
+            jest.spyOn(Comment.prototype, 'save').mockImplementationOnce(function () {
+                this._id = 'newcid';
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ tweet: tweetId, text: 'no user' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+        });
+
+        test('returns 500 when Tweet.findById returns null (tweet not found)', async () => {
+            jest.spyOn(Comment.prototype, 'save').mockImplementationOnce(function () {
+                this._id = 'newcid2';
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: '680be1b42894596771cbe2f8',
+                comments: [],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ tweet: tweetId, text: 'no tweet' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+        });
+
+        test('returns 500 when User.save rejects', async () => {
+            jest.spyOn(Comment.prototype, 'save').mockImplementationOnce(function () {
+                this._id = 'newcid3';
+                return Promise.resolve(this);
+            });
+
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: '680be1b42894596771cbe2f8',
+                comments: [],
+                save: jest.fn().mockRejectedValueOnce(new Error('User save failed'))
+            });
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce({
+                _id: tweetId,
+                comments: [],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            const response = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ tweet: tweetId, text: 'user save fail' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
         });
     });
 });
