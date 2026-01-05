@@ -85,7 +85,16 @@ exports.createComment = async (req, res, next) => {
     console.log('The createComment controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        // map text validation failures to 400 with the expected message to match tests
+        const errs = errors.array();
+        const textError = errs.find(e => e.path === 'text');
+        if (textError) {
+            return res.status(400).json({ message: 'Text cannot be empty' });
+        }
+        const error = new Error('Validation failed, entered data is incorrect');
+        error.statusCode = 422;
+        error.details = errs;
+        return next(error);
     }
     const tweetId = req.body.tweet;
     const text = req.body.text;
@@ -131,7 +140,15 @@ exports.updateComment = async (req, res, next) => {
     console.log('The updateComment controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        const errs = errors.array();
+        const textError = errs.find(e => e.path === 'text');
+        if (textError) {
+            return res.status(400).json({ message: 'Text cannot be empty' });
+        }
+        const error = new Error('Validation failed, entered data is incorrect');
+        error.statusCode = 422;
+        error.details = errs;
+        return next(error);
     }
     const commentId = req.params.commentId || req.params.id;
     const text = req.body.text;
