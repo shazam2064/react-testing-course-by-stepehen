@@ -39,27 +39,44 @@ exports.getComment = async (req, res, next) => {
     const commentId = req.params.commentId || req.params.id;
     console.log('The getComment controller was called with id:', commentId);
 
-    // Wrap the chainable in Promise.resolve to support mocked query objects
-    Promise.resolve(
-        Comment.findById(commentId)
-            .populate('tweet')
-            .populate('creator')
-    )
-        .then(result => {
-            // normalize mongoose document vs plain object returned by mocks
+    // Build the query
+    const query = Comment.findById(commentId)
+        .populate('tweet')
+        .populate('creator');
+
+    // If it's a thenable (Mongoose Query or our test mock), use its promise interface.
+    if (query && typeof query.then === 'function') {
+        query
+            .then(result => {
+                const comment = result && result._doc ? result._doc : result;
+                if (!comment) {
+                    // explicit 404 JSON response so tests receive a predictable body
+                    return res.status(404).json({ message: 'Comment not found' });
+                }
+                res.status(200).json({
+                    message: 'Comment fetched successfully',
+                    comment
+                });
+            })
+            .catch(err => {
+                handleError(err, next, 'Comment fetch failed');
+            });
+    } else {
+        // Non-thenable (edge case in some test setups) — handle synchronously
+        try {
+            const result = query;
             const comment = result && result._doc ? result._doc : result;
             if (!comment) {
-                // explicit 404 JSON response so tests receive a predictable body
                 return res.status(404).json({ message: 'Comment not found' });
             }
             res.status(200).json({
                 message: 'Comment fetched successfully',
                 comment
             });
-        })
-        .catch(err => {
+        } catch (err) {
             handleError(err, next, 'Comment fetch failed');
-        });
+        }
+    }
 };
 
 exports.createComment = async (req, res, next) => {
