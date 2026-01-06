@@ -593,4 +593,153 @@ describe('Comment Controller Tests', () => {
             expect(response.body).toEqual(expect.objectContaining({ message: 'Save failed' }));
         });
     });
+
+    // Insert new tests for deleting comments
+    describe('DELETE /comments/:id', () => {
+        test('deletes a comment and returns 200 with success message', async () => {
+            const commentId = 'delC1';
+            const creatorId = '680be1b42894596771cbe2f8';
+            const tweetIdLocal = tweetId;
+
+            // Comment.findByIdAndDelete -> resolves to deleted comment
+            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce({
+                _id: commentId,
+                tweet: tweetIdLocal,
+                creator: creatorId
+            });
+
+            // Tweet.findById -> returns tweet with comments and save()
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce({
+                _id: tweetIdLocal,
+                comments: [commentId],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            // User.findById -> returns user with comments and save()
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: creatorId,
+                comments: [commentId],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment deleted successfully'
+                })
+            );
+        });
+
+        test('returns 404 when comment not found', async () => {
+            const commentId = 'missingCommentId';
+            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            // tolerate explicit body or empty object
+            if (response.body && Object.keys(response.body).length > 0) {
+                expect(response.body).toEqual(expect.objectContaining({ message: 'Comment not found' }));
+            } else {
+                expect(response.body).toEqual({});
+            }
+        });
+
+        test('returns 401 when no token is provided', async () => {
+            const commentId = 'any';
+            const response = await request(app)
+                .delete(`/comments/${commentId}`);
+
+            expect(response.status).toBe(401);
+            expect(response.body).toEqual(
+                expect.objectContaining({ message: expect.any(String) })
+            );
+        });
+
+        test('returns 500 when Comment.findByIdAndDelete rejects', async () => {
+            const commentId = 'errDel1';
+            jest.spyOn(Comment, 'findByIdAndDelete').mockRejectedValueOnce(new Error('Database error'));
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(
+                expect.objectContaining({ message: 'Database error' })
+            );
+        });
+
+        test('returns 500 when Tweet.save fails while removing comment', async () => {
+            const commentId = 'errTweetSave';
+            const creatorId = '680be1b42894596771cbe2f8';
+            const tweetIdLocal = tweetId;
+
+            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce({
+                _id: commentId,
+                tweet: tweetIdLocal,
+                creator: creatorId
+            });
+
+            // tweet.save rejects
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce({
+                _id: tweetIdLocal,
+                comments: [commentId],
+                save: jest.fn().mockRejectedValueOnce(new Error('Tweet save failed'))
+            });
+
+            // user.save ok
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: creatorId,
+                comments: [],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Tweet save failed' }));
+        });
+
+        test('returns 500 when User.save fails while removing comment', async () => {
+            const commentId = 'errUserSave';
+            const creatorId = '680be1b42894596771cbe2f8';
+            const tweetIdLocal = tweetId;
+
+            jest.spyOn(Comment, 'findByIdAndDelete').mockResolvedValueOnce({
+                _id: commentId,
+                tweet: tweetIdLocal,
+                creator: creatorId
+            });
+
+            // tweet.save ok
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce({
+                _id: tweetIdLocal,
+                comments: [commentId],
+                save: jest.fn().mockResolvedValueOnce(true)
+            });
+
+            // user.save rejects
+            jest.spyOn(User, 'findById').mockResolvedValueOnce({
+                _id: creatorId,
+                comments: [commentId],
+                save: jest.fn().mockRejectedValueOnce(new Error('User save failed'))
+            });
+
+            const response = await request(app)
+                .delete(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
+        });
+    });
 });
