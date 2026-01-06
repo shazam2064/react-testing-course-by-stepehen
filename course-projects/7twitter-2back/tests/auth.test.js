@@ -164,6 +164,51 @@ describe('Auth Controller', () => {
                 );
             }
         });
+
+        // --- new validation tests ---
+        it('should return 422 when required fields are missing', async () => {
+            const response = await request(app)
+                .put('/auth/signup')
+                .send({ email: '', name: '', password: '' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String)
+                })
+            );
+        });
+
+        it('should return 422 for a too-short password', async () => {
+            const uniqueEmail = `shortpass+${Date.now()}@test.com`;
+            const response = await request(app)
+                .put('/auth/signup')
+                .send({ email: uniqueEmail, name: 'Short Pass', password: '123' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String)
+                })
+            );
+        });
+
+        it('should return 422 for invalid email format', async () => {
+            const response = await request(app)
+                .put('/auth/signup')
+                .send({ email: 'not-an-email', name: 'Bad Email', password: '123456' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String)
+                })
+            );
+        });
+        // --- end new tests ---
     });
 
 
