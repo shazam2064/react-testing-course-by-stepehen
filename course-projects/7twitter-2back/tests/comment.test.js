@@ -484,4 +484,113 @@ describe('Comment Controller Tests', () => {
         });
 
     });
+
+    // Insert new tests for updating comments
+    describe('PUT /comments/:id', () => {
+        test('updates a comment and returns 200 with updated comment', async () => {
+            const commentId = 'updC1';
+            const newText = 'updated comment text';
+
+            const mockComment = {
+                _id: commentId,
+                text: 'old text',
+                creator: '680be1b42894596771cbe2f8',
+                save: jest.fn().mockImplementation(function () {
+                    // simulate that save returns the updated comment document
+                    this.text = newText;
+                    return Promise.resolve(Object.assign({}, this));
+                })
+            };
+
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
+
+            const response = await request(app)
+                .put(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: newText })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment updated successfully',
+                    comment: expect.objectContaining({
+                        _id: commentId,
+                        text: newText
+                    })
+                })
+            );
+        });
+
+        test('returns 404 when comment not found', async () => {
+            const commentId = 'missingComment';
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'irrelevant' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(404);
+
+            // tolerate either explicit body or empty object
+            if (response.body && Object.keys(response.body).length > 0) {
+                expect(response.body).toEqual(
+                    expect.objectContaining({ message: 'Comment not found' })
+                );
+            } else {
+                expect(response.body).toEqual({});
+            }
+        });
+
+        test('returns 403 when user is not authorized to update comment', async () => {
+            const commentId = 'unauthC1';
+            const mockComment = {
+                _id: commentId,
+                text: 'old text',
+                creator: 'someOtherUserId',
+                save: jest.fn().mockResolvedValueOnce(true)
+            };
+
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
+
+            const response = await request(app)
+                .put(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'attempted update' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(403);
+            // message shape may vary; be tolerant
+            if (response.body && Object.keys(response.body).length > 0) {
+                expect(response.body).toEqual(
+                    expect.objectContaining({ message: expect.any(String) })
+                );
+            } else {
+                expect(response.body).toEqual({});
+            }
+        });
+
+        test('returns 500 when saving the comment fails', async () => {
+            const commentId = 'errSaveC1';
+            const mockComment = {
+                _id: commentId,
+                text: 'old text',
+                creator: '680be1b42894596771cbe2f8',
+                save: jest.fn().mockRejectedValueOnce(new Error('Save failed'))
+            };
+
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
+
+            const response = await request(app)
+                .put(`/comments/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'will fail' })
+                .set('Content-Type', 'application/json');
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Save failed' }));
+        });
+    });
 });
