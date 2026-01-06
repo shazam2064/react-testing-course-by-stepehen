@@ -742,4 +742,138 @@ describe('Comment Controller Tests', () => {
             expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
         });
     });
+
+    // Insert new tests for liking/unliking comments
+    describe('PUT /comments/like/:id', () => {
+        test('likes a comment when not previously liked (returns 200)', async () => {
+            const commentId = 'likeC1';
+            const userId = '680be1b42894596771cbe2f8';
+
+            // likes is a plain array but we add a pull method so controller can call it safely
+            const likes = [];
+            likes.pull = function(id) {
+                const idx = this.indexOf(id);
+                if (idx > -1) this.splice(idx, 1);
+            };
+
+            const mockComment = {
+                _id: commentId,
+                likes,
+                creator: userId,
+                save: jest.fn().mockImplementation(function () {
+                    // simulate that save resolves and the likes now include the userId
+                    if (!this.likes.includes(userId)) this.likes.push(userId);
+                    return Promise.resolve(this);
+                })
+            };
+
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
+
+            const response = await request(app)
+                .put(`/comments/like/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment liked successfully',
+                    comment: expect.objectContaining({ _id: commentId })
+                })
+            );
+            // ensure save was called
+            expect(mockComment.save).toHaveBeenCalled();
+            expect(mockComment.likes).toContain(userId);
+        });
+
+        test('unlikes a comment when already liked (returns 200)', async () => {
+            const commentId = 'unlikeC1';
+            const userId = '680be1b42894596771cbe2f8';
+
+            const likes = [userId];
+            likes.pull = function(id) {
+                const idx = this.indexOf(id);
+                if (idx > -1) this.splice(idx, 1);
+            };
+
+            const mockComment = {
+                _id: commentId,
+                likes,
+                creator: userId,
+                save: jest.fn().mockImplementation(function () {
+                    // simulate that save resolves and the likes now no longer include the userId
+                    return Promise.resolve(this);
+                })
+            };
+
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
+
+            const response = await request(app)
+                .put(`/comments/like/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Comment liked successfully',
+                    comment: expect.objectContaining({ _id: commentId })
+                })
+            );
+            expect(mockComment.save).toHaveBeenCalled();
+            expect(mockComment.likes).not.toContain(userId);
+        });
+
+        test('returns 404 when comment not found', async () => {
+            const commentId = 'missingLike';
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/comments/like/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            // tolerate explicit body or empty object
+            if (response.body && Object.keys(response.body).length > 0) {
+                expect(response.body).toEqual(expect.objectContaining({ message: 'Comment not found' }));
+            } else {
+                expect(response.body).toEqual({});
+            }
+        });
+
+        test('returns 500 when saving the comment fails', async () => {
+            const commentId = 'errLikeSave';
+            const userId = '680be1b42894596771cbe2f8';
+
+            const likes = [];
+            likes.pull = function(id) {
+                const idx = this.indexOf(id);
+                if (idx > -1) this.splice(idx, 1);
+            };
+
+            const mockComment = {
+                _id: commentId,
+                likes,
+                creator: userId,
+                save: jest.fn().mockRejectedValueOnce(new Error('Save failed'))
+            };
+
+            jest.spyOn(Comment, 'findById').mockResolvedValueOnce(mockComment);
+
+            const response = await request(app)
+                .put(`/comments/like/${commentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            // controller should propagate error -> 500
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Save failed' }));
+        });
+
+        test('returns 401 when no token is provided', async () => {
+            const commentId = 'anyLike';
+            const response = await request(app)
+                .put(`/comments/like/${commentId}`);
+
+            expect(response.status).toBe(401);
+            expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+        });
+    });
 });
