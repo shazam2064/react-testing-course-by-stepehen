@@ -133,6 +133,9 @@ const clearImage = filePath => {
     });
 }
 
+// export helper so tests can call it directly
+exports.clearImage = clearImage;
+
 
 exports.followUser = async (req, res, next) => {
     // #swagger.description = 'Follows or unfollows a user.'

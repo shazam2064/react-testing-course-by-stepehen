@@ -2,6 +2,9 @@ const request = require('supertest');
 const app = require('./testUtils');
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const { clearImage } = require('../controllers/user.controller');
 
 function makePopulateMock(result, shouldReject = false) {
     return {
@@ -717,6 +720,48 @@ describe('User Controller Tests', () => {
             if (response.status === 500) {
                 expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
             }
+        });
+    });
+
+    // Insert clearImage helper tests
+    describe('clearImage helper', () => {
+        afterEach(() => {
+            jest.clearAllMocks();
+            jest.restoreAllMocks();
+        });
+
+        test('does not attempt deletion when filePath is falsy', () => {
+            const unlinkSpy = jest.spyOn(fs, 'unlink').mockImplementation(() => {});
+            clearImage(undefined);
+            expect(unlinkSpy).not.toHaveBeenCalled();
+        });
+
+        test('does not delete default.png', () => {
+            const unlinkSpy = jest.spyOn(fs, 'unlink').mockImplementation(() => {});
+            clearImage('images/default.png');
+            expect(unlinkSpy).not.toHaveBeenCalled();
+        });
+
+        test('calls fs.unlink with full path for non-default image', () => {
+            const unlinkSpy = jest.spyOn(fs, 'unlink').mockImplementation((p, cb) => cb(null));
+            const testRelPath = path.join('images', 'uploads', 'pic.jpg'); // input path given to controller
+            clearImage(testRelPath);
+            expect(unlinkSpy).toHaveBeenCalledTimes(1);
+            const calledPath = unlinkSpy.mock.calls[0][0];
+            // ensure the passed path ends with the provided relative path (handle platform separators)
+            const normCalled = calledPath.replace(/\\/g, '/');
+            const expectedEnd = testRelPath.replace(/\\/g, '/');
+            expect(normCalled.endsWith(expectedEnd)).toBe(true);
+        });
+
+        test('logs error when unlink callback returns error', () => {
+            const err = new Error('unlink failed');
+            const unlinkSpy = jest.spyOn(fs, 'unlink').mockImplementation((p, cb) => cb(err));
+            const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+            clearImage('images/uploads/errpic.jpg');
+            expect(unlinkSpy).toHaveBeenCalled();
+            expect(consoleSpy).toHaveBeenCalledWith('The image deletion failed:', err);
+            consoleSpy.mockRestore();
         });
     });
 
