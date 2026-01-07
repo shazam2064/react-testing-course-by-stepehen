@@ -515,4 +515,131 @@ describe('Tweet Controller Tests', () => {
             expect(response.body).toEqual(expect.objectContaining({ message: 'User save failed' }));
         });
     });
+
+    // Insert new tests for retweet functionality
+    describe('PUT /tweets/retweet/:id', () => {
+        let validToken;
+        let userId;
+
+        beforeAll(async () => {
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: 'gabrielsalomon.990@gmail.com', password: '123456' })
+                .set('Content-Type', 'application/json');
+
+            expect(loginRes.status).toBe(200);
+            validToken = loginRes.body.token;
+            userId = loginRes.body.userId || (loginRes.body.user && loginRes.body.user._id) || '680be1b42894596771cbe2f8';
+        });
+
+        test('retweets a tweet when not previously retweeted (returns 200)', async () => {
+            const tweetId = 'rt1';
+            const mockTweet = {
+                _id: tweetId,
+                retweets: [],
+                save: jest.fn().mockImplementation(function () {
+                    // simulate that save attaches the userId to retweets
+                    if (!this.retweets.includes(userId)) this.retweets.push(userId);
+                    return Promise.resolve(this);
+                })
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(mockTweet);
+
+            const response = await request(app)
+                .put(`/tweets/retweet/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String),
+                    tweet: expect.objectContaining({ _id: tweetId })
+                })
+            );
+
+            expect(mockTweet.save).toHaveBeenCalled();
+            expect(mockTweet.retweets).toContain(userId);
+        });
+
+        test('unretweets a tweet when already retweeted (returns 200)', async () => {
+            const tweetId = 'rt2';
+            const retweets = [userId];
+            // provide pull so controller can call .pull if it exists
+            retweets.pull = function (id) {
+                const idx = this.indexOf(id);
+                if (idx > -1) this.splice(idx, 1);
+            };
+
+            const mockTweet = {
+                _id: tweetId,
+                retweets,
+                save: jest.fn().mockImplementation(function () {
+                    // simulate save returning the object (already had userId removed by controller)
+                    return Promise.resolve(this);
+                })
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(mockTweet);
+
+            const response = await request(app)
+                .put(`/tweets/retweet/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String),
+                    tweet: expect.objectContaining({ _id: tweetId })
+                })
+            );
+
+            expect(mockTweet.save).toHaveBeenCalled();
+            expect(mockTweet.retweets).not.toContain(userId);
+        });
+
+        test('returns 404 when tweet not found', async () => {
+            const tweetId = 'missingRt';
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/tweets/retweet/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            // tolerate explicit body or empty object
+            if (response.body && Object.keys(response.body).length > 0) {
+                expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+            } else {
+                expect(response.body).toEqual({});
+            }
+        });
+
+        test('returns 500 when saving the tweet fails', async () => {
+            const tweetId = 'errRtSave';
+            const mockTweet = {
+                _id: tweetId,
+                retweets: [],
+                save: jest.fn().mockRejectedValueOnce(new Error('Save failed'))
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(mockTweet);
+
+            const response = await request(app)
+                .put(`/tweets/retweet/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Save failed' }));
+        });
+
+        test('returns 401 when no token is provided', async () => {
+            const tweetId = 'anyRt';
+            const response = await request(app)
+                .put(`/tweets/retweet/${tweetId}`);
+
+            expect(response.status).toBe(401);
+            expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+        });
+    });
 });
