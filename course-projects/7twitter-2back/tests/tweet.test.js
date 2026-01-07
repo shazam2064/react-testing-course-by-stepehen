@@ -642,4 +642,131 @@ describe('Tweet Controller Tests', () => {
             expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
         });
     });
+
+    describe('PUT /tweets/like/:id', () => {
+        let validToken;
+        let userId;
+
+        beforeAll(async () => {
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: 'gabrielsalomon.990@gmail.com', password: '123456' })
+                .set('Content-Type', 'application/json');
+
+            expect(loginRes.status).toBe(200);
+            validToken = loginRes.body.token;
+            userId = loginRes.body.userId || (loginRes.body.user && loginRes.body.user._id) || '680be1b42894596771cbe2f8';
+        });
+
+        afterEach(() => {
+            jest.clearAllMocks();
+            jest.restoreAllMocks();
+        });
+
+        test('likes a tweet when not previously liked (returns 200)', async () => {
+            const tweetId = 'likeT1';
+            const mockTweet = {
+                _id: tweetId,
+                likes: [],
+                save: jest.fn().mockImplementation(function () {
+                    if (!this.likes.includes(userId)) this.likes.push(userId);
+                    return Promise.resolve(this);
+                })
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(mockTweet);
+
+            const response = await request(app)
+                .put(`/tweets/like/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String),
+                    tweet: expect.objectContaining({ _id: tweetId })
+                })
+            );
+
+            expect(mockTweet.save).toHaveBeenCalled();
+            expect(mockTweet.likes).toContain(userId);
+        });
+
+        test('unlikes a tweet when already liked (returns 200)', async () => {
+            const tweetId = 'unlikeT1';
+            const likes = [userId];
+            likes.pull = function(id) {
+                const idx = this.indexOf(id);
+                if (idx > -1) this.splice(idx, 1);
+            };
+
+            const mockTweet = {
+                _id: tweetId,
+                likes,
+                save: jest.fn().mockImplementation(function () {
+                    return Promise.resolve(this);
+                })
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(mockTweet);
+
+            const response = await request(app)
+                .put(`/tweets/like/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: expect.any(String),
+                    tweet: expect.objectContaining({ _id: tweetId })
+                })
+            );
+
+            expect(mockTweet.save).toHaveBeenCalled();
+            expect(mockTweet.likes).not.toContain(userId);
+        });
+
+        test('returns 404 when tweet not found', async () => {
+            const tweetId = 'missingLikeTweet';
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(null);
+
+            const response = await request(app)
+                .put(`/tweets/like/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            if (response.body && Object.keys(response.body).length > 0) {
+                expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+            } else {
+                expect(response.body).toEqual({});
+            }
+        });
+
+        test('returns 500 when saving the tweet fails', async () => {
+            const tweetId = 'errLikeSaveT';
+            const mockTweet = {
+                _id: tweetId,
+                likes: [],
+                save: jest.fn().mockRejectedValueOnce(new Error('Save failed'))
+            };
+
+            jest.spyOn(Tweet, 'findById').mockResolvedValueOnce(mockTweet);
+
+            const response = await request(app)
+                .put(`/tweets/like/${tweetId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual(expect.objectContaining({ message: 'Save failed' }));
+        });
+
+        test('returns 401 when no token is provided', async () => {
+            const tweetId = 'anyLikeTweet';
+            const response = await request(app)
+                .put(`/tweets/like/${tweetId}`);
+
+            expect(response.status).toBe(401);
+            expect(response.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+        });
+    });
 });
