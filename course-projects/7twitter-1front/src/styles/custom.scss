@@ -1,0 +1,218 @@
+@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+
+.App {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100vh;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: #fdfdfd;
+}
+
+button.btn-outline {
+  &:hover {
+    color: #ffffff !important;
+  }
+
+  &:active {
+    color: #ffffff !important;
+  }
+}
+
+// Search bar styles
+
+.search-group {
+  width: 70%;
+  display: flex;
+
+  @media (min-width: 768px) {
+    width: 70%;
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+
+    .search-bar {
+      flex: 1;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .search-icon {
+      background-color: #6c757d; // Matches the button's secondary color
+      color: #fff;
+      border: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.62rem 0.75rem;
+    }
+  }
+}
+
+
+// Topbar styles
+
+.topbar {
+  width: 100%;
+  padding: 1em 1em; // Reduce padding to make the topbar less thick
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 5px solid #1d9aee;
+  border-bottom: 1px solid lightgray;
+
+  .navbar-brand {
+    margin-right: auto;
+    margin-left: 20px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    width: 100%;
+
+    .nav-item {
+      margin: 0 1em;
+    }
+  }
+
+  img {
+    height: 45px;
+    width: auto;
+  }
+}
+
+
+.custom-info-button {
+  color: #8a817c; // Default text color
+
+  &:hover {
+    color: white; // Change text color to white on hover or focus
+  }
+
+  &:active {
+    color: white; // Change text color to white when clicked
+  }
+
+  &:focus {
+    color: white;
+    background-color: #8a817c;// Change text color to white when focused
+  }
+}
+
+// Sidebar styles
+.sidebar {
+  position: fixed; // Fix the sidebar in place
+  top: 92px; // Align with the top margin
+  left: -250px; // Initially hidden
+  min-width: 250px;
+  max-width: 250px;
+  background: #ffffff;
+  border-right: 2px solid #1d9aee;
+  height: calc(100vh - 92px); // Full height minus top margin
+  transition: all 0.5s ease-in-out;
+  z-index: 1000; // Ensure it stays below the content
+
+  &.is-open {
+    left: 0; // Slide in when open
+  }
+
+  .nav-link {
+    color: #3b4045;
+    text-decoration: none;
+    transition: 0.3s;
+  }
+
+  .nav-link:hover {
+    color: #000000;
+    background: #f5f5f5;
+  }
+
+  .nav-link.active {
+    color: #000000;
+    background: #f5f5f5;
+  }
+
+  .nav-item {
+    padding: 4px 15px;
+    display: block;
+    text-decoration: none;
+    transition: 0.3s;
+  }
+
+  .nav-item:hover {
+    background: #f5f5f5;
+  }
+
+  .nav-item.active {
+    background: #f5f5f5;
+  }
+
+  &-header {
+    > span {
+      position: relative;
+      float: right;
+      margin: 0.5em;
+      font-size: 2rem;
+      cursor: pointer;
+      display: none;
+    }
+  }
+
+  .side-menu {
+    height: calc(100vh - 100px);
+    overflow-y: scroll;
+
+    &::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #1d9aee;
+      border-radius: 3px;
+
+      &:hover {
+        background: #1d9aee;
+      }
+    }
+  }
+}
+
+// Content styles
+.content {
+  flex: 1;
+  padding: 20px;
+  margin-top: 92px;
+  margin-left: 0; // Default margin when sidebar is hidden
+  height: calc(100vh - 100px);
+  transition: margin-left 0.5s ease-in-out;
+
+  &.is-open {
+    margin-left: 250px; // Adjust when sidebar is open
+  }
+}
+
+@media only screen and (max-width: 500px) {
+  .sidebar {
+    min-width: 100%;
+    max-width: 100%;
+    left: -100%; // Hide sidebar off-screen
+    &.is-open {
+      left: 0; // Slide in when open
+    }
+  }
+
+  .content {
+    &.is-open {
+      margin-left: 0; // No margin for smaller screens
+    }
+  }
+}
+
