@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ListUsers from "./ListUsers";
 import { AdminUsersContext, DispatchContext } from "../../contexts/admin-users.context";
 import { UserContext } from "../../contexts/user.context";
-import { TitleContext } from "../../contexts/title.context";
 import * as restHooks from "../../rest/useRestAdminUsers";
 import { Router } from "react-router-dom";
 import { createMemoryHistory } from "history";
@@ -19,24 +18,24 @@ const mockDispatch = jest.fn();
 const mockFetchAdminUsers = jest.fn();
 const mockDeleteAdminUser = jest.fn();
 
-const loggedUser = { userId: "logged-in-id" };
+// Provide a loggedUser with the shape ListUsers expects
+const loggedUser = { userId: "logged-in-id", isAdmin: true, isLogged: true };
 
-function renderWithProviders(adminUsers, fetchAdminUsersImpl, deleteAdminUserImpl, history, mockSetTitle = jest.fn()) {
+function renderWithProviders(adminUsers = [], fetchAdminUsersImpl, deleteAdminUserImpl, history) {
   jest.spyOn(restHooks, "useFetchAdminUsers").mockReturnValue(fetchAdminUsersImpl || mockFetchAdminUsers);
   jest.spyOn(restHooks, "useDeleteAdminUser").mockReturnValue(deleteAdminUserImpl || mockDeleteAdminUser);
 
   return render(
-    <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
-      <UserContext.Provider value={loggedUser}>
-        <AdminUsersContext.Provider value={adminUsers}>
-          <DispatchContext.Provider value={mockDispatch}>
-            <Router history={history || createMemoryHistory()}>
-              <ListUsers />
-            </Router>
-          </DispatchContext.Provider>
-        </AdminUsersContext.Provider>
-      </UserContext.Provider>
-    </TitleContext.Provider>
+    <UserContext.Provider value={loggedUser}>
+      {/* AdminUsersContext value must be an object with adminUsers property */}
+      <AdminUsersContext.Provider value={{ adminUsers }}>
+        <DispatchContext.Provider value={mockDispatch}>
+          <Router history={history || createMemoryHistory()}>
+            <ListUsers />
+          </Router>
+        </DispatchContext.Provider>
+      </AdminUsersContext.Provider>
+    </UserContext.Provider>
   );
 }
 
@@ -78,7 +77,8 @@ test("shows error alert when fetch fails", async () => {
   renderWithProviders([]);
 
   await waitFor(() => expect(screen.getByText(/An error occurred/i)).toBeInTheDocument());
-  expect(screen.getByText(/Fetch failed/i)).toBeInTheDocument();
+  // component sets a generic message on fetch failure
+  expect(screen.getByText(/Admin users could not be retrieved/i)).toBeInTheDocument();
 });
 
 test("edit button navigates to edit page", async () => {
