@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { Router } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
 import AddEditUser from './AddEditUser';
 import { AdminUsersContext } from '../../contexts/admin-users.context';
 import { UserContext } from '../../contexts/user.context';
@@ -16,19 +17,19 @@ const adminUsersValue = { triggerReload: jest.fn() };
 const userValue = { isAdmin: true, userId: '1', isLogged: true };
 
 const defaultProps = {
-  match: { params: {} },
-  history: { push: jest.fn() }
+  match: { params: {} }
 };
 
-function renderWithProviders(props = {}) {
+function renderWithProviders(props = {}, history) {
+  const usedHistory = history || createMemoryHistory();
   return render(
-      <MemoryRouter>
-        <AdminUsersContext.Provider value={adminUsersValue}>
-          <UserContext.Provider value={userValue}>
-            <AddEditUser {...defaultProps} {...props} />
-          </UserContext.Provider>
-        </AdminUsersContext.Provider>
-      </MemoryRouter>
+    <Router history={usedHistory}>
+      <AdminUsersContext.Provider value={adminUsersValue}>
+        <UserContext.Provider value={userValue}>
+          <AddEditUser {...defaultProps} {...props} />
+        </UserContext.Provider>
+      </AdminUsersContext.Provider>
+    </Router>
   );
 }
 
@@ -42,13 +43,15 @@ describe('AddEditUser', () => {
   });
 
   it('submits form and navigates', async () => {
-    renderWithProviders();
+    const history = createMemoryHistory();
+    renderWithProviders({}, history);
     fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'John' } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password123' } });
     fireEvent.click(screen.getByRole('button'));
 
-    await waitFor(() => expect(defaultProps.history.push).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(history.location.pathname).toBe('/profile/created-id');
+    });
   });
 });
-
