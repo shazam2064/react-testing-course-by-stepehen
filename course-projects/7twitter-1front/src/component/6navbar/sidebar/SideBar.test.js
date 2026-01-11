@@ -3,13 +3,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import SideBar from './SideBar';
 import { UserContext, DispatchContext } from '../../../contexts/user.context';
 import { AdminUsersContext } from '../../../contexts/admin-users.context';
 
 jest.mock('../../../rest/useRestAdminUsers', () => ({
-  useFetchAdminUserById: jest.fn().mockReturnValue(() => Promise.resolve({ _id: 'u1', image: null }))
+  useFetchAdminUserById: () => (userId) => Promise.resolve({ _id: userId || 'u1', image: null })
 }));
+
+import SideBar from './SideBar';
 
 const sampleUserLoggedOut = { isLogged: false, userId: null };
 const sampleUserLoggedIn = { isLogged: true, userId: 'u1' };
@@ -74,9 +75,7 @@ describe('SideBar', () => {
     const history = createMemoryHistory({ initialEntries: ['/'] });
     renderWithProviders({ isOpen: true, user: sampleUserLoggedIn, history });
 
-    // profile link should be present (SideBar fetch sets profile id to userId)
     expect(screen.getByText(/Profile/i)).toBeInTheDocument();
-    // Tweet button should be present
     expect(screen.getByRole('button', { name: /Tweet/i })).toBeInTheDocument();
   });
 });
