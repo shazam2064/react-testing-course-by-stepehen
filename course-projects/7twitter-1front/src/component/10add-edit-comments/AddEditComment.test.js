@@ -1,15 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import AddEditAnswer from './AddEditAnswer';
-import { AnswersContext, DispatchContext } from '../../contexts/answers.context';
+import AddEditComment from './AddEditComment';
+import { CommentsContext, DispatchContext } from '../../contexts/comments.context';
 import { UserContext } from '../../contexts/user.context';
 
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
 
-jest.mock('../../rest/useRestAnswers', () => ({
-    useCreateAnswer: () => mockCreate,
-    useUpdateAnswer: () => mockUpdate
+jest.mock('../../rest/useRestComments', () => ({
+    useCreateComment: () => mockCreate,
+    useUpdateComment: () => mockUpdate
 }));
 
 afterEach(() => {
@@ -17,65 +17,64 @@ afterEach(() => {
     cleanup();
 });
 
-const renderWithProviders = (ui, { user = { _id: 'u1', name: 'User Test' } } = {}) => {
+const renderWithProviders = (ui, { user = { userId: 'u1', token: 'tok', isLogged: true }, comments = [], dispatch = jest.fn() } = {}) => {
     return render(
         <UserContext.Provider value={user}>
-            <AnswersContext.Provider value={[]}>
-                <DispatchContext.Provider value={jest.fn()}>
+            <CommentsContext.Provider value={comments}>
+                <DispatchContext.Provider value={dispatch}>
                     {ui}
                 </DispatchContext.Provider>
-            </AnswersContext.Provider>
+            </CommentsContext.Provider>
         </UserContext.Provider>
     );
 };
 
-describe('AddEditAnswer', () => {
-    it('creates an answer on submit (create mode)', async () => {
+describe('AddEditComment', () => {
+    it('creates a comment on submit (create mode)', async () => {
         const triggerReload = jest.fn();
         mockCreate.mockResolvedValueOnce({});
 
         renderWithProviders(
-            <AddEditAnswer questionId="q1" editMode={false} triggerReloadVote={triggerReload} />
+            <AddEditComment tweetId="t1" editMode={false} triggerReload={triggerReload} />
         );
 
-        const textarea = screen.getByLabelText(/Your Answer/i);
-        fireEvent.change(textarea, { target: { value: 'New answer content' } });
+        const textarea = screen.getByPlaceholderText(/Add a comment/i);
+        fireEvent.change(textarea, { target: { value: 'New comment content' } });
 
         await waitFor(() => {
-            expect(textarea.value).toBe('New answer content');
+            expect(textarea.value).toBe('New comment content');
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /Post Your Answer/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Add Comment/i }));
 
         await waitFor(() => {
-            expect(mockCreate).toHaveBeenCalledWith('q1', 'New answer content');
+            expect(mockCreate).toHaveBeenCalledWith('t1', 'New comment content');
             expect(triggerReload).toHaveBeenCalled();
         });
-
     });
 
-    it('updates an existing answer in edit mode', async () => {
+    it('updates an existing comment in edit mode', async () => {
         const triggerReload = jest.fn();
-        const answer = { _id: 'a1', content: 'Existing content' };
+        const comment = { _id: 'c1', text: 'Existing comment' };
         mockUpdate.mockResolvedValueOnce({});
 
         renderWithProviders(
-            <AddEditAnswer answer={answer} questionId="q1" editMode={true} triggerReloadVote={triggerReload} />
+            <AddEditComment comment={comment} tweetId="t1" editMode={true} triggerReload={triggerReload} />
         );
 
-        const textarea = screen.getByLabelText(/Your Answer/i);
-        expect(textarea.value).toBe('Existing content');
+        const textarea = screen.getByPlaceholderText(/Add a comment/i);
+        expect(textarea.value).toBe('Existing comment');
 
-        fireEvent.change(textarea, { target: { value: 'Updated content' } });
+        fireEvent.change(textarea, { target: { value: 'Updated comment text' } });
 
         await waitFor(() => {
-            expect(textarea.value).toBe('Updated content');
+            expect(textarea.value).toBe('Updated comment text');
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /Update Your Answer/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Update Comment/i }));
 
         await waitFor(() => {
-            expect(mockUpdate).toHaveBeenCalledWith('a1', 'Updated content');
+            expect(mockUpdate).toHaveBeenCalledWith('c1', 'Updated comment text');
             expect(triggerReload).toHaveBeenCalled();
         });
     });
@@ -84,10 +83,10 @@ describe('AddEditAnswer', () => {
         window.alert = jest.fn();
 
         renderWithProviders(
-            <AddEditAnswer questionId="q1" editMode={false} triggerReloadVote={jest.fn()} />
+            <AddEditComment tweetId="t1" editMode={false} triggerReload={jest.fn()} />
         );
 
-        fireEvent.click(screen.getByRole('button', { name: /Post Your Answer/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Add Comment/i }));
 
         await waitFor(() => {
             expect(window.alert).toHaveBeenCalledWith('Please fill in the missing fields');
@@ -98,41 +97,44 @@ describe('AddEditAnswer', () => {
         mockCreate.mockRejectedValueOnce(new Error('Create failed'));
 
         renderWithProviders(
-            <AddEditAnswer questionId="q1" editMode={false} triggerReloadVote={jest.fn()} />
+            <AddEditComment tweetId="t1" editMode={false} triggerReload={jest.fn()} />
         );
 
-        const textarea = screen.getByLabelText(/Your Answer/i);
+        const textarea = screen.getByPlaceholderText(/Add a comment/i);
         fireEvent.change(textarea, { target: { value: 'Will fail' } });
 
         await waitFor(() => {
             expect(textarea.value).toBe('Will fail');
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /Post Your Answer/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Add Comment/i }));
 
         await waitFor(() => {
+            expect(mockCreate).toHaveBeenCalled();
+            expect(screen.getByText(/An error occurred/i)).toBeInTheDocument();
             expect(screen.getByText(/Create failed/i)).toBeInTheDocument();
         });
     });
 
     it('displays an error alert when update fails', async () => {
-        const answer = { _id: 'a2', content: 'Existing' };
+        const comment = { _id: 'c2', text: 'Existing' };
         mockUpdate.mockRejectedValueOnce(new Error('Update failed'));
 
         renderWithProviders(
-            <AddEditAnswer answer={answer} questionId="q1" editMode={true} triggerReloadVote={jest.fn()} />
+            <AddEditComment comment={comment} tweetId="t1" editMode={true} triggerReload={jest.fn()} />
         );
 
-        const textarea = screen.getByLabelText(/Your Answer/i);
+        const textarea = screen.getByPlaceholderText(/Add a comment/i);
         fireEvent.change(textarea, { target: { value: 'Attempt update' } });
 
         await waitFor(() => {
             expect(textarea.value).toBe('Attempt update');
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /Update Your Answer/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Update Comment/i }));
 
         await waitFor(() => {
+            expect(screen.getByText(/An error occurred/i)).toBeInTheDocument();
             expect(screen.getByText(/Update failed/i)).toBeInTheDocument();
         });
     });
