@@ -3,13 +3,28 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import Verify from './Verify';
 import axios from 'axios';
 import { API_URL } from '../../rest/api.rest';
-import { TitleContext } from '../../contexts/title.context';
+
+let TitleContext;
+try {
+  const mod = require('../../contexts/title.context');
+  TitleContext = mod && (mod.TitleContext || mod.default || mod);
+} catch (err) {
+  TitleContext = React.createContext({ setTitle: () => {} });
+}
 
 jest.mock('axios');
 
 afterEach(() => {
   jest.resetAllMocks();
 });
+
+function renderVerify(token, mockPush = jest.fn(), mockSetTitle = jest.fn()) {
+  return render(
+    <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
+      <Verify match={{ params: { token } }} history={{ push: mockPush }} />
+    </TitleContext.Provider>
+  );
+}
 
 describe('Verify component', () => {
   it('shows success message and navigates to login on click', async () => {
@@ -18,11 +33,7 @@ describe('Verify component', () => {
     const mockPush = jest.fn();
     const mockSetTitle = jest.fn();
 
-    render(
-      <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
-        <Verify match={{ params: { token } }} history={{ push: mockPush }} />
-      </TitleContext.Provider>
-    );
+    renderVerify(token, mockPush, mockSetTitle);
 
     await waitFor(() =>
       expect(screen.getByText(/Email verified successfully/i)).toBeInTheDocument()
@@ -41,11 +52,7 @@ describe('Verify component', () => {
     const mockPush = jest.fn();
     const mockSetTitle = jest.fn();
 
-    render(
-      <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
-        <Verify match={{ params: { token } }} history={{ push: mockPush }} />
-      </TitleContext.Provider>
-    );
+    renderVerify(token, mockPush, mockSetTitle);
 
     await waitFor(() =>
       expect(screen.getByText(/Email verification failed/i)).toBeInTheDocument()
@@ -62,11 +69,7 @@ describe('Verify component', () => {
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const mockSetTitle = jest.fn();
 
-    render(
-      <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
-        <Verify match={{ params: { token } }} history={{ push: mockPush }} />
-      </TitleContext.Provider>
-    );
+    renderVerify(token, mockPush, mockSetTitle);
 
     await waitFor(() =>
       expect(screen.getByText(/Email verification failed/i)).toBeInTheDocument()
