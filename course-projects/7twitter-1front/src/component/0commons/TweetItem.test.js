@@ -1,85 +1,132 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import QuestionItem from './QuestionItem';
+import { TweetsContext, DispatchContext } from '../../contexts/tweets.context';
+import { UserContext } from '../../contexts/user.context';
 
-const sampleQuestion = {
-  _id: '68ee68e62869fd5ce11a7c78',
-  title: 'This is a question',
-  content: 'So much content in this question',
-  votes: 0,
-  views: 1,
-  answers: ['68efc054a0c73cb42c0d6a2c'],
-  tags: [{ _id: '68f63f982eca3e875b58ad7b', name: 'New Tag' }],
-  creator: { _id: '68ecfe5f977174350fab2a37', name: 'User Test 1' },
-  createdAt: '2025-10-14T15:14:46.960Z'
+jest.mock('../../hooks/useTweetActions', () => ({
+  useTweetActions: jest.fn(() => ({ showActionButtons: () => null }))
+}));
+
+jest.mock('../../rest/useRestTweets', () => ({
+  useDeleteTweet: jest.fn().mockReturnValue(() => Promise.resolve())
+}));
+
+jest.mock('../8add-edit-tweets/AddEditTweet', () => {
+  const ReactInside = require('react');
+  return (props) => ReactInside.createElement('div', { 'data-testid': 'add-edit-tweet', 'data-open': props.isOpen ? '1' : '0' }, 'AddEditTweet');
+});
+
+const { useDeleteTweet } = require('../../rest/useRestTweets');
+const TweetItem = require('./TweetItem').default;
+
+const sampleTweet = {
+  _id: 'tweet-1',
+  text: 'This is a test tweet',
+  creator: { _id: 'user-1', name: 'Alice', email: 'alice@example.com', image: 'alice.png' },
+  image: 'tweetimg.png',
+  likes: [],
+  retweets: [],
+  comments: [],
+  createdAt: '2025-10-02T00:00:00.000Z'
 };
 
-describe('QuestionItem', () => {
-  it('renders title, meta and tag/author elements', () => {
+function renderWithProviders(ui, { user = { isLogged: false, userId: null, isAdmin: false }, tweets = [], dispatch = jest.fn(), history = createMemoryHistory() } = {}) {
+  return render(
+    <Router history={history}>
+      <TweetsContext.Provider value={tweets}>
+        <DispatchContext.Provider value={dispatch}>
+          <UserContext.Provider value={user}>
+            {ui}
+          </UserContext.Provider>
+        </DispatchContext.Provider>
+      </TweetsContext.Provider>
+    </Router>
+  );
+}
+
+afterEach(() => {
+  jest.resetAllMocks();
+});
+
+describe('TweetItem', () => {
+  it('renders tweet details: author link, email, text and profile image', () => {
     const history = createMemoryHistory();
-    const { container } = render(
-        <Router history={history}>
-          <QuestionItem question={sampleQuestion} />
-        </Router>
-    );
+    renderWithProviders(<TweetItem tweet={sampleTweet} history={history} triggerReload={jest.fn()} setError={jest.fn()} />, {
+      user: { isLogged: false, userId: null },
+      history
+    });
 
-    expect(screen.getByText(/This is a question/i)).toBeInTheDocument();
-    expect(screen.getByText(/So much content in this question/i)).toBeInTheDocument();
+    // author link/name
+    const authorLink = screen.getByText(sampleTweet.creator.name).closest('a');
+    expect(authorLink).toHaveAttribute('href', `/profile/${sampleTweet.creator._id}`);
 
-    const votesDiv = container.querySelector('.votes');
-    expect(votesDiv).toBeInTheDocument();
-    expect(within(votesDiv).getByText(String(sampleQuestion.votes))).toBeInTheDocument();
-    expect(votesDiv).toHaveTextContent(/votes/i);
+    // email displayed with @
+    expect(screen.getByText(`@${sampleTweet.creator.email}`)).toBeInTheDocument();
 
-    const answersDiv = container.querySelector('.answers');
-    expect(answersDiv).toBeInTheDocument();
-    expect(within(answersDiv).getByText(String(sampleQuestion.answers.length))).toBeInTheDocument();
-    expect(answersDiv).toHaveTextContent(/answers/i);
+    // tweet text
+    expect(screen.getByText(sampleTweet.text)).toBeInTheDocument();
 
-    const viewsDiv = container.querySelector('.views');
-    expect(viewsDiv).toBeInTheDocument();
-    expect(within(viewsDiv).getByText(String(sampleQuestion.views))).toBeInTheDocument();
-    expect(viewsDiv).toHaveTextContent(/views/i);
-
-    expect(screen.getByText(/New Tag/i)).toBeInTheDocument();
-
-    const authorLink = screen.getByText(/User Test 1/i).closest('a');
-    expect(authorLink).toHaveAttribute('href', `/profile/${sampleQuestion.creator._id}`);
+    // profile image present
+    const img = screen.getAllByAltText('Profile')[0];
+    expect(img).toBeInTheDocument();
   });
 
-  it('navigates to view-question when title is clicked', () => {
+  it('shows edit/delete dropdown for creator and not for other users', async () => {
     const history = createMemoryHistory();
-    render(
-        <Router history={history}>
-          <QuestionItem question={sampleQuestion} />
-        </Router>
-    );
 
-    const title = screen.getByText(/This is a question/i);
-    fireEvent.click(title);
+    // when logged as creator
+    renderWithProviders(<TweetItem tweet={sampleTweet} history={history} triggerReload={jest.fn()} setError={jest.fn()} />, {
+      user: { isLogged: true, userId: sampleTweet.creator._id, isAdmin: false },
+      history
+    });
 
-    expect(history.location.pathname).toBe(`/view-question/${sampleQuestion._id}`);
+    // dropdown toggle shown (⋮)
+    expect(screen.getByText('⋮')).toBeInTheDocument();
+
+    // open dropdown and assert menu items
+    fireEvent.click(screen.getByText('⋮'));
+    expect(await screen.findByText(/Edit/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Delete/i)).toBeInTheDocument();
+
+    // cleanup and render as non-creator
+    jest.clearAllMocks();
+    const history2 = createMemoryHistory();
+    renderWithProviders(<TweetItem tweet={sampleTweet} history={history2} triggerReload={jest.fn()} setError={jest.fn()} />, {
+      user: { isLogged: true, userId: 'other-user', isAdmin: false },
+      history: history2
+    });
+
+    // dropdown toggle should not be present for non-creator/non-admin
+    expect(screen.queryByText('⋮')).toBeNull();
   });
 
-  it('renders multiple tags when present', () => {
+  it('calls delete hook, dispatches DELETE_TWEET and navigates home when Delete clicked', async () => {
     const history = createMemoryHistory();
-    const q = {
-      ...sampleQuestion,
-      tags: [
-        { _id: '68f63f982eca3e875b58ad7b', name: 'New Tag' },
-        { _id: 't2', name: 'Tag2' }
-      ]
-    };
+    const mockDispatch = jest.fn();
+    const mockDelete = jest.fn(() => Promise.resolve());
+    useDeleteTweet.mockReturnValue(mockDelete);
 
-    render(
-        <Router history={history}>
-          <QuestionItem question={q} />
-        </Router>
-    );
+    renderWithProviders(<TweetItem tweet={sampleTweet} history={history} triggerReload={jest.fn()} setError={jest.fn()} />, {
+      user: { isLogged: true, userId: sampleTweet.creator._id, isAdmin: false },
+      dispatch: mockDispatch,
+      history
+    });
 
-    expect(screen.getByText(/New Tag/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tag2/i)).toBeInTheDocument();
+    // open dropdown
+    fireEvent.click(screen.getByText('⋮'));
+
+    // click Delete
+    fireEvent.click(await screen.findByText(/Delete/i));
+
+    await waitFor(() => {
+      expect(mockDelete).toHaveBeenCalledWith(sampleTweet._id);
+    });
+
+    await waitFor(() => {
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'DELETE_TWEET', payload: { _id: sampleTweet._id } });
+      expect(history.location.pathname).toBe('/');
+    });
   });
 });
