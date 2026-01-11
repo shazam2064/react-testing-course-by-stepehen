@@ -1,23 +1,32 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Answers from './Answers';
+import Comments from './Comments';
+import { UserContext } from '../../contexts/user.context';
+import { CommentsContext, DispatchContext } from '../../contexts/comments.context';
 
 jest.mock('reactstrap', () => {
     const React = require('react');
     const Passthrough = ({ children, ...props }) => React.createElement('div', props, children);
     return {
-        Button: ({ children, ...props }) => React.createElement('button', props, children),
+        Card: Passthrough,
+        CardBody: Passthrough,
+        CardText: Passthrough,
         Row: Passthrough,
         Col: Passthrough,
-        Card: Passthrough,
-        CardBody: Passthrough
+        Dropdown: Passthrough,
+        DropdownToggle: ({ children, ...props }) => React.createElement('button', props, children),
+        DropdownMenu: Passthrough,
+        DropdownItem: ({ children, ...props }) => React.createElement('button', props, children)
     };
 });
 
-const mockVote = jest.fn();
-jest.mock('../../rest/useRestAnswers', () => ({
-    useVoteAnswer: () => mockVote
+// mock comment rest hooks
+const mockLike = jest.fn();
+const mockDelete = jest.fn();
+jest.mock('../../rest/useRestComments', () => ({
+    useLikeComment: () => mockLike,
+    useDeleteComment: () => mockDelete
 }));
 
 afterEach(() => {
@@ -25,71 +34,95 @@ afterEach(() => {
     cleanup();
 });
 
-describe('Answers component', () => {
-    const sampleAnswer = {
-        _id: 'a1',
-        content: 'This is an answer content',
-        votes: 0,
-        questionId: 'q1',
-        creator: { _id: 'u1', name: 'User Test 1' },
-        createdAt: '2025-10-15T15:40:04.461Z',
-        updatedAt: '2025-10-15T15:40:04.461Z',
+describe('Comments component', () => {
+    const sampleComment = {
+        _id: 'c1',
+        text: 'This is a comment text',
+        likes: [],
+        creator: { _id: 'u1', name: 'Alice', email: 'alice@example.com', image: 'alice.png' },
+        createdAt: '2025-10-15T15:40:04.461Z'
     };
 
-    it('renders answer content, author link and date', () => {
-        render(
+    function renderWithProviders(props = {}, { user = { userId: 'u2', token: 'tok', isLogged: true } } = {}) {
+        return render(
             <MemoryRouter>
-                <Answers answer={sampleAnswer} triggerReloadVote={jest.fn()} />
+                <UserContext.Provider value={user}>
+                    <DispatchContext.Provider value={jest.fn()}>
+                        <CommentsContext.Provider value={[]}>
+                            <Comments comment={sampleComment} triggerReload={jest.fn()} setError={jest.fn()} {...props} />
+                        </CommentsContext.Provider>
+                    </DispatchContext.Provider>
+                </UserContext.Provider>
             </MemoryRouter>
         );
+    }
 
-        expect(screen.getByText(/This is an answer content/i)).toBeInTheDocument();
+    it('renders comment content, author link and date and likes count', () => {
+        renderWithProviders();
 
-        const authorLink = screen.getByText(/User Test 1/i).closest('a');
-        expect(authorLink).toHaveAttribute('href', `/profile/${sampleAnswer.creator._id}`);
+        expect(screen.getByText(/This is a comment text/i)).toBeInTheDocument();
 
-        const metaContainer = authorLink.closest('span') || authorLink.parentElement;
-        expect(metaContainer).toBeInTheDocument();
-        expect(metaContainer.textContent).toMatch(/2025/);
+        // author link
+        const authorLink = screen.getByText(/Alice/i).closest('a');
+        expect(authorLink).toHaveAttribute('href', `/profile/${sampleComment.creator._id}`);
 
+        // date/meta container contains year
+        const meta = authorLink.parentElement;
+        expect(meta).toBeInTheDocument();
+        expect(meta.textContent).toMatch(/2025/);
+
+        // likes count renders (initially 0)
         expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('calls useVoteAnswer on upvote and triggers reload on success', async () => {
-        mockVote.mockResolvedValueOnce({});
+    it('calls useLikeComment on like and triggers reload on success', async () => {
         const triggerReload = jest.fn();
-
+        // make like resolve
+        mockLike.mockResolvedValueOnce({});
         render(
             <MemoryRouter>
-                <Answers answer={sampleAnswer} triggerReloadVote={triggerReload} />
+                <UserContext.Provider value={{ userId: 'u2', token: 'tok', isLogged: true }}>
+                    <DispatchContext.Provider value={jest.fn()}>
+                        <CommentsContext.Provider value={[]}>
+                            <Comments comment={sampleComment} triggerReload={triggerReload} setError={jest.fn()} />
+                        </CommentsContext.Provider>
+                    </DispatchContext.Provider>
+                </UserContext.Provider>
             </MemoryRouter>
         );
 
-        fireEvent.click(screen.getByText(/Upvote/i));
+        // click likes area (the number text node)
+        fireEvent.click(screen.getByText('0'));
 
         await waitFor(() => {
-            expect(mockVote).toHaveBeenCalledWith(sampleAnswer._id, 'up');
+            expect(mockLike).toHaveBeenCalledWith(sampleComment._id);
+            expect(triggerReload).toHaveBeenCalled();
         });
-
-        expect(triggerReload).toHaveBeenCalled();
     });
 
-    it('calls useVoteAnswer on downvote and does not trigger reload on failure', async () => {
-        mockVote.mockRejectedValueOnce(new Error('Vote failed'));
+    it('sets error and does not trigger reload when like fails', async () => {
         const triggerReload = jest.fn();
+        const setError = jest.fn();
+        mockLike.mockRejectedValueOnce(new Error('Like failed'));
 
         render(
             <MemoryRouter>
-                <Answers answer={sampleAnswer} triggerReloadVote={triggerReload} />
+                <UserContext.Provider value={{ userId: 'u2', token: 'tok', isLogged: true }}>
+                    <DispatchContext.Provider value={jest.fn()}>
+                        <CommentsContext.Provider value={[]}>
+                            <Comments comment={sampleComment} triggerReload={triggerReload} setError={setError} />
+                        </CommentsContext.Provider>
+                    </DispatchContext.Provider>
+                </UserContext.Provider>
             </MemoryRouter>
         );
 
-        fireEvent.click(screen.getByText(/Downvote/i));
+        fireEvent.click(screen.getByText('0'));
 
         await waitFor(() => {
-            expect(mockVote).toHaveBeenCalledWith(sampleAnswer._id, 'down');
+            expect(mockLike).toHaveBeenCalledWith(sampleComment._id);
+            expect(triggerReload).not.toHaveBeenCalled();
+            expect(setError).toHaveBeenCalledWith(expect.stringContaining('comment could not be liked'));
         });
-
-        expect(triggerReload).not.toHaveBeenCalled();
     });
 });
