@@ -2,92 +2,110 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import ListQuestions from './ListQuestions';
-import { QuestionsContext, DispatchContext } from '../../contexts/questions.context.js';
+import { TweetsContext, DispatchContext } from '../../contexts/tweets.context';
 import { UserContext } from '../../contexts/user.context';
 
-jest.mock('../../rest/useRestQuestions', () => ({
-  useFetchQuestions: () => async () => [],
-  useFetchQuestionsByTag: () => async () => []
+jest.mock('../../rest/useRestTweets', () => ({
+  useFetchTweets: jest.fn()
 }));
 
-const mockQuestions = [
+jest.mock('./TweetItem', () => {
+  const ReactInside = require('react');
+  return ({ tweet }) =>
+    ReactInside.createElement(
+      'div',
+      { 'data-testid': 'tweet-item', 'data-id': tweet._id },
+      `${tweet.text} - ${tweet.creator.name}`
+    );
+});
+
+const { useFetchTweets } = require('../../rest/useRestTweets');
+const ListTweets = require('./ListTweets').default;
+
+const sampleTweets = [
   {
-    _id: 'q1',
-    title: 'First question',
-    content: 'Content 1',
-    votes: 0,
-    views: 0,
-    tags: [{ _id: 't1', name: 'Tag1' }],
-    answers: [],
-    creator: { _id: 'u1', name: 'User One' },
-    createdAt: '2025-10-01T00:00:00.000Z'
+    _id: 't1',
+    text: 'Hello World',
+    creator: { _id: 'u1', name: 'Alice', email: 'alice@example.com' },
+    likes: ['u2'],
+    retweets: [],
+    comments: [],
+    createdAt: '2025-10-02T00:00:00.000Z'
   },
   {
-    _id: 'q2',
-    title: 'Second question',
-    content: 'Content 2',
-    votes: 2,
-    views: 5,
-    tags: [{ _id: 't2', name: 'Tag2' }],
-    answers: [],
-    creator: { _id: 'u2', name: 'User Two' },
-    createdAt: '2025-10-02T00:00:00.000Z'
+    _id: 't2',
+    text: 'Second tweet',
+    creator: { _id: 'u2', name: 'Bob', email: 'bob@example.com' },
+    likes: ['u1', 'u3', 'u4'],
+    retweets: [],
+    comments: [],
+    createdAt: '2025-10-03T00:00:00.000Z'
+  },
+  {
+    _id: 't3',
+    text: 'Old tweet',
+    creator: { _id: 'u3', name: 'Carol', email: 'carol@example.com' },
+    likes: [],
+    retweets: [],
+    comments: [],
+    createdAt: '2025-09-30T00:00:00.000Z'
   }
 ];
 
-function renderWithProviders(ui, { questions = [], dispatch = jest.fn(), user = { email: 'test@test.com' }, history } = {}) {
+function renderWithProviders(ui, { tweets = [], dispatch = jest.fn(), user = { email: 'test@test.com' }, history = createMemoryHistory() } = {}) {
   return render(
     <Router history={history}>
-      <QuestionsContext.Provider value={questions}>
+      <TweetsContext.Provider value={tweets}>
         <DispatchContext.Provider value={dispatch}>
           <UserContext.Provider value={user}>
             {ui}
           </UserContext.Provider>
         </DispatchContext.Provider>
-      </QuestionsContext.Provider>
+      </TweetsContext.Provider>
     </Router>
   );
 }
 
-describe('ListQuestions', () => {
-  it('renders a list of questions from context', async () => {
-    const history = createMemoryHistory();
-    renderWithProviders(<ListQuestions />, { questions: mockQuestions, history });
+afterEach(() => {
+  jest.resetAllMocks();
+});
 
-    await waitFor(() => {
-      expect(screen.getByText(/First question/i)).toBeInTheDocument();
-      expect(screen.getByText(/Second question/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/View/i).length).toBeGreaterThanOrEqual(2);
-    });
+describe('ListTweets', () => {
+  it('renders tweets fetched by the hook', async () => {
+    useFetchTweets.mockReturnValue(() => Promise.resolve(sampleTweets));
+
+    const history = createMemoryHistory();
+    renderWithProviders(<ListTweets />, { history });
+
+    await waitFor(() => expect(screen.getAllByTestId('tweet-item').length).toBe(3));
+
+    expect(screen.getByText(/Hello World - Alice/i)).toBeInTheDocument();
+    expect(screen.getByText(/Second tweet - Bob/i)).toBeInTheDocument();
+    expect(screen.getByText(/Old tweet - Carol/i)).toBeInTheDocument();
   });
 
-  it('filters questions by search input', async () => {
-    const history = createMemoryHistory();
-    renderWithProviders(<ListQuestions />, { questions: mockQuestions, history });
+  it('applies "Popular" filter to order tweets by likes', async () => {
+    useFetchTweets.mockReturnValue(() => Promise.resolve(sampleTweets));
 
-    const input = screen.getByPlaceholderText(/Search questions.../i);
-    fireEvent.change(input, { target: { value: 'Second' } });
+    renderWithProviders(<ListTweets />);
 
-    await waitFor(() => {
-      expect(screen.queryByText(/First question/i)).not.toBeInTheDocument();
-      expect(screen.getByText(/Second question/i)).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getAllByTestId('tweet-item').length).toBe(3));
+
+    fireEvent.click(screen.getByText(/Popular/i));
+
+    const items = screen.getAllByTestId('tweet-item');
+    expect(items[0].getAttribute('data-id')).toBe('t2');
+    expect(items[1].getAttribute('data-id')).toBe('t1');
+    expect(items[2].getAttribute('data-id')).toBe('t3');
   });
 
-  it('renders tags and author profile links for each question', async () => {
-    const history = createMemoryHistory();
-    renderWithProviders(<ListQuestions />, { questions: mockQuestions, history });
+  it('shows "No Tweets Found" when fetch returns empty array', async () => {
+    useFetchTweets.mockReturnValue(() => Promise.resolve([]));
+
+    renderWithProviders(<ListTweets />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Tag1/i)).toBeInTheDocument();
-      expect(screen.getByText(/Tag2/i)).toBeInTheDocument();
-
-      const authorLink1 = screen.getByText(/User One/i).closest('a');
-      expect(authorLink1).toHaveAttribute('href', `/profile/${mockQuestions[0].creator._id}`);
-
-      const authorLink2 = screen.getByText(/User Two/i).closest('a');
-      expect(authorLink2).toHaveAttribute('href', `/profile/${mockQuestions[1].creator._id}`);
+      expect(screen.getByText(/No Tweets Found/i)).toBeInTheDocument();
     });
   });
 });
