@@ -4,14 +4,6 @@ import Login from './Login';
 import axios from 'axios';
 import { UserContext, DispatchContext } from '../../contexts/user.context';
 
-let TitleContext;
-try {
-    const mod = require('../../contexts/title.context');
-    TitleContext = mod && (mod.TitleContext || mod.default || mod);
-} catch (err) {
-    TitleContext = React.createContext({ setTitle: () => {} });
-}
-
 jest.mock('axios');
 
 const mockHistory = { push: jest.fn() };
@@ -19,11 +11,9 @@ const mockHistory = { push: jest.fn() };
 function renderLogin(mockDispatch = jest.fn(), mockSetTitle = jest.fn()) {
     return render(
         <UserContext.Provider value={null}>
-            <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
                 <DispatchContext.Provider value={mockDispatch}>
                     <Login history={mockHistory} />
                 </DispatchContext.Provider>
-            </TitleContext.Provider>
         </UserContext.Provider>
     );
 }

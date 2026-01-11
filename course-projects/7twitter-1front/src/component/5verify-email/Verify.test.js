@@ -4,14 +4,6 @@ import Verify from './Verify';
 import axios from 'axios';
 import { API_URL } from '../../rest/api.rest';
 
-let TitleContext;
-try {
-  const mod = require('../../contexts/title.context');
-  TitleContext = mod && (mod.TitleContext || mod.default || mod);
-} catch (err) {
-  TitleContext = React.createContext({ setTitle: () => {} });
-}
-
 jest.mock('axios');
 
 afterEach(() => {
@@ -20,9 +12,7 @@ afterEach(() => {
 
 function renderVerify(token, mockPush = jest.fn(), mockSetTitle = jest.fn()) {
   return render(
-    <TitleContext.Provider value={{ setTitle: mockSetTitle }}>
       <Verify match={{ params: { token } }} history={{ push: mockPush }} />
-    </TitleContext.Provider>
   );
 }
 
