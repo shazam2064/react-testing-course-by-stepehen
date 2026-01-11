@@ -21,7 +21,6 @@ jest.mock('reactstrap', () => {
     };
 });
 
-// mock comment rest hooks
 const mockLike = jest.fn();
 const mockDelete = jest.fn();
 jest.mock('../../rest/useRestComments', () => ({
@@ -62,22 +61,17 @@ describe('Comments component', () => {
 
         expect(screen.getByText(/This is a comment text/i)).toBeInTheDocument();
 
-        // author link
-        const authorLink = screen.getByText(/Alice/i).closest('a');
+        const authorLink = screen.getByRole('link', { name: /Alice/i });
         expect(authorLink).toHaveAttribute('href', `/profile/${sampleComment.creator._id}`);
 
-        // date/meta container contains year
-        const meta = authorLink.parentElement;
-        expect(meta).toBeInTheDocument();
-        expect(meta.textContent).toMatch(/2025/);
+        const dateNode = screen.getByText(/2025/);
+        expect(dateNode).toBeInTheDocument();
 
-        // likes count renders (initially 0)
         expect(screen.getByText('0')).toBeInTheDocument();
     });
 
     it('calls useLikeComment on like and triggers reload on success', async () => {
         const triggerReload = jest.fn();
-        // make like resolve
         mockLike.mockResolvedValueOnce({});
         render(
             <MemoryRouter>
@@ -91,7 +85,6 @@ describe('Comments component', () => {
             </MemoryRouter>
         );
 
-        // click likes area (the number text node)
         fireEvent.click(screen.getByText('0'));
 
         await waitFor(() => {
