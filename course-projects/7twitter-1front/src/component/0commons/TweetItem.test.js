@@ -15,7 +15,8 @@ jest.mock('../../rest/useRestTweets', () => ({
 
 jest.mock('../8add-edit-tweets/AddEditTweet', () => {
   const ReactInside = require('react');
-  return (props) => ReactInside.createElement('div', { 'data-testid': 'add-edit-tweet', 'data-open': props.isOpen ? '1' : '0' }, 'AddEditTweet');
+  // Render a stub label that does NOT include the substring "Edit" to avoid accidental matches
+  return (props) => ReactInside.createElement('div', { 'data-testid': 'add-edit-tweet', 'data-open': props.isOpen ? '1' : '0' }, 'AddTweetModalStub');
 });
 
 const { useDeleteTweet } = require('../../rest/useRestTweets');
@@ -72,7 +73,7 @@ describe('TweetItem', () => {
   it('shows edit/delete dropdown for creator and not for other users', async () => {
     const history = createMemoryHistory();
 
-    renderWithProviders(<TweetItem tweet={sampleTweet} history={history} triggerReload={jest.fn()} setError={jest.fn()} />, {
+    const { unmount } = renderWithProviders(<TweetItem tweet={sampleTweet} history={history} triggerReload={jest.fn()} setError={jest.fn()} />, {
       user: { isLogged: true, userId: sampleTweet.creator._id, isAdmin: false },
       history
     });
@@ -83,6 +84,7 @@ describe('TweetItem', () => {
     expect(await screen.findByText(/Edit/i)).toBeInTheDocument();
     expect(await screen.findByText(/Delete/i)).toBeInTheDocument();
 
+    unmount();
     jest.clearAllMocks();
     const history2 = createMemoryHistory();
     renderWithProviders(<TweetItem tweet={sampleTweet} history={history2} triggerReload={jest.fn()} setError={jest.fn()} />, {
