@@ -11,19 +11,27 @@ jest.mock('../../rest/useRestComments', () => ({
   useDeleteComment: jest.fn()
 }));
 
-jest.mock('../0commons/TweetItem', () => (props) => {
-  const { tweet } = props;
-  return React.createElement('div', { 'data-testid': `tweet-${tweet?._id || 'noop'}` }, tweet?._id || 'tweet-noop');
+jest.mock('../0commons/TweetItem', () => {
+  const ReactInside = require('react');
+  return (props) => {
+    const { tweet } = props;
+    return ReactInside.createElement('div', { 'data-testid': `tweet-${tweet?._id || 'noop'}` }, tweet?._id || 'tweet-noop');
+  };
 });
-jest.mock('../10add-edit-comments/AddEditComment', () => (props) =>
-  React.createElement('div', { 'data-testid': `add-edit-comment-${props.tweetId || 'noop'}` }, 'AddEditComment')
-);
-jest.mock('../9comments/Comments', () => (props) =>
-  React.createElement('div', { 'data-testid': `comment-${props.comment?._id || 'noop'}` }, props.comment?._id || 'comment-noop')
-);
-jest.mock('../0commons/ErrorModal', () => (props) =>
-  React.createElement('div', { 'data-testid': 'error-modal' }, props.error || 'error')
-);
+jest.mock('../10add-edit-comments/AddEditComment', () => {
+  const ReactInside = require('react');
+  return (props) =>
+    ReactInside.createElement('div', { 'data-testid': `add-edit-comment-${props.tweetId || 'noop'}` }, 'AddEditComment');
+});
+jest.mock('../9comments/Comments', () => {
+  const ReactInside = require('react');
+  return (props) =>
+    ReactInside.createElement('div', { 'data-testid': `comment-${props.comment?._id || 'noop'}` }, props.comment?._id || 'comment-noop');
+});
+jest.mock('../0commons/ErrorModal', () => {
+  const ReactInside = require('react');
+  return (props) => ReactInside.createElement('div', { 'data-testid': 'error-modal' }, props.error || 'error');
+});
 
 const { useFetchTweets } = require('../../rest/useRestTweets');
 const ViewTweet = require('./ViewTweet').default;
@@ -89,4 +97,3 @@ describe('ViewTweet component', () => {
     });
   });
 });
-
