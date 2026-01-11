@@ -4,58 +4,79 @@ import userEvent from '@testing-library/user-event';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import SideBar from './SideBar';
+import { UserContext, DispatchContext } from '../../../contexts/user.context';
+import { AdminUsersContext } from '../../../contexts/admin-users.context';
+
+jest.mock('../../../rest/useRestAdminUsers', () => ({
+  useFetchAdminUserById: jest.fn().mockReturnValue(() => Promise.resolve({ _id: 'u1', image: null }))
+}));
+
+const sampleUserLoggedOut = { isLogged: false, userId: null };
+const sampleUserLoggedIn = { isLogged: true, userId: 'u1' };
+const sampleAdminUsers = [];
+
+function renderWithProviders({ isOpen = true, user = sampleUserLoggedOut, adminUsers = sampleAdminUsers, history = createMemoryHistory() } = {}) {
+  return render(
+    <Router history={history}>
+      <UserContext.Provider value={user}>
+        <DispatchContext.Provider value={jest.fn()}>
+          <AdminUsersContext.Provider value={{ adminUsers, reloadFlag: false }}>
+            <SideBar isOpen={isOpen} toggle={jest.fn()} />
+          </AdminUsersContext.Provider>
+        </DispatchContext.Provider>
+      </UserContext.Provider>
+    </Router>
+  );
+}
+
+afterEach(() => {
+  jest.resetAllMocks();
+});
 
 describe('SideBar', () => {
-  it('renders Home, Questions and Tags links with correct hrefs', () => {
+  it('renders Home, Explore and Users links with correct hrefs', () => {
     const history = createMemoryHistory();
-    const { container } = render(
-      <Router history={history}>
-        <SideBar isOpen={true} toggle={jest.fn()} />
-      </Router>
-    );
+    renderWithProviders({ history });
 
     const homeLink = screen.getByText(/Home/i).closest('a');
-    const questionsLink = screen.getByText(/Questions/i).closest('a');
-    const tagsLink = screen.getByText(/Tags/i).closest('a');
+    const exploreLink = screen.getByText(/Explore/i).closest('a');
+    const usersLink = screen.getByText(/Users/i).closest('a');
 
     expect(homeLink).toHaveAttribute('href', '/');
-    expect(questionsLink).toHaveAttribute('href', '/questions');
-    expect(tagsLink).toHaveAttribute('href', '/tags');
+    expect(exploreLink).toHaveAttribute('href', '/tweets');
+    expect(usersLink).toHaveAttribute('href', '/users');
 
-    const sidebar = container.querySelector('.sidebar');
+    const sidebar = document.querySelector('.sidebar');
     expect(sidebar).toBeInTheDocument();
   });
 
   it('applies "is-open" class when isOpen is true and not when false', () => {
     const history = createMemoryHistory();
-    const { container: c1 } = render(
-      <Router history={history}>
-        <SideBar isOpen={true} toggle={jest.fn()} />
-      </Router>
-    );
+    const { container: c1 } = renderWithProviders({ isOpen: true, history });
     expect(c1.querySelector('.sidebar')).toHaveClass('is-open');
 
-    const { container: c2 } = render(
-      <Router history={history}>
-        <SideBar isOpen={false} toggle={jest.fn()} />
-      </Router>
-    );
+    const { container: c2 } = renderWithProviders({ isOpen: false, history });
     expect(c2.querySelector('.sidebar')).not.toHaveClass('is-open');
   });
 
   it('navigates when a link is clicked', async () => {
     const history = createMemoryHistory({ initialEntries: ['/'] });
-    render(
-      <Router history={history}>
-        <SideBar isOpen={true} toggle={jest.fn()} />
-      </Router>
-    );
+    renderWithProviders({ isOpen: true, history });
 
-    await userEvent.click(screen.getByText(/Questions/i));
-    expect(history.location.pathname).toBe('/questions');
+    await userEvent.click(screen.getByText(/Explore/i));
+    expect(history.location.pathname).toBe('/tweets');
 
-    await userEvent.click(screen.getByText(/Tags/i));
-    expect(history.location.pathname).toBe('/tags');
+    await userEvent.click(screen.getByText(/Users/i));
+    expect(history.location.pathname).toBe('/users');
+  });
+
+  it('shows profile link and tweet button when logged in', async () => {
+    const history = createMemoryHistory({ initialEntries: ['/'] });
+    renderWithProviders({ isOpen: true, user: sampleUserLoggedIn, history });
+
+    // profile link should be present (SideBar fetch sets profile id to userId)
+    expect(screen.getByText(/Profile/i)).toBeInTheDocument();
+    // Tweet button should be present
+    expect(screen.getByRole('button', { name: /Tweet/i })).toBeInTheDocument();
   });
 });
-
