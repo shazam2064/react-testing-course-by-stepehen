@@ -2,17 +2,16 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { Router, Route } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import AddEditQuestion from './AddEditQuestion';
-import { QuestionsContext } from '../../contexts/questions.context';
-import { TagsContext } from '../../contexts/tags.context';
+import AddEditTweet from './AddEditTweet';
+import { TweetsContext, DispatchContext } from '../../contexts/tweets.context';
 import { UserContext } from '../../contexts/user.context';
 
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
 
-jest.mock('../../rest/useRestQuestions', () => ({
-    useCreateQuestion: () => mockCreate,
-    useUpdateQuestion: () => mockUpdate
+jest.mock('../../rest/useRestTweets', () => ({
+    useCreateTweet: () => mockCreate,
+    useUpdateTweet: () => mockUpdate
 }));
 
 afterEach(() => {
@@ -20,97 +19,95 @@ afterEach(() => {
     cleanup();
 });
 
-const providers = ({ ui, questions = [], tags = [], user = { _id: 'u1', name: 'User Test' }, history }) => {
+const providers = ({ ui, tweets = [], dispatch = jest.fn(), user = { userId: 'u1', email: 'user@test.com', image: 'avatar.png' }, history } = {}) => {
     return render(
         <Router history={history}>
-            <QuestionsContext.Provider value={questions}>
-                <TagsContext.Provider value={tags}>
+            <TweetsContext.Provider value={tweets}>
+                <DispatchContext.Provider value={dispatch}>
                     <UserContext.Provider value={user}>
                         {ui}
                     </UserContext.Provider>
-                </TagsContext.Provider>
-            </QuestionsContext.Provider>
+                </DispatchContext.Provider>
+            </TweetsContext.Provider>
         </Router>
     );
 };
 
-describe('AddEditQuestion', () => {
-    it('creates a question on submit (create mode)', async () => {
-        mockCreate.mockResolvedValueOnce({});
-        const history = createMemoryHistory({ initialEntries: ['/questions/new'] });
+describe('AddEditTweet', () => {
+    it('creates a tweet on submit (create mode)', async () => {
+        mockCreate.mockResolvedValueOnce({ _id: 't1' });
+        const history = createMemoryHistory({ initialEntries: ['/tweets/new'] });
+        const triggerReload = jest.fn();
+        const toggle = jest.fn();
 
         providers({
-            ui: <Route path="/questions/new" render={(props) => <AddEditQuestion {...props} />} />,
-            tags: [{ _id: 't1', name: 'Tag1' }],
+            ui: <Route path="/tweets/new" render={(props) => <AddEditTweet {...props} isOpen={true} toggle={toggle} triggerReload={triggerReload} />} />,
             history
         });
 
-        fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'New Q' } });
-        fireEvent.change(screen.getByLabelText(/Content/i), { target: { value: 'Question content' } });
+        // fill textarea
+        fireEvent.change(screen.getByPlaceholderText(/Write your tweet here/i), { target: { value: 'New tweet content' } });
 
-        fireEvent.change(screen.getByLabelText(/Tags/i), { target: { value: 't1' } });
-
-        fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+        // submit via button
+        fireEvent.click(screen.getByRole('button', { name: /Add Tweet/i }));
 
         await waitFor(() => {
-            expect(mockCreate).toHaveBeenCalled();
+            expect(mockCreate).toHaveBeenCalledTimes(1);
             const calledWith = mockCreate.mock.calls[0][0];
-            expect(calledWith.title).toBe('New Q');
-            expect(calledWith.content).toBe('Question content');
-            expect(calledWith.tags).toEqual(expect.arrayContaining(['t1']));
-            expect(history.location.pathname).toBe('/questions');
+            expect(calledWith.text).toBe('New tweet content');
+            // navigation to the created tweet view
+            expect(history.location.pathname).toBe('/view-tweet/t1');
+            expect(triggerReload).toHaveBeenCalled();
         });
     });
 
-    it('updates an existing question in edit mode', async () => {
+    it('updates an existing tweet in edit mode', async () => {
         mockUpdate.mockResolvedValueOnce({});
         const existing = {
-            _id: 'q1',
-            title: 'Existing Q',
-            content: 'Existing content',
-            tags: []
+            _id: 't-edit',
+            text: 'Existing tweet',
+            image: null,
+            creator: { _id: 'u1', name: 'User Test', email: 'user@test.com' }
         };
-        const history = createMemoryHistory({ initialEntries: ['/questions/edit/q1'] });
+        const history = createMemoryHistory({ initialEntries: ['/tweets/edit/t-edit'] });
+        const triggerReload = jest.fn();
+        const toggle = jest.fn();
 
         providers({
-            ui: <Route path="/questions/edit/:questionId" render={(props) => <AddEditQuestion {...props} />} />,
-            questions: [existing],
-            tags: [{ _id: 't1', name: 'Tag1' }],
+            ui: <Route path="/tweets/edit/:tweetId" render={(props) => <AddEditTweet {...props} tweetId={props.match.params.tweetId} isOpen={true} toggle={toggle} triggerReload={triggerReload} />} />,
+            tweets: [existing],
             history
         });
 
-        const titleInput = screen.getByLabelText(/Title/i);
-        const contentInput = screen.getByLabelText(/Content/i);
-        expect(titleInput.value).toBe('Existing Q');
-        expect(contentInput.value).toBe('Existing content');
+        // textarea should be prefilled
+        const textarea = screen.getByPlaceholderText(/Write your tweet here/i);
+        expect(textarea.value).toBe('Existing tweet');
 
-        fireEvent.change(titleInput, { target: { value: 'Updated Q' } });
-        fireEvent.change(contentInput, { target: { value: 'Updated content' } });
-        fireEvent.change(screen.getByLabelText(/Tags/i), { target: { value: 't1' } });
-
-        fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+        // change and submit
+        fireEvent.change(textarea, { target: { value: 'Updated tweet text' } });
+        fireEvent.click(screen.getByRole('button', { name: /Edit Tweet/i }));
 
         await waitFor(() => {
-            expect(mockUpdate).toHaveBeenCalled();
+            expect(mockUpdate).toHaveBeenCalledTimes(1);
             const calledWith = mockUpdate.mock.calls[0][0];
-            expect(calledWith._id).toBe('q1');
-            expect(calledWith.title).toBe('Updated Q');
-            expect(calledWith.content).toBe('Updated content');
-            expect(calledWith.tags).toEqual(expect.arrayContaining(['t1']));
-            expect(history.location.pathname).toBe('/questions');
+            expect(calledWith._id).toBe('t-edit');
+            expect(calledWith.text).toBe('Updated tweet text');
+            expect(history.location.pathname).toBe('/view-tweet/t-edit');
+            expect(triggerReload).toHaveBeenCalled();
         });
     });
 
     it('shows validation alert when required fields missing', async () => {
         window.alert = jest.fn();
-        const history = createMemoryHistory({ initialEntries: ['/questions/new'] });
+        const history = createMemoryHistory({ initialEntries: ['/tweets/new'] });
 
         providers({
-            ui: <Route path="/questions/new" render={(props) => <AddEditQuestion {...props} />} />,
+            ui: <Route path="/tweets/new" render={(props) => <AddEditTweet {...props} isOpen={true} toggle={jest.fn()} triggerReload={jest.fn()} />} />,
             history
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+        // ensure textarea empty then click save
+        fireEvent.click(screen.getByRole('button', { name: /Add Tweet/i }));
 
         await waitFor(() => {
             expect(window.alert).toHaveBeenCalledWith('Please fill in the missing fields');
@@ -120,17 +117,15 @@ describe('AddEditQuestion', () => {
 
     it('displays an error alert when create fails', async () => {
         mockCreate.mockRejectedValueOnce(new Error('Create failed'));
-        const history = createMemoryHistory({ initialEntries: ['/questions/new'] });
+        const history = createMemoryHistory({ initialEntries: ['/tweets/new'] });
 
         providers({
-            ui: <Route path="/questions/new" render={(props) => <AddEditQuestion {...props} />} />,
+            ui: <Route path="/tweets/new" render={(props) => <AddEditTweet {...props} isOpen={true} toggle={jest.fn()} triggerReload={jest.fn()} />} />,
             history
         });
 
-        fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'Fail Q' } });
-        fireEvent.change(screen.getByLabelText(/Content/i), { target: { value: 'Will fail' } });
-
-        fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+        fireEvent.change(screen.getByPlaceholderText(/Write your tweet here/i), { target: { value: 'Will fail' } });
+        fireEvent.click(screen.getByRole('button', { name: /Add Tweet/i }));
 
         await waitFor(() => {
             expect(mockCreate).toHaveBeenCalled();
@@ -138,4 +133,3 @@ describe('AddEditQuestion', () => {
         });
     });
 });
-
