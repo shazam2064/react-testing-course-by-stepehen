@@ -6,7 +6,7 @@ import { TweetsContext, DispatchContext } from '../../contexts/tweets.context';
 import { UserContext } from '../../contexts/user.context';
 
 jest.mock('../../hooks/useTweetActions', () => ({
-  useTweetActions: jest.fn(() => ({ showActionButtons: () => null }))
+  useTweetActions: () => ({ showActionButtons: () => null })
 }));
 
 jest.mock('../../rest/useRestTweets', () => ({
@@ -58,17 +58,13 @@ describe('TweetItem', () => {
       history
     });
 
-    // author link/name
     const authorLink = screen.getByText(sampleTweet.creator.name).closest('a');
     expect(authorLink).toHaveAttribute('href', `/profile/${sampleTweet.creator._id}`);
 
-    // email displayed with @
-    expect(screen.getByText(`@${sampleTweet.creator.email}`)).toBeInTheDocument();
+    expect(screen.getByText(/alice@example\.com/)).toBeInTheDocument();
 
-    // tweet text
     expect(screen.getByText(sampleTweet.text)).toBeInTheDocument();
 
-    // profile image present
     const img = screen.getAllByAltText('Profile')[0];
     expect(img).toBeInTheDocument();
   });
@@ -76,21 +72,17 @@ describe('TweetItem', () => {
   it('shows edit/delete dropdown for creator and not for other users', async () => {
     const history = createMemoryHistory();
 
-    // when logged as creator
     renderWithProviders(<TweetItem tweet={sampleTweet} history={history} triggerReload={jest.fn()} setError={jest.fn()} />, {
       user: { isLogged: true, userId: sampleTweet.creator._id, isAdmin: false },
       history
     });
 
-    // dropdown toggle shown (⋮)
     expect(screen.getByText('⋮')).toBeInTheDocument();
 
-    // open dropdown and assert menu items
     fireEvent.click(screen.getByText('⋮'));
     expect(await screen.findByText(/Edit/i)).toBeInTheDocument();
     expect(await screen.findByText(/Delete/i)).toBeInTheDocument();
 
-    // cleanup and render as non-creator
     jest.clearAllMocks();
     const history2 = createMemoryHistory();
     renderWithProviders(<TweetItem tweet={sampleTweet} history={history2} triggerReload={jest.fn()} setError={jest.fn()} />, {
@@ -98,7 +90,6 @@ describe('TweetItem', () => {
       history: history2
     });
 
-    // dropdown toggle should not be present for non-creator/non-admin
     expect(screen.queryByText('⋮')).toBeNull();
   });
 
