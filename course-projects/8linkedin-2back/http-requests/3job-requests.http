@@ -1,0 +1,94 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3082
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of jobs
+GET {{host}}/jobs
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.jobs && response.body.jobs.length > 0) {
+        client.global.set("job-id1", response.body.jobs[0]._id)
+        console.log("job-id1:", client.global.get("job-id1"));
+    } else {
+        console.log("No jobs found");
+    }
+%}
+
+### GET List of jobs By ID
+GET {{host}}/jobs/{{job-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create a job
+POST {{host}}/jobs
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+job 1
+--WebAppBoundary
+Content-Disposition: form-data; name="company"
+
+comapny 1
+--WebAppBoundary
+Content-Disposition: form-data; name="location"
+
+location 1
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+description
+--WebAppBoundary
+Content-Disposition: form-data; name="requirements"
+
+["Cookin", "Bingchilling", "Edging", "MongoDB"]
+--WebAppBoundary
+
+
+### Update a job
+PUT {{host}}/jobs/{{job-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+job 2
+--WebAppBoundary
+Content-Disposition: form-data; name="company"
+
+comapny 2
+--WebAppBoundary
+Content-Disposition: form-data; name="location"
+
+location 2
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+description
+--WebAppBoundary
+Content-Disposition: form-data; name="requirements"
+
+["Cookin", "Bingchilling2", "Edging", "Java"]
+--WebAppBoundary
+
+### Delete a jobs
+DELETE {{host}}/jobs/{{job-id1}}
+Authorization: Bearer {{authToken}}

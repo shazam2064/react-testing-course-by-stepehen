@@ -1,0 +1,198 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3082
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET list of users
+// -----------------------------------------------------------------------------------------------
+GET {{host}}/users
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.users && response.body.users.length > 0) {
+        client.global.set("user-id1", response.body.users[0]._id)
+        console.log("user-id1:", client.global.get("user-id1"));
+    } else {
+        console.log("No users found");
+    }
+%}
+
+### GET a user by id - with valid id
+// -----------------------------------------------------------------------------------------------
+GET {{host}}/users/{{user-id1}}
+Authorization: Bearer {{authToken}}
+
+
+### POST a user
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/users
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+admin2@test.com
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Waltuh
+--WebAppBoundary
+Content-Disposition: form-data; name="password"
+
+123456
+--WebAppBoundary
+Content-Disposition: form-data; name="headline"
+
+unemployed
+--WebAppBoundary
+Content-Disposition: form-data; name="about"
+
+just a chill guy
+--WebAppBoundary
+Content-Disposition: form-data; name="location"
+
+brazil
+--WebAppBoundary
+Content-Disposition: form-data; name="experience"
+
+[
+    {
+        "company": "Company A",
+        "role": "Developer",
+        "startDate": "2022-01-01",
+        "endDate": "2023-01-01",
+        "description": "Worked on various projects."
+    },
+    {
+        "company": "Company B",
+        "role": "Engineer",
+        "startDate": "2020-01-01",
+        "endDate": "2021-01-01",
+        "description": "Developed software solutions."
+    }
+]
+--WebAppBoundary
+Content-Disposition: form-data; name="education"
+
+[
+    {
+        "school": "University A",
+        "degree": "Bachelor's",
+        "fieldOfStudy": "Computer Science",
+        "startDate": "2015-01-01",
+        "endDate": "2019-01-01"
+    },
+    {
+        "school": "University B",
+        "degree": "Master's",
+        "fieldOfStudy": "Software Engineering",
+        "startDate": "2020-01-01",
+        "endDate": "2022-01-01"
+    }
+]
+--WebAppBoundary
+Content-Disposition: form-data; name="skills"
+
+["JavaScript", "Node.js", "React", "MongoDB"]
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="IMG_2194.JPG"
+Content-Type: image/jpeg
+
+< ../images/IMG_2194.JPG
+--WebAppBoundary
+Content-Disposition: form-data; name="isAdmin"
+
+false
+--WebAppBoundary--
+
+### PUT a user
+// -----------------------------------------------------------------------------------------------
+PUT {{host}}/users/68188916f07c426fe7897221
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+admin2@test.com
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Waltuh2
+--WebAppBoundary
+Content-Disposition: form-data; name="password"
+
+123456
+--WebAppBoundary
+Content-Disposition: form-data; name="headline"
+
+cooker
+--WebAppBoundary
+Content-Disposition: form-data; name="about"
+
+just a super chill guy
+--WebAppBoundary
+Content-Disposition: form-data; name="location"
+
+Atlanta
+--WebAppBoundary
+Content-Disposition: form-data; name="experience"
+
+[
+    {
+        "company": "Company C",
+        "role": "Burger Flipper",
+        "startDate": "2022-01-01",
+        "endDate": "2023-01-01",
+        "description": "Flipped burgers"
+    }
+]
+--WebAppBoundary
+Content-Disposition: form-data; name="education"
+
+[
+    {
+        "school": "University C",
+        "degree": "Bachelor's",
+        "fieldOfStudy": "Biology",
+        "startDate": "2015-01-01",
+        "endDate": "2019-01-01"
+    }
+]
+--WebAppBoundary
+Content-Disposition: form-data; name="skills"
+
+["Cookin", "Bingchilling", "Edging", "MongoDB"]
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="IMG_2194.JPG"
+Content-Type: image/jpeg
+
+< ../images/IMG_2194.JPG
+--WebAppBoundary
+Content-Disposition: form-data; name="isAdmin"
+
+false
+--WebAppBoundary--
+
+### Follow an user
+PUT {{host}}/users/follow/68188916f07c426fe7897221
+Authorization: Bearer {{authToken}}
+
+### DELETE a user
+// -----------------------------------------------------------------------------------------------
+DELETE {{host}}/users/68188916f07c426fe7897221
+Authorization: Bearer {{authToken}}

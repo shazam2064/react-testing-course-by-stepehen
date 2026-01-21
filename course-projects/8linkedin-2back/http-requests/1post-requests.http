@@ -1,0 +1,76 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3082
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of posts
+GET {{host}}/posts
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.posts && response.body.posts.length > 0) {
+        client.global.set("post-id1", response.body.posts[0]._id)
+        console.log("post-id1:", client.global.get("post-id1"));
+    } else {
+        console.log("No posts found");
+    }
+%}
+
+### GET List of posts By ID
+GET {{host}}/posts/{{post-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create a post
+POST {{host}}/posts
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="content"
+
+post 1
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="IMG_2194.JPG"
+Content-Type: image/jpeg
+
+< ../images/IMG_2194.JPG
+--WebAppBoundary
+
+
+### Update a post
+PUT {{host}}/posts/{{post-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="content"
+
+post 1 updated
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="IMG_2194.JPG"
+Content-Type: image/jpeg
+
+< ../images/IMG_2194.JPG
+--WebAppBoundary
+
+### Like/Unlike a post
+PUT {{host}}/posts/like/{{post-id1}}
+Authorization: Bearer {{authToken}}
+
+### Delete an posts
+DELETE {{host}}/posts/{{post-id1}}
+Authorization: Bearer {{authToken}}

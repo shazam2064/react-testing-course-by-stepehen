@@ -1,0 +1,54 @@
+@email = admin2@test.com
+@password = 123456
+@host = http://localhost:3082
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of connections
+GET {{host}}/connections
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.connections && response.body.connections.length > 0) {
+        client.global.set("connection-id1", response.body.connections[0]._id)
+        console.log("connection-id1:", client.global.get("connection-id1"));
+    } else {
+        console.log("No connections found");
+    }
+%}
+
+### Create a connection
+POST {{host}}/connections
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "receiver": "68188916f07c426fe7897221"
+}
+
+
+### Update a connection status
+PUT {{host}}/connections/{{connection-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "accepted"
+}
+
+### Delete an connections
+DELETE {{host}}/connections/{{connection-id1}}
+Authorization: Bearer {{authToken}}

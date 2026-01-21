@@ -1,0 +1,64 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3082
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of conversations
+GET {{host}}/conversations
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.conversations && response.body.conversations.length > 0) {
+        client.global.set("conversation-id1", response.body.conversations[0]._id)
+        console.log("conversation-id1:", client.global.get("conversation-id1"));
+    } else {
+        console.log("No conversations found");
+    }
+%}
+
+### GET List of conversations by ID
+GET {{host}}/conversations/{{conversation-id1}}
+Authorization: Bearer {{authToken}}
+
+### Create a conversation
+POST {{host}}/conversations
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "participants": ["68188916f07c426fe7897221"],
+  "text": "text"
+}
+
+
+### Update a conversation
+PUT {{host}}/conversations/{{conversation-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "text": "another text"
+}
+
+### Mark a conversation as read
+PUT {{host}}/conversations/read/{{conversation-id1}}
+Authorization: Bearer {{authToken}}
+
+### Delete an conversations
+DELETE {{host}}/conversations/{{conversation-id1}}
+Authorization: Bearer {{authToken}}
+

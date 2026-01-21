@@ -1,0 +1,59 @@
+@email = gabrielsalomon.990@gmail.com
+@password = 123456
+@host = http://localhost:3082
+#@host = render
+
+### Auth Login
+// -----------------------------------------------------------------------------------------------
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token)
+%}
+
+### GET List of applications
+GET {{host}}/applications
+Authorization: Bearer {{authToken}}
+
+> {%
+    if(response.body.applications && response.body.applications.length > 0) {
+        client.global.set("application-id1", response.body.applications[0]._id)
+        console.log("application-id1:", client.global.get("application-id1"));
+    } else {
+        console.log("No applications found");
+    }
+%}
+
+### Create a application
+POST {{host}}/applications
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "job": "681b3c0f60a354792af26e35",
+  "resume": "blah blah blah",
+  "coverLetter": "cover letter 1",
+  "status": "pending"
+}
+
+
+### Update a application
+PUT {{host}}/applications/{{application-id1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "resume": "blah blah ",
+  "coverLetter": "cover letter 2",
+  "status": "reviewed"
+}
+
+### Delete an applications
+DELETE {{host}}/applications/{{application-id1}}
+Authorization: Bearer {{authToken}}
