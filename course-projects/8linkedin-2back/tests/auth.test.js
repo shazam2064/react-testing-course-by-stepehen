@@ -230,6 +230,8 @@ describe('Auth Controller', () => {
 
         it('should verify email and allow login after verification', async () => {
             const signupEmail = 'verifytestuser@test.com';
+            await User.deleteOne({ email: signupEmail });
+
             const signupRes = await request(app)
                 .put('/auth/signup')
                 .send({
