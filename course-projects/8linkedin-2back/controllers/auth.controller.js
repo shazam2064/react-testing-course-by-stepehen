@@ -43,19 +43,25 @@ exports.signup = (req, res, next) => {
             });
             return user.save();
         })
-        .then(result => {
-            console.log('The auth postSignup() saved the user:', result);
-            return transporter.sendMail({
+        .then(savedUser => {
+            console.log('The auth postSignup() saved the user:', savedUser);
+            res.status(201).json({ message: 'User created! Please check your email to verify your account.', userId: savedUser._id });
+
+            transporter.sendMail({
                 to: email,
                 from: `${REACT_APP_EMAIL}`,
                 subject: 'Signup succeeded! Please verify your email',
                 html: `<h1>You successfully signed up!</h1>
                        <p>Please verify your email by clicking the link below:</p>
                        <a href="${REACT_APP_API_URL}/verify/${verificationToken}">Verify Email</a>`
+            })
+            .then(mailRes => {
+                console.log('Verification email sent:', mailRes && (mailRes.accepted || mailRes.response || mailRes.statusCode));
+            })
+            .catch(mailErr => {
+                console.log('Failed to send verification email:', mailErr);
+                // Do not call next(mailErr) or handleError here — response already sent.
             });
-        })
-        .then(result => {
-            res.status(201).json({ message: 'User created! Please check your email to verify your account.', userId: result._id });
         })
         .catch(err => {
             handleError(err, next, 'User creation failed');
