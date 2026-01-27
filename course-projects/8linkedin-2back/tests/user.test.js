@@ -28,16 +28,16 @@ describe('User Controller Tests', () => {
         await mongoConnect();
 
         const { ObjectId } = require('mongodb');
-        const adminObjectId = new ObjectId('680be1b42894596771cbe2f8');
+        const adminObjectId = new ObjectId('6972784f82b1d18304306cb9');
 
         const passwordHash = await bcrypt.hash('123456', 12);
         await User.updateOne(
-            { email: 'gabrielsalomon.990@gmail.com' },
+            { email: 'gabrielsalomon.980m@gmail.com' },
             {
                 $set: {
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: passwordHash,
-                    name: 'User Test 1',
+                    name: 'Gabriel Salomon',
                     isAdmin: true,
                 },
                 $setOnInsert: {
@@ -55,7 +55,7 @@ describe('User Controller Tests', () => {
             const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '123456',
                 })
                 .set('Content-Type', 'application/json');
@@ -69,10 +69,10 @@ describe('User Controller Tests', () => {
                 {
                     following: [],
                     followers: [],
-                    _id: '680be1b42894596771cbe2f8',
-                    email: 'gabrielsalomon.990@gmail.com',
+                    _id: '6972784f82b1d18304306cb9',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '$2a$12$dzgWAGgKBBTE3bMNVCp/iuujMS5y.JUt7/Ks0MJk3hdOJSVNKadde',
-                    name: 'User Test 1',
+                    name: 'Gabriel Salomon',
                     image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
                     tweets: ['680be1e32894596771cbe311'],
                     comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
@@ -95,9 +95,9 @@ describe('User Controller Tests', () => {
                     message: 'Users fetched successfully',
                     users: expect.arrayContaining([
                         expect.objectContaining({
-                            _id: '680be1b42894596771cbe2f8',
-                            email: 'gabrielsalomon.990@gmail.com',
-                            name: 'User Test 1',
+                            _id: '6972784f82b1d18304306cb9',
+                            email: 'gabrielsalomon.980m@gmail.com',
+                            name: 'Gabriel Salomon',
                             isAdmin: true,
                         }),
                     ]),
@@ -129,7 +129,7 @@ describe('User Controller Tests', () => {
             const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '123456',
                 })
                 .set('Content-Type', 'application/json');
@@ -139,7 +139,7 @@ describe('User Controller Tests', () => {
         });
 
         it('should return 200 and the user details if the user exists', async () => {
-            const mockUserId = '680be1b42894596771cbe2f8';
+            const mockUserId = '6972784f82b1d18304306cb9';
 
             // return a chainable Query-like object so multiple .populate() calls and .then() work
             jest.spyOn(User, 'findById').mockImplementationOnce(() =>
@@ -147,9 +147,9 @@ describe('User Controller Tests', () => {
                     following: [],
                     followers: [],
                     _id: mockUserId,
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '$2a$12$jHvfE9C.aKu3kpMys.Qd5Oh0xjoaRdsEqMThEAtoiElNuseSk4die',
-                    name: 'User Test 1',
+                    name: 'Gabriel Salomon',
                     image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
                     tweets: ['680be1e32894596771cbe311'],
                     comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
@@ -172,8 +172,8 @@ describe('User Controller Tests', () => {
                     message: 'User fetched successfully',
                     user: expect.objectContaining({
                         _id: mockUserId,
-                        email: 'gabrielsalomon.990@gmail.com',
-                        name: 'User Test 1',
+                        email: 'gabrielsalomon.980m@gmail.com',
+                        name: 'Gabriel Salomon',
                         bugsAssigned: expect.any(Array),
                         reportedBugs: expect.any(Array),
                         isAdmin: true,
@@ -242,7 +242,7 @@ describe('User Controller Tests', () => {
             const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '123456',
                 })
                 .set('Content-Type', 'application/json');
@@ -335,7 +335,7 @@ describe('User Controller Tests', () => {
             const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '123456',
                 })
                 .set('Content-Type', 'application/json');
@@ -406,7 +406,7 @@ describe('User Controller Tests', () => {
                 .put(`/users/${mockUserId}`)
                 .set('Authorization', `Bearer ${validToken}`)
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     name: '123456',
                     password: '123456',
                     status: 'Updated Status',
@@ -463,7 +463,7 @@ describe('User Controller Tests', () => {
                 .put(`/users/${mockUserId}`)
                 .set('Authorization', `Bearer ${validToken}`)
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     name: '123456',
                     password: '123456',
                     status: 'Updated Status',
@@ -488,7 +488,7 @@ describe('User Controller Tests', () => {
             const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
-                    email: 'gabrielsalomon.990@gmail.com',
+                    email: 'gabrielsalomon.980m@gmail.com',
                     password: '123456',
                 })
                 .set('Content-Type', 'application/json');
@@ -519,7 +519,7 @@ describe('User Controller Tests', () => {
             expect(deleteResponse.status).toBe(200);
             expect(deleteResponse.body).toEqual(
                 expect.objectContaining({
-                    message: 'User deleted successfully',
+                    message: 'User and related data deleted successfully',
                     result: expect.objectContaining({
                         _id: createdUserId,
                         email: 'dummyuser@test.com',
@@ -587,6 +587,7 @@ describe('User Controller Tests', () => {
                 .send({ email: 'gabrielsalomon.990@gmail.com', password: '123456' })
                 .set('Content-Type', 'application/json');
 
+            // ensure login uses the fixed email
             expect(loginRes.status).toBe(200);
             validToken = loginRes.body.token;
             followerId = loginRes.body.userId || loginRes.body.user?._id || undefined;
