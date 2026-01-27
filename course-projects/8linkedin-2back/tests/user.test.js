@@ -78,12 +78,10 @@ describe('User Controller Tests', () => {
 
             expect(loginResponse.status).toBe(200);
             validToken = loginResponse.body.token;
-        });
 
-        beforeEach(async () => {
             const { ObjectId } = require('mongodb');
             const passwdHash1 = await bcrypt.hash('123456', 12);
-            const passwdHash2 = await bcrypt.hash('123456', 12);
+            const passwdHash2 = passwdHash1;
 
             await User.updateOne(
                 { email: 'updateduser@test.com' },
@@ -137,8 +135,30 @@ describe('User Controller Tests', () => {
             expect(emails).toEqual(expect.arrayContaining(['updateduser@test.com', 'dummyuser@test.com']));
         }, 20000);
 
-        it('should handle errors and return 500 when User.find throws', async () => {
-            jest.spyOn(User, 'find').mockRejectedValueOnce(new Error('Database error'));
+        it('returns 200 and the mocked users when User.find resolves', async () => {
+            const mockedUsers = [
+                { _id: 'u1', email: 'mock1@test.com', name: 'Mock One' },
+                { _id: 'u2', email: 'mock2@test.com', name: 'Mock Two' }
+            ];
+            jest.spyOn(User, 'find').mockImplementationOnce(() => makePopulateMock(mockedUsers));
+
+            const response = await request(app)
+                .get('/users')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(
+                expect.objectContaining({
+                    message: 'Users fetched successfully',
+                    users: expect.any(Array)
+                })
+            );
+            const emails = response.body.users.map(u => u.email);
+            expect(emails).toEqual(expect.arrayContaining(['mock1@test.com', 'mock2@test.com']));
+        });
+
+        it('returns 500 and error message when User.find rejects', async () => {
+            jest.spyOn(User, 'find').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
 
             const response = await request(app)
                 .get('/users')
@@ -150,7 +170,7 @@ describe('User Controller Tests', () => {
                     message: 'Database error',
                 })
             );
-        }, 20000);
+        });
     });
 
 
