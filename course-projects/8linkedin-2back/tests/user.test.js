@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const { clearImage } = require('../controllers/user.controller');
 
+jest.setTimeout(20000); // increase timeout for DB/network operations
+
 function makePopulateMock(result, shouldReject = false) {
     return {
         populate() { return this; },
@@ -27,6 +29,18 @@ describe('User Controller Tests', () => {
         const { mongoConnect } = require('../util/database');
         await mongoConnect();
 
+        await User.deleteMany({
+            email: {
+                $in: [
+                    'dummyuser@test.com',
+                    'updateduser@test.com',
+                    'user2@test.com',
+                    'testuser@test.com',
+                    'user2+test@test.com' // keep a safe extra just in case
+                ]
+            }
+        });
+
         const { ObjectId } = require('mongodb');
         const adminObjectId = new ObjectId('6972784f82b1d18304306cb9');
 
@@ -39,6 +53,8 @@ describe('User Controller Tests', () => {
                     password: passwordHash,
                     name: 'Gabriel Salomon',
                     isAdmin: true,
+                    verificationToken: undefined,
+                    verificationTokenExpiration: undefined,
                 },
                 $setOnInsert: {
                     _id: adminObjectId
@@ -64,27 +80,47 @@ describe('User Controller Tests', () => {
             validToken = loginResponse.body.token;
         });
 
-        it('should return 200 and a list of users', async () => {
-            const mockUsers = [
+        beforeEach(async () => {
+            const { ObjectId } = require('mongodb');
+            const passwdHash1 = await bcrypt.hash('123456', 12);
+            const passwdHash2 = await bcrypt.hash('123456', 12);
+
+            await User.updateOne(
+                { email: 'updateduser@test.com' },
                 {
-                    following: [],
-                    followers: [],
-                    _id: '6972784f82b1d18304306cb9',
-                    email: 'gabrielsalomon.980m@gmail.com',
-                    password: '$2a$12$dzgWAGgKBBTE3bMNVCp/iuujMS5y.JUt7/Ks0MJk3hdOJSVNKadde',
-                    name: 'Gabriel Salomon',
-                    image: 'images/2025-05-04T12-47-33.624Z-360_F_867016851_1zLkLYXHgWspxKPaCrIcFaZVcto9obz2.jpg',
-                    tweets: ['680be1e32894596771cbe311'],
-                    comments: ['6817599370ddbe87afcbff06', '68175a2370ddbe87afcbff0e'],
-                    isAdmin: true,
-                    createdAt: '2025-04-25T19:25:40.889Z',
-                    updatedAt: '2025-12-22T14:53:35.201Z',
-                    __v: 6
+                    $set: {
+                        email: 'updateduser@test.com',
+                        password: passwdHash1,
+                        name: 'Updated User',
+                        image: 'images/default.png',
+                        isAdmin: true
+                    },
+                    $setOnInsert: { _id: new ObjectId('697905bfa9f9f488d664e2e4') }
                 },
-            ];
+                { upsert: true }
+            );
 
-            jest.spyOn(User, 'find').mockResolvedValueOnce(mockUsers);
+            await User.updateOne(
+                { email: 'dummyuser@test.com' },
+                {
+                    $set: {
+                        email: 'dummyuser@test.com',
+                        password: passwdHash2,
+                        name: 'Dummy User',
+                        image: 'images/default.png',
+                        isAdmin: false
+                    },
+                    $setOnInsert: { _id: new ObjectId('697905bfa9f9f488d664e2eb') }
+                },
+                { upsert: true }
+            );
+        });
 
+        afterEach(async () => {
+            jest.restoreAllMocks();
+        });
+
+        it('should return 200 and a list of users (contains updateduser and dummyuser)', async () => {
             const response = await request(app)
                 .get('/users')
                 .set('Authorization', `Bearer ${validToken}`);
@@ -93,19 +129,15 @@ describe('User Controller Tests', () => {
             expect(response.body).toEqual(
                 expect.objectContaining({
                     message: 'Users fetched successfully',
-                    users: expect.arrayContaining([
-                        expect.objectContaining({
-                            _id: '6972784f82b1d18304306cb9',
-                            email: 'gabrielsalomon.980m@gmail.com',
-                            name: 'Gabriel Salomon',
-                            isAdmin: true,
-                        }),
-                    ]),
+                    users: expect.any(Array)
                 })
             );
-        });
 
-        it('should handle errors and return 500', async () => {
+            const emails = response.body.users.map(u => u.email);
+            expect(emails).toEqual(expect.arrayContaining(['updateduser@test.com', 'dummyuser@test.com']));
+        }, 20000);
+
+        it('should handle errors and return 500 when User.find throws', async () => {
             jest.spyOn(User, 'find').mockRejectedValueOnce(new Error('Database error'));
 
             const response = await request(app)
@@ -118,7 +150,7 @@ describe('User Controller Tests', () => {
                     message: 'Database error',
                 })
             );
-        });
+        }, 20000);
     });
 
 
