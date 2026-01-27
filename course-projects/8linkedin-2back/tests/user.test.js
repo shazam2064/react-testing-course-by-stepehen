@@ -669,7 +669,7 @@ describe('User Controller Tests', () => {
         }
 
         test('follows a user and returns 200 with result', async () => {
-            const followingId = 'targetUser1';
+            const followingId = '507f1f77bcf86cd799439011';
 
             // userBeingFollowed: does not include followerId => will push
             const userBeingFollowed = {
@@ -704,7 +704,7 @@ describe('User Controller Tests', () => {
         });
 
         test('unfollows a user and returns 200 with result', async () => {
-            const followingId = 'targetUser2';
+            const followingId = '507f191e810c19729de860ea'; // valid ObjectId hex
 
             // userBeingFollowed: includes followerId and has pull
             const followers = makePullable([followerId]);
@@ -740,7 +740,8 @@ describe('User Controller Tests', () => {
         });
 
         test('returns 404 when the target user is not found', async () => {
-            const followingId = 'missingTarget';
+            const followingId = '507f1f77bcf86cd799439013'; // valid ObjectId hex (not present)
+
             jest.spyOn(User, 'findById').mockImplementationOnce(() => Promise.resolve(null));
 
             const response = await request(app)
@@ -756,7 +757,8 @@ describe('User Controller Tests', () => {
         });
 
         test('returns 500 when saving the follower fails', async () => {
-            const followingId = 'errSaveTarget';
+            const followingId = '507f1f77bcf86cd799439014'; // valid ObjectId hex
+
             const userBeingFollowed = {
                 _id: followingId,
                 followers: [],
