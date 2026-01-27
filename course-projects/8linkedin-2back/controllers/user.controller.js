@@ -7,7 +7,9 @@ const { handleError, throwError } = require('./error.controller');
 
 const User = require('../models/user.model');
 const Connection = require('../models/connection.model');
-const {populate} = require("dotenv");
+const Job = require('../models/job.model');
+const Post = require('../models/post.model');
+const Comment = require('../models/comment.model');
 
 exports.getUsers = async (req, res, next) => {
     // #swagger.description = 'Gets all users.'
@@ -277,6 +279,9 @@ const clearImage = filePath => {
         }
     });
 }
+
+// export clearImage so tests can import it
+exports.clearImage = clearImage;
 
 const { deleteComment } = require('./comment.controller');
 const { deleteJob } = require('./job.controller');

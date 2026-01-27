@@ -452,7 +452,7 @@ describe('User Controller Tests', () => {
             expect(deleteResponse.status).toBe(200);
             expect(deleteResponse.body).toEqual(
                 expect.objectContaining({
-                    message: 'User deleted successfully',
+                    message: 'User and related data deleted successfully',
                 })
             );
         });
