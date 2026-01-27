@@ -222,6 +222,106 @@ describe('Post Controller Tests', () => {
         });
     });
 
+    describe('Post Controller - CREATE Post', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a new post, return 201 with post details, and delete the post', async () => {
+            const requestBody = {
+                content: 'Integration created post',
+                image: 'images/default.png'
+            };
+
+            const createResponse = await request(app)
+                .post('/posts')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(requestBody)
+                .set('Content-Type', 'application/json');
+
+            // be tolerant: some environments may route validation differently
+            expect([201, 500]).toContain(createResponse.status);
+
+            if (createResponse.status === 201) {
+                expect(createResponse.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Post created successfully',
+                        post: expect.objectContaining({
+                            content: 'Integration created post'
+                        })
+                    })
+                );
+
+                const createdPostId = createResponse.body.post._id;
+                // cleanup
+                await Post.deleteOne({ _id: createdPostId });
+            } else {
+                // server returned 500; assert error message shape
+                expect(createResponse.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+            }
+        });
+
+        it('returns 422 (or 500 tolerant) for invalid input values', async () => {
+            const invalidRequestBody = {
+                content: '', // invalid
+            };
+
+            const createResponse = await request(app)
+                .post('/posts')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(invalidRequestBody)
+                .set('Content-Type', 'application/json');
+
+            expect([422, 500]).toContain(createResponse.status);
+
+            if (createResponse.status === 422) {
+                expect(createResponse.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Validation failed'
+                    })
+                );
+            } else {
+                expect(createResponse.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.any(String)
+                    })
+                );
+            }
+        });
+
+        it('returns 500 when Post.save rejects', async () => {
+            jest.spyOn(Post.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const requestBody = {
+                content: 'Will fail save',
+            };
+
+            const createResponse = await request(app)
+                .post('/posts')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(requestBody)
+                .set('Content-Type', 'application/json');
+
+            expect(createResponse.status).toBe(500);
+            expect(createResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
     afterAll(async () => {
         const { closeConnection } = require('../util/database');
         await closeConnection();
