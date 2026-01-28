@@ -7,20 +7,22 @@ const bcrypt = require('bcryptjs');
 jest.setTimeout(20000);
 
 function makePopulateMock(result, shouldReject = false) {
-    return {
-        populate() {
-            return this;
+    const chain = {
+        populate() { return chain; },
+        skip() { return chain; },
+        limit() { return chain; },
+        sort() { return chain; },
+        exec() {
+            return shouldReject ? Promise.reject(result) : Promise.resolve(result);
         },
         then(onFulfilled, onRejected) {
-            if (shouldReject) {
-                return Promise.reject(result).then(onFulfilled, onRejected);
-            }
-            return Promise.resolve(result).then(onFulfilled, onRejected);
+            return this.exec().then(onFulfilled, onRejected);
         },
         catch(onRejected) {
-            return this.then(undefined, onRejected);
+            return this.exec().catch(onRejected);
         }
     };
+    return chain;
 }
 
 describe('Post Controller Tests', () => {
