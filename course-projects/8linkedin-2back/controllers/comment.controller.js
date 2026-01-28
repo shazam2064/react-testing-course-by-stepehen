@@ -9,27 +9,25 @@ exports.getComments = async (req, res, next) => {
     // #swagger.description = 'Gets all comments for a specific post.'
     // #swagger.tags = ['Comments']
     console.log('The getComments controller was called with query:', req.query);
-    const currentPage = req.query.page || 1;
+    const currentPage = parseInt(req.query.page) || 1;
     const perPage = 50;
-    let total;
-    Comment.find().countDocuments()
-        .then(count => {
-            total = count;
-            return Comment.find()
-                .populate('post')
-                .skip((currentPage - 1) * perPage)
-                .limit(perPage);
-        })
-        .then(comments => {
-            res.status(200).json({
-                message: 'Comments fetched successfully',
-                comments,
-                total
-            });
-        })
-        .catch(err => {
-            handleError(err, next, 'Comments fetch failed');
+
+    try {
+        // use model-level countDocuments to avoid interfering with mocked Comment.find()
+        const total = await Comment.countDocuments();
+        const comments = await Comment.find()
+            .populate('post')
+            .skip((currentPage - 1) * perPage)
+            .limit(perPage);
+
+        res.status(200).json({
+            message: 'Comments fetched successfully',
+            comments,
+            total
         });
+    } catch (err) {
+        handleError(err, next, 'Comments fetch failed');
+    }
 };
 
 exports.createComment = async (req, res, next) => {
