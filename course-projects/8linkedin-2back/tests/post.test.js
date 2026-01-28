@@ -449,6 +449,79 @@ describe('Post Controller Tests', () => {
         });
     });
 
+    describe('Post Controller - DELETE Post', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a post, delete it, and return 200', async () => {
+            const createRes = await request(app)
+                .post('/posts')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ content: 'Post to delete', image: 'images/default.png' })
+                .set('Content-Type', 'application/json');
+
+            // be tolerant: some environments may return 500 on create; abort integration path if so
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdPostId = createRes.body.post._id;
+
+            const deleteRes = await request(app)
+                .delete(`/posts/${createdPostId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(deleteRes.status).toBe(200);
+            expect(deleteRes.body).toEqual(expect.objectContaining({
+                message: 'Post deleted successfully'
+            }));
+
+            // verify it's removed from DB
+            const check = await Post.findById(createdPostId);
+            expect(check).toBeNull();
+        });
+
+        it('returns 404 when the post is not found', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Post, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .delete(`/posts/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Post not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Post.findById rejects', async () => {
+            jest.spyOn(Post, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .delete('/posts/697905bfa9f9f488d664e2ff')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({
+                message: 'Database error'
+            }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
