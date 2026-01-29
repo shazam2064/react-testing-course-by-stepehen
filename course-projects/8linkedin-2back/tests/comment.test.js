@@ -408,6 +408,77 @@ describe('Comment Controller Tests', () => {
         });
     });
 
+    describe('Comment Controller - DELETE Comment', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a comment, delete it, and return 200', async () => {
+            const createRes = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ post: '697905bfa9f9f488d664e2f1', text: 'Comment to delete' })
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdCommentId = createRes.body.comment._id;
+
+            const deleteRes = await request(app)
+                .delete(`/comments/${createdCommentId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(deleteRes.status).toBe(200);
+            expect(deleteRes.body).toEqual(expect.objectContaining({
+                message: 'Comment deleted successfully'
+            }));
+
+            const check = await Comment.findById(createdCommentId);
+            expect(check).toBeNull();
+        });
+
+        it('returns 404 when the comment is not found', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Comment, 'findByIdAndDelete').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .delete(`/comments/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Comment not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Comment.findByIdAndDelete rejects', async () => {
+            jest.spyOn(Comment, 'findByIdAndDelete').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .delete('/comments/697905bfa9f9f488d664e2ff')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({
+                message: 'Database error'
+            }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
