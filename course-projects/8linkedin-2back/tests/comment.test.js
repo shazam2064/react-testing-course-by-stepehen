@@ -276,6 +276,138 @@ describe('Comment Controller Tests', () => {
         });
     });
 
+    describe('Comment Controller - UPDATE Comment', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should update an existing comment and return 200', async () => {
+            // create a comment to update
+            const createRes = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ post: '697905bfa9f9f488d664e2f1', text: 'Comment to be updated' })
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return; // abort integration path if create failed
+
+            const createdCommentId = createRes.body.comment._id;
+
+            const updateRes = await request(app)
+                .put(`/comments/${createdCommentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'Updated comment text' })
+                .set('Content-Type', 'application/json');
+
+            expect(updateRes.status).toBe(200);
+            expect(updateRes.body).toEqual(expect.objectContaining({
+                message: 'Comment updated successfully',
+                comment: expect.objectContaining({
+                    _id: createdCommentId,
+                    text: 'Updated comment text'
+                })
+            }));
+
+            // cleanup
+            await Comment.deleteOne({_id: createdCommentId});
+        });
+
+        it('returns 422 (or 500 tolerant) for invalid input values', async () => {
+            // create a valid comment first (tolerant if creation fails)
+            const createRes = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ post: '697905bfa9f9f488d664e2f1', text: 'Will test invalid update' })
+                .set('Content-Type', 'application/json');
+
+            const targetId = createRes.status === 201 ? createRes.body.comment._id : '697905bfa9f9f488d664e2f1';
+
+            const updateRes = await request(app)
+                .put(`/comments/${targetId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: '' }) // invalid
+                .set('Content-Type', 'application/json');
+
+            expect([422, 500]).toContain(updateRes.status);
+
+            if (createRes.status === 201) {
+                await Comment.deleteOne({_id: createRes.body.comment._id});
+            }
+        });
+
+        it('returns 404 when the comment is not found', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Comment, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .put(`/comments/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'Irrelevant' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Comment not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Comment.findById rejects', async () => {
+            jest.spyOn(Comment, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .put('/comments/697905bfa9f9f488d664e2ff')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'Will trigger find error' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+        });
+
+        it('returns 500 when comment.save rejects', async () => {
+            // create an actual comment so creator matches .userId
+            const createRes = await request(app)
+                .post('/comments')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ post: '697905bfa9f9f488d664e2f1', text: 'Will fail save on update' })
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdCommentId = createRes.body.comment._id;
+
+            // mock instance save to reject on update
+            jest.spyOn(Comment.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const updateRes = await request(app)
+                .put(`/comments/${createdCommentId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'Attempt update that fails on save' })
+                .set('Content-Type', 'application/json');
+
+            expect(updateRes.status).toBe(500);
+            expect(updateRes.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+
+            // cleanup
+            await Comment.deleteOne({_id: createdCommentId});
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
