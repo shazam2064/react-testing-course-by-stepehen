@@ -36,44 +36,48 @@ exports.createComment = async (req, res, next) => {
     console.log('The createComment controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        console.log('Validation failed', errors.array());
+        return res.status(422).json({
+            message: 'Validation failed',
+            errors: errors.array()
+        });
     }
+
     const postId = req.body.post;
     const text = req.body.text;
-    let creator;
-    const comment = new Comment({
-        post: postId,
-        text,
-        creator: req.userId
-    });
-    comment.save()
-        .then(result => {
-            console.log('Comment created successfully with result:', result);
-            return User.findById(req.userId);
-        })
-        .then(user => {
-            console.log('User found for post creator:', user);
-            creator = user;
-            user.comments.push(comment);
-            user.save();
-            return Post.findById(postId);
-        })
-        .then(post => {
-            console.log('Comment added to post successfully with result:', post);
-            post.comments.push(comment);
-            return post.save();
-        })
-        .then(result => {
-            console.log('Post updated with comment:', result);
-            res.status(201).json({
-                message: 'Comment created successfully',
-                comment,
-                creator: { _id: req.userId, name: req.userName }
-            });
-        })
-        .catch(err => {
-            handleError(err, next, 'Comment creation failed');
+
+    try {
+        const comment = new Comment({
+            post: postId,
+            text,
+            creator: req.userId
         });
+
+        const savedComment = await comment.save();
+        console.log('Comment created successfully with result:', savedComment);
+
+        const user = await User.findById(req.userId);
+        if (user) {
+            console.log('User found for comment creator:', user);
+            user.comments.push(savedComment);
+            await user.save();
+        }
+
+        const post = await Post.findById(postId);
+        if (post) {
+            console.log('Comment added to post successfully with result:', post);
+            post.comments.push(savedComment);
+            await post.save();
+        }
+
+        res.status(201).json({
+            message: 'Comment created successfully',
+            comment: savedComment,
+            creator: { _id: req.userId, name: req.userName }
+        });
+    } catch (err) {
+        handleError(err, next, 'Comment creation failed');
+    }
 };
 
 exports.updateComment = async (req, res, next) => {
