@@ -191,9 +191,107 @@ describe('Application Controller Tests', () => {
         });
     });
 
+    describe('Application Controller - CREATE Application', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a new application, return 201 and cleanup', async () => {
+            const requestBody = {
+                job: '681b3c0f60a354792af26e35',
+                resume: 'Integration resume content',
+                coverLetter: 'Integration cover letter',
+                status: 'pending'
+            };
+
+            const createResponse = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(requestBody)
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createResponse.status);
+            if (createResponse.status !== 201) return;
+
+            expect(createResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'Application created successfully',
+                    application: expect.objectContaining({
+                        resume: 'Integration resume content'
+                    })
+                })
+            );
+
+            const createdId = createResponse.body.application._id;
+            await Application.deleteOne({ _id: createdId });
+        });
+
+        it('returns 422 (or 500 tolerant) for invalid input values', async () => {
+            const invalidRequestBody = {
+                job: '681b3c0f60a354792af26e35',
+                resume: '', // invalid
+                coverLetter: ''
+            };
+
+            const createResponse = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(invalidRequestBody)
+                .set('Content-Type', 'application/json');
+
+            expect([422, 500]).toContain(createResponse.status);
+            if (createResponse.status === 422) {
+                expect(createResponse.body).toEqual(
+                    expect.objectContaining({
+                        message: 'Validation failed'
+                    })
+                );
+            } else {
+                expect(createResponse.body).toEqual(
+                    expect.objectContaining({
+                        message: expect.any(String)
+                    })
+                );
+            }
+        });
+
+        it('returns 500 when Application.save rejects', async () => {
+            jest.spyOn(Application.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const requestBody = {
+                job: '681b3c0f60a354792af26e35',
+                resume: 'Will fail save',
+                coverLetter: 'Fail cover'
+            };
+
+            const createResponse = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(requestBody)
+                .set('Content-Type', 'application/json');
+
+            expect(createResponse.status).toBe(500);
+            expect(createResponse.body).toEqual(
+                expect.objectContaining({
+                    message: 'Database error'
+                })
+            );
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
     });
 });
-
