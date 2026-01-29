@@ -39,49 +39,50 @@ exports.createApplication = async (req, res, next) => {
     console.log('The createApplication controller was called with body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        console.log('Validation failed', errors.array());
+        return res.status(422).json({
+            message: 'Validation failed',
+            errors: errors.array()
+        });
     }
+
     const jobId = req.body.job;
-    let applicant;
     const resume = req.body.resume;
     const coverLetter = req.body.coverLetter;
     const status = req.body.status;
 
-    const application = new Application({
-        job: jobId,
-        applicant: req.userId,
-        resume,
-        coverLetter,
-        status
-    });
-    application.save()
-        .then(result => {
-            console.log('Application created successfully with result:', result);
-            return User.findById(req.userId);
-        })
-        .then(user => {
-            console.log('User found for job creator:', user);
-            applicant = user;
-            user.applications.push(application);
-            user.save();
-            return Job.findById(jobId);
-        })
-        .then(job => {
-            console.log('Application added to job successfully with result:', job);
-            job.applicants.push(application);
-            return job.save();
-        })
-        .then(result => {
-            console.log('Job updated with application:', result);
-            res.status(201).json({
-                message: 'Application created successfully',
-                application,
-                applicant: { _id: req.userId, name: req.userName }
-            });
-        })
-        .catch(err => {
-            handleError(err, next, 'Application creation failed');
+    try {
+        const application = new Application({
+            job: jobId,
+            applicant: req.userId,
+            resume,
+            coverLetter,
+            status
         });
+
+        const savedApplication = await application.save();
+        console.log('Application created successfully with result:', savedApplication);
+
+        const user = await User.findById(req.userId);
+        if (user) {
+            user.applications.push(savedApplication);
+            await user.save();
+        }
+
+        const job = await Job.findById(jobId);
+        if (job) {
+            job.applicants.push(savedApplication);
+            await job.save();
+        }
+
+        res.status(201).json({
+            message: 'Application created successfully',
+            application: savedApplication,
+            applicant: { _id: req.userId, name: req.userName }
+        });
+    } catch (err) {
+        handleError(err, next, 'Application creation failed');
+    }
 };
 
 exports.updateApplication = async (req, res, next) => {
