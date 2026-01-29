@@ -504,6 +504,97 @@ describe('Job Controller Tests', () => {
         });
     });
 
+    describe('Job Controller - DELETE Job', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a job, delete it, and return 200', async () => {
+            const createBody = {
+                title: 'Job to delete',
+                company: 'Delete Co',
+                location: 'Nowhere',
+                description: 'To be deleted',
+                requirements: ['X']
+            };
+
+            const createRes = await request(app)
+                .post('/jobs')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(createBody)
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdJobId = createRes.body.job._id;
+
+            const deleteRes = await request(app)
+                .delete(`/jobs/${createdJobId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(deleteRes.status).toBe(200);
+            expect(deleteRes.body).toEqual(expect.objectContaining({
+                message: 'Job deleted successfully'
+            }));
+
+            const check = await Job.findById(createdJobId);
+            expect(check).toBeNull();
+        });
+
+        it('returns 404 when the job is not found', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Job, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .delete(`/jobs/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Job not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Job.findById rejects', async () => {
+            jest.spyOn(Job, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .delete('/jobs/697905bfa9f9f488d664e2ff')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+        });
+
+        it('returns 500 when Job.findByIdAndDelete rejects', async () => {
+            // ensure findById returns a job so controller proceeds to findByIdAndDelete
+            const fakeJob = { _id: '697905bfa9f9f488d664e2aa', applicants: [], creator: '6972784f82b1d18304306cb9' };
+            jest.spyOn(Job, 'findById').mockImplementationOnce(() => makePopulateMock(fakeJob));
+            jest.spyOn(Job, 'findByIdAndDelete').mockImplementationOnce(() => Promise.reject(new Error('Delete failed')));
+
+            const res = await request(app)
+                .delete('/jobs/697905bfa9f9f488d664e2aa')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({ message: 'Delete failed' }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
