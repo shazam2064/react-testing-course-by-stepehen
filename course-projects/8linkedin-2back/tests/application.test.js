@@ -148,7 +148,7 @@ describe('Application Controller Tests', () => {
                 {_id: 'a1', resume: 'mock resume 1', job: {_id: 'j1'}, applicant: {_id: 'u1', name: 'User1'}},
                 {_id: 'a2', resume: 'mock resume 2', job: {_id: 'j2'}, applicant: {_id: 'u2', name: 'User2'}}
             ];
-            jest.spyOn(Application, 'find').mockImplementationOnce(() => makePopulateMock(mockedApplications));
+            jest.spyOn(Application, 'find').mockImplementation(() => makePopulateMock(mockedApplications));
 
             const loginResponse = await request(app)
                 .post('/auth/login')
@@ -169,7 +169,7 @@ describe('Application Controller Tests', () => {
         });
 
         it('returns 500 when Application.find rejects', async () => {
-            jest.spyOn(Application, 'find').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+            jest.spyOn(Application, 'find').mockImplementation(() => makePopulateMock(new Error('Database error'), true));
 
             const loginResponse = await request(app)
                 .post('/auth/login')
