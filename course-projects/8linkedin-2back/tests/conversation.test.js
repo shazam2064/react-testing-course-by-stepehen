@@ -151,11 +151,20 @@ describe('Conversation Controller Tests', () => {
                 conversations: expect.any(Array)
             }));
 
-            // ensure at least one conversation includes the admin user
-            const found = res.body.conversations.some(conv =>
-                conv.participants && conv.participants.some(p => p && p.email === 'gabrielsalomon.980m@gmail.com')
+            // ensure at least one conversation includes one of the integration messages
+            const messages = res.body.conversations.flatMap(conv => {
+                const arr = [];
+                if (conv.lastMessage && conv.lastMessage.text) arr.push(conv.lastMessage.text);
+                if (conv.messages && Array.isArray(conv.messages)) {
+                    arr.push(...conv.messages.map(m => (m && m.text) ? m.text : undefined).filter(Boolean));
+                }
+                return arr;
+            }).filter(Boolean);
+
+            const hasIntegrationMessage = messages.some(m =>
+                m === 'Integration conversation message 1' || m === 'Integration conversation message 2'
             );
-            expect(found).toBe(true);
+            expect(hasIntegrationMessage).toBe(true);
         });
 
         it('returns 200 and mocked conversations when Conversation.find resolves', async () => {
