@@ -81,12 +81,21 @@ exports.createConversation = async (req, res, next) => {
     let participants = req.body.participants;
     const text = req.body.text;
 
+    // safely parse stringified participants
     if (typeof participants === 'string') {
-        participants = JSON.parse(participants);
+        try {
+            participants = JSON.parse(participants);
+        } catch (err) {
+            return res.status(400).json({
+                message: 'Invalid data: participants must be an array of user ids'
+            });
+        }
     }
 
-    if (!text || participants.length < 2) {
-        throwError(400, '', 'Invalid data: A message and at least two participants are required');
+    if (!text || !Array.isArray(participants) || participants.length < 2) {
+        return res.status(400).json({
+            message: 'Invalid data: A message and at least two participants are required'
+        });
     }
 
     try {
@@ -106,13 +115,17 @@ exports.createConversation = async (req, res, next) => {
         for (const participantId of participants) {
             const user = await User.findById(participantId);
             if (!user) {
-                throwError(404, '', `User with ID ${participantId} not found`);
+                // return 404 instead of throwing to ensure the test receives a response
+                return res.status(404).json({
+                    message: `User with ID ${participantId} not found`
+                });
             }
+            user.conversations = user.conversations || [];
             user.conversations.push(savedConversation._id);
             await user.save();
         }
 
-        res.status(201).json({
+        return res.status(201).json({
             message: 'Conversation created successfully',
             conversation: savedConversation
         });
