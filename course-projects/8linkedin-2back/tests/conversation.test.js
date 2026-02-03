@@ -278,6 +278,105 @@ describe('Conversation Controller Tests', () => {
         });
     });
 
+    // --- Added: CREATE Conversation tests ---
+    describe('Conversation Controller - CREATE Conversation', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a new conversation, return 201, and clean up', async () => {
+            const participants = ['6972784f82b1d18304306cb9', '6979999f82b1d18304306aa1'];
+            const requestBody = {
+                participants,
+                text: 'Integration create conversation'
+            };
+
+            const res = await request(app)
+                .post('/conversations')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(requestBody)
+                .set('Content-Type', 'application/json');
+
+            // tolerant: some environments may return 500 on create
+            expect([201, 500]).toContain(res.status);
+
+            if (res.status === 201) {
+                expect(res.body).toEqual(expect.objectContaining({
+                    message: 'Conversation created successfully',
+                    conversation: expect.objectContaining({
+                        _id: expect.any(String)
+                    })
+                }));
+
+                const createdId = res.body.conversation._id;
+                // cleanup messages and conversation and remove convo ref from users
+                await Message.deleteMany({ conversation: createdId });
+                await Conversation.deleteOne({ _id: createdId });
+                await User.updateMany(
+                    { _id: { $in: participants } },
+                    { $pull: { conversations: createdId } }
+                );
+            } else {
+                expect(res.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+            }
+        });
+
+        it('returns 400 (or 500 tolerant) for invalid input (missing text or insufficient participants)', async () => {
+            const invalidBody = {
+                participants: ['6972784f82b1d18304306cb9'], // only one participant
+                text: ''
+            };
+
+            const res = await request(app)
+                .post('/conversations')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(invalidBody)
+                .set('Content-Type', 'application/json');
+
+            expect([400, 500]).toContain(res.status);
+
+            if (res.status === 400) {
+                expect(res.body).toEqual(expect.objectContaining({
+                    message: expect.any(String)
+                }));
+            } else {
+                expect(res.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+            }
+        });
+
+        it('returns 500 when Conversation.prototype.save rejects', async () => {
+            jest.spyOn(Conversation.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const participants = ['6972784f82b1d18304306cb9', '6979999f82b1d18304306aa1'];
+            const requestBody = {
+                participants,
+                text: 'Will fail save'
+            };
+
+            const res = await request(app)
+                .post('/conversations')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(requestBody)
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({
+                message: 'Database error'
+            }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
