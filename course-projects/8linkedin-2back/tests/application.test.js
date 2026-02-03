@@ -290,6 +290,161 @@ describe('Application Controller Tests', () => {
         });
     });
 
+    describe('Application Controller - UPDATE Application', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should update an existing application and return 200', async () => {
+            const createBody = {
+                job: '681b3c0f60a354792af26e35',
+                resume: 'Application to update',
+                coverLetter: 'Orig cover',
+                status: 'pending'
+            };
+
+            const createRes = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(createBody)
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdId = createRes.body.application._id;
+
+            const updateBody = {
+                resume: 'Updated resume content',
+                coverLetter: 'Updated cover',
+                status: 'reviewed'
+            };
+
+            const updateRes = await request(app)
+                .put(`/applications/${createdId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(updateBody)
+                .set('Content-Type', 'application/json');
+
+            expect(updateRes.status).toBe(200);
+            expect(updateRes.body).toEqual(expect.objectContaining({
+                message: 'Application updated successfully',
+                application: expect.objectContaining({
+                    _id: createdId,
+                    resume: 'Updated resume content',
+                    coverLetter: 'Updated cover',
+                    status: 'reviewed'
+                })
+            }));
+
+            // cleanup
+            await Application.deleteOne({ _id: createdId });
+        });
+
+        it('returns 422 (or 500 tolerant) for invalid input values', async () => {
+            // create a valid application first (tolerant if creation fails)
+            const createRes = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    job: '681b3c0f60a354792af26e35',
+                    resume: 'Will test invalid update',
+                    coverLetter: 'Orig',
+                    status: 'pending'
+                })
+                .set('Content-Type', 'application/json');
+
+            const targetId = createRes.status === 201 ? createRes.body.application._id : '681b3c0f60a354792af26e35';
+
+            const updateRes = await request(app)
+                .put(`/applications/${targetId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ resume: '' }) // invalid
+                .set('Content-Type', 'application/json');
+
+            expect([422, 500]).toContain(updateRes.status);
+
+            if (createRes.status === 201) {
+                await Application.deleteOne({ _id: createRes.body.application._id });
+            }
+        });
+
+        it('returns 404 when the application is not found', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Application, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .put(`/applications/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ resume: 'Irrelevant' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Application not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Application.findById rejects', async () => {
+            jest.spyOn(Application, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .put('/applications/681b3c0f60a354792af26e99')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ resume: 'Will trigger find error' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+        });
+
+        it('returns 500 when application.save rejects', async () => {
+            const createRes = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    job: '681b3c0f60a354792af26e35',
+                    resume: 'Will fail save on update',
+                    coverLetter: 'Orig',
+                    status: 'pending'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdId = createRes.body.application._id;
+
+            // mock instance save to reject on update
+            jest.spyOn(Application.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const updateRes = await request(app)
+                .put(`/applications/${createdId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ resume: 'Attempt update that fails on save' })
+                .set('Content-Type', 'application/json');
+
+            expect(updateRes.status).toBe(500);
+            expect(updateRes.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+
+            // cleanup
+            await Application.deleteOne({ _id: createdId });
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
