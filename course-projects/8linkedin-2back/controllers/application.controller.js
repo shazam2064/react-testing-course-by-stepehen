@@ -102,7 +102,8 @@ exports.updateApplication = async (req, res, next) => {
             if (!application) {
                 throwError(404, [], 'Application not found');
             }
-            if (application.applicant.toString() === req.userId) {
+            // FIX: only deny if the requester is NOT the applicant
+            if (application.applicant.toString() !== req.userId) {
                 throwError(403, [], 'Not authorized to update application');
             }
             application.resume = resume;
