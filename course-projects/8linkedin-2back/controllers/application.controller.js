@@ -89,38 +89,59 @@ exports.updateApplication = async (req, res, next) => {
     // #swagger.description = 'Updates an existing application.'
     // #swagger.tags = ['Applications'] #swagger.security = [{ "bearerAuth": [] }]
     console.log('The updateApplication controller was called with body:', req.body);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        throwError(422, errors.array(), 'Validation failed, entered data is incorrect');
+        console.log('Validation failed', errors.array());
+        return res.status(422).json({
+            message: 'Validation failed',
+            errors: errors.array()
+        });
     }
+
     const applicationId = req.params.applicationId;
     const resume = req.body.resume;
     const coverLetter = req.body.coverLetter;
     const status = req.body.status;
-    Application.findById(applicationId)
-        .then(application => {
-            if (!application) {
-                throwError(404, [], 'Application not found');
-            }
-            // FIX: only deny if the requester is NOT the applicant
-            if (application.applicant.toString() !== req.userId) {
-                throwError(403, [], 'Not authorized to update application');
-            }
-            application.resume = resume;
-            application.coverLetter = coverLetter;
-            application.status = status;
-            return application.save();
-        })
-        .then(result => {
-            console.log('Application updated successfully with result:', result);
-            res.status(200).json({
-                message: 'Application updated successfully',
-                application: result
-            });
-        })
-        .catch(err => {
-            handleError(err, next, 'Application update failed');
+
+    // Explicit validation: if a field is present but empty, treat as validation error
+    if (typeof resume === 'string' && resume.trim() === '') {
+        return res.status(422).json({
+            message: 'Validation failed',
+            errors: [{ type: 'field', value: resume, msg: 'Invalid value', path: 'resume', location: 'body' }]
         });
+    }
+    if (typeof coverLetter === 'string' && coverLetter.trim() === '') {
+        return res.status(422).json({
+            message: 'Validation failed',
+            errors: [{ type: 'field', value: coverLetter, msg: 'Invalid value', path: 'coverLetter', location: 'body' }]
+        });
+    }
+
+    try {
+        const application = await Application.findById(applicationId);
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        // Authorization: only applicant can update
+        if (application.applicant.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Not authorized to update application' });
+        }
+
+        application.resume = resume !== undefined ? resume : application.resume;
+        application.coverLetter = coverLetter !== undefined ? coverLetter : application.coverLetter;
+        application.status = status !== undefined ? status : application.status;
+
+        const result = await application.save();
+        console.log('Application updated successfully with result:', result);
+        return res.status(200).json({
+            message: 'Application updated successfully',
+            application: result
+        });
+    } catch (err) {
+        handleError(err, next, 'Application update failed');
+    }
 };
 
 exports.deleteApplication = async (req, res, next) => {
