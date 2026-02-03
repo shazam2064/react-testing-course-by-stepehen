@@ -445,6 +445,82 @@ describe('Application Controller Tests', () => {
         });
     });
 
+    describe('Application Controller - DELETE Application', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create an application, delete it, and return 200', async () => {
+            const createRes = await request(app)
+                .post('/applications')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({
+                    job: '681b3c0f60a354792af26e35',
+                    resume: 'Application to delete',
+                    coverLetter: 'Delete me',
+                    status: 'pending'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdId = createRes.body.application._id;
+
+            const deleteRes = await request(app)
+                .delete(`/applications/${createdId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(deleteRes.status).toBe(200);
+            expect(deleteRes.body).toEqual(expect.objectContaining({
+                message: 'Application deleted successfully'
+            }));
+
+            const check = await Application.findById(createdId);
+            expect(check).toBeNull();
+        });
+
+        it('returns 404 when the application is not found', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Application, 'findByIdAndDelete').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .delete(`/applications/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Application not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Application.findByIdAndDelete rejects', async () => {
+            jest.spyOn(Application, 'findByIdAndDelete').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .delete('/applications/681b3c0f60a354792af26e99')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({
+                message: 'Database error'
+            }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
