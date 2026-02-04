@@ -574,4 +574,35 @@ describe('Conversation Controller Tests', () => {
                 .set('Content-Type', 'application/json');
 
             expect([201, 404, 500]).toContain(createRes.status);
-            if
+            if (createRes.status !== 201) return;
+
+            const createdId = createRes.body.conversation._id;
+
+            jest.spyOn(Conversation.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const res = await request(app)
+                .put(`/conversations/${createdId}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ text: 'This will fail on conversation.save' })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+
+            // cleanup
+            await Message.deleteMany({ conversation: createdId });
+            await Conversation.deleteOne({ _id: createdId });
+            if (participants.length) {
+                await User.updateMany(
+                    { _id: { $in: participants } },
+                    { $pull: { conversations: createdId } }
+                );
+            }
+        });
+    });
+
+    afterAll(async () => {
+        const {closeConnection} = require('../util/database');
+        await closeConnection();
+    });
+});
