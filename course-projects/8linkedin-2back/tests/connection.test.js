@@ -321,7 +321,7 @@ describe('Connection Controller Tests', () => {
 
         it('returns 404 when the connection is not found (mock)', async () => {
             const missingId = '000000000000000000000000';
-            jest.spyOn(Connection, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+            jest.spyOn(Connection, 'findByIdAndDelete').mockImplementationOnce(() => Promise.resolve(null));
 
             const res = await request(app)
                 .delete(`/connections/${missingId}`)
@@ -336,7 +336,7 @@ describe('Connection Controller Tests', () => {
         });
 
         it('returns 500 when Connection.findById rejects (mock)', async () => {
-            jest.spyOn(Connection, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+            jest.spyOn(Connection, 'findByIdAndDelete').mockImplementationOnce(() => Promise.reject(new Error('Database error')));
 
             const res = await request(app)
                 .delete('/connections/697905bfa9f9f488d664e2ff')
