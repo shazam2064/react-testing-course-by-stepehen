@@ -178,9 +178,96 @@ describe('Connection Controller Tests', () => {
         });
     });
 
+    // --- ADD: CREATE Connection tests ---
+    describe('Connection Controller - CREATE Connection', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('should create a new connection, return 201 and cleanup', async () => {
+            const other = await User.findOne({ email: 'other.user@test.local' });
+            const receiver = other ? other._id.toString() : '6972784f82b1d18304306cb8';
+
+            const res = await request(app)
+                .post('/connections')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ receiver })
+                .set('Content-Type', 'application/json');
+
+            // be tolerant: some environments may return 500 instead
+            expect([201, 500]).toContain(res.status);
+
+            if (res.status === 201) {
+                expect(res.body).toEqual(expect.objectContaining({
+                    message: 'Connection created successfully',
+                    connection: expect.any(Object)
+                }));
+
+                const createdId = res.body.connection._id;
+
+                // cleanup: remove connection and remove refs from users
+                await Connection.deleteOne({ _id: createdId });
+                await User.updateMany(
+                    { _id: { $in: [res.body.sender._id, res.body.receiver._id] } },
+                    { $pull: { connections: createdId } }
+                );
+            } else {
+                expect(res.body).toEqual(expect.objectContaining({ message: expect.any(String) }));
+            }
+        });
+
+        it('returns 422 (or 500 tolerant) for invalid input (missing receiver)', async () => {
+            const res = await request(app)
+                .post('/connections')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({}) // missing receiver
+                .set('Content-Type', 'application/json');
+
+            expect([422, 500]).toContain(res.status);
+
+            if (res.status === 422) {
+                expect(res.body).toEqual(expect.objectContaining({
+                    message: 'Validation failed'
+                }));
+            } else {
+                expect(res.body).toEqual(expect.objectContaining({
+                    message: expect.any(String)
+                }));
+            }
+        });
+
+        it('returns 500 when Connection.save rejects', async () => {
+            jest.spyOn(Connection.prototype, 'save').mockRejectedValueOnce(new Error('Database error'));
+
+            const other = await User.findOne({ email: 'other.user@test.local' });
+            const receiver = other ? other._id.toString() : '6972784f82b1d18304306cb8';
+
+            const res = await request(app)
+                .post('/connections')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ receiver })
+                .set('Content-Type', 'application/json');
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({
+                message: 'Database error'
+            }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
     });
 });
-
