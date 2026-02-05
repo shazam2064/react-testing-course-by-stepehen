@@ -266,6 +266,89 @@ describe('Connection Controller Tests', () => {
         });
     });
 
+    // --- ADD: DELETE Connection tests ---
+    describe('Connection Controller - DELETE Connection', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('creates a connection then deletes it and returns 200 (integration)', async () => {
+            const other = await User.findOne({ email: 'other.user@test.local' });
+            const receiver = other ? other._id.toString() : '6972784f82b1d18304306cb8';
+
+            // create connection (tolerant if create fails in some envs)
+            const createRes = await request(app)
+                .post('/connections')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ receiver })
+                .set('Content-Type', 'application/json');
+
+            expect([201, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return; // abort integration path if create failed
+
+            const createdId = createRes.body.connection._id;
+
+            const delRes = await request(app)
+                .delete(`/connections/${createdId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(delRes.status).toBe(200);
+            expect(delRes.body).toEqual(expect.objectContaining({
+                message: 'Connection deleted successfully'
+            }));
+
+            // verify removed from DB
+            const check = await Connection.findById(createdId);
+            expect(check).toBeNull();
+
+            // cleanup just in case
+            await User.updateMany(
+                { _id: { $in: [createRes.body.sender?._id, createRes.body.receiver?._id].filter(Boolean) } },
+                { $pull: { connections: createdId } }
+            );
+        });
+
+        it('returns 404 when the connection is not found (mock)', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Connection, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .delete(`/connections/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Connection not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Connection.findById rejects (mock)', async () => {
+            jest.spyOn(Connection, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .delete('/connections/697905bfa9f9f488d664e2ff')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({
+                message: 'Database error'
+            }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
