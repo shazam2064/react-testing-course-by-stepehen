@@ -349,6 +349,99 @@ describe('Connection Controller Tests', () => {
         });
     });
 
+    // --- ADD: FOLLOW/UNFOLLOW User tests ---
+    describe('Connection Controller - FOLLOW/UNFOLLOW User', () => {
+        let adminId;
+        let targetId;
+        const emailTarget = 'follow.target@test.local';
+
+        beforeAll(async () => {
+            const { ObjectId } = require('mongodb');
+            const passwordHash = await bcrypt.hash('123456', 12);
+
+            // ensure a fresh target user (avoids existing connections between admin and "other")
+            const targetObjectId = new ObjectId(); // new unique id
+            await User.updateOne(
+                { email: emailTarget },
+                {
+                    $set: {
+                        email: emailTarget,
+                        password: passwordHash,
+                        name: 'Follow Target',
+                        isAdmin: false
+                    },
+                    $setOnInsert: { _id: targetObjectId }
+                },
+                { upsert: true }
+            );
+
+            const admin = await User.findOne({ email: 'gabrielsalomon.980m@gmail.com' });
+            const target = await User.findOne({ email: emailTarget });
+
+            adminId = admin._id.toString();
+            targetId = target._id.toString();
+
+            // ensure no pre-existing follower/following reference
+            await User.updateOne({ _id: admin._id }, { $pull: { following: target._id } });
+            await User.updateOne({ _id: target._id }, { $pull: { followers: admin._id } });
+        });
+
+        it('should follow a user (adds follower/following) then unfollow (removes)', async () => {
+            const connectionController = require('../controllers/connection.controller');
+
+            const req = { userId: adminId, params: { followingId: targetId } };
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+            const next = jest.fn();
+
+            // FIRST: follow
+            await connectionController.followUser(req, res, next);
+
+            // verify response
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalled();
+
+            // verify DB: admin.following contains target, target.followers contains admin
+            const adminAfterFollow = await User.findById(adminId);
+            const targetAfterFollow = await User.findById(targetId);
+
+            expect(adminAfterFollow.following.map(String)).toContain(targetId);
+            expect(targetAfterFollow.followers.map(String)).toContain(adminId);
+
+            // Reset response mocks
+            res.status.mockClear(); res.json.mockClear();
+
+            // SECOND: unfollow (calling again toggles)
+            // mock deleteConnection to avoid side-effects if a Connection existed
+            jest.spyOn(connectionController, 'deleteConnection').mockImplementationOnce(async () => { return; });
+
+            await connectionController.followUser(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalled();
+
+            const adminAfterUnfollow = await User.findById(adminId);
+            const targetAfterUnfollow = await User.findById(targetId);
+
+            expect(adminAfterUnfollow.following.map(String)).not.toContain(targetId);
+            expect(targetAfterUnfollow.followers.map(String)).not.toContain(adminId);
+        });
+
+        it('returns 500 when User.findById rejects (mock)', async () => {
+            const connectionController = require('../controllers/connection.controller');
+
+            jest.spyOn(User, 'findById').mockRejectedValueOnce(new Error('Database error'));
+
+            const req = { userId: adminId, params: { followingId: targetId } };
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+            const next = jest.fn();
+
+            await connectionController.followUser(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Database error' }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
