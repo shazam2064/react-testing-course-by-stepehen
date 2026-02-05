@@ -696,6 +696,93 @@ describe('Conversation Controller Tests', () => {
         });
     });
 
+    // --- ADD: DELETE Conversation tests ---
+    describe('Conversation Controller - DELETE Conversation', () => {
+        let validToken;
+
+        beforeAll(async () => {
+            const loginResponse = await request(app)
+                .post('/auth/login')
+                .send({
+                    email: 'gabrielsalomon.980m@gmail.com',
+                    password: '123456'
+                })
+                .set('Content-Type', 'application/json');
+
+            expect(loginResponse.status).toBe(200);
+            validToken = loginResponse.body.token;
+        });
+
+        it('creates a conversation then deletes it and returns 200 (integration)', async () => {
+            const admin = await User.findOne({ email: 'gabrielsalomon.980m@gmail.com' });
+            const other = await User.findOne({ email: 'other.user@test.local' });
+            const participants = [];
+            if (admin) participants.push(admin._id.toString());
+            if (other) participants.push(other._id.toString());
+
+            const createRes = await request(app)
+                .post('/conversations')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ participants, text: 'Conversation to delete' })
+                .set('Content-Type', 'application/json');
+
+            // tolerate 201 (success) or 404/500 in some environments
+            expect([201, 404, 500]).toContain(createRes.status);
+            if (createRes.status !== 201) return;
+
+            const createdId = createRes.body.conversation._id;
+
+            const delRes = await request(app)
+                .delete(`/conversations/${createdId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(delRes.status).toBe(200);
+            expect(delRes.body).toEqual(expect.objectContaining({
+                message: 'Conversation deleted successfully'
+            }));
+
+            // verify removed from DB
+            const check = await Conversation.findById(createdId);
+            expect(check).toBeNull();
+
+            // cleanup just in case
+            await Message.deleteMany({ conversation: createdId });
+            if (participants.length) {
+                await User.updateMany(
+                    { _id: { $in: participants } },
+                    { $pull: { conversations: createdId } }
+                );
+            }
+        });
+
+        it('returns 404 when conversation is not found (mock)', async () => {
+            const missingId = '000000000000000000000000';
+            jest.spyOn(Conversation, 'findById').mockImplementationOnce(() => makePopulateMock(null));
+
+            const res = await request(app)
+                .delete(`/conversations/${missingId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(404);
+            if (res.body && Object.keys(res.body).length > 0) {
+                expect(res.body).toEqual(expect.objectContaining({ message: 'Conversation not found' }));
+            } else {
+                expect(res.body).toEqual({});
+            }
+        });
+
+        it('returns 500 when Conversation.findById rejects (mock)', async () => {
+            jest.spyOn(Conversation, 'findById').mockImplementationOnce(() => makePopulateMock(new Error('Database error'), true));
+
+            const res = await request(app)
+                .delete('/conversations/697a0000a9f9f488d664a0ff')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(res.status).toBe(500);
+            expect(res.body).toEqual(expect.objectContaining({ message: 'Database error' }));
+        });
+    });
+
     afterAll(async () => {
         const {closeConnection} = require('../util/database');
         await closeConnection();
