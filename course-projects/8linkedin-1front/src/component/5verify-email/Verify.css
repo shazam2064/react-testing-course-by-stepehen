@@ -1,0 +1,30 @@
+.verify-container {
+    text-align: center;
+    margin-left: 200px;
+    margin-top: 100px;
+
+}
+
+.verify-container h1 {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.verify-container p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.verify-container .success {
+    color: green;
+}
+
+.verify-container .error {
+    color: red;
+}
+
+.verify-container a {
+    font-size: 1.2em;
+    color: blue;
+    text-decoration: underline;
+}

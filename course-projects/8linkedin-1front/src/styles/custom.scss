@@ -1,0 +1,324 @@
+@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+
+.App {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100vh;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: #f2f0ec;
+}
+
+button.btn-outline {
+  &:hover {
+    color: #ffffff !important;
+  }
+
+  &:active {
+    color: #ffffff !important;
+  }
+}
+
+// Chat styles
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%; // Full height of the parent container
+
+  .messages {
+    flex-shrink: 0; // Prevents shrinking
+    flex-grow: 0; // Prevents growing
+    height: 400px; // Fixed height for the message area
+    overflow-y: auto; // Enables vertical scrolling
+    padding: 1rem;
+    border: 1px solid #e5e6e4; // Optional border for clarity
+    border-radius: 10px;
+    background-color: #fcfcfc; // Light background for messages
+  }
+
+  .message-input {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-top: 1px solid #e5e6e4; // Separate input box visually
+    background-color: #ffffff;
+
+    input {
+      flex: 1; // Input takes up available space
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      margin-left: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #0056b3;
+      }
+    }
+  }
+}
+
+
+// Message styles
+.message-item {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0;
+  width: 100%; // Bubble spans the entire x-axis
+
+  &.sent {
+    align-items: flex-end;
+  }
+
+  &.received {
+    align-items: flex-start;
+  }
+
+  p {
+    background-color: #007bff; // Blue for sent messages
+    color: white;
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin: 0;
+    max-width: 70%; // Limit bubble width
+    word-wrap: break-word;
+  }
+
+  &.received p {
+    background-color: #f1f1f1; // Light gray for received messages
+    color: black;
+  }
+
+  small {
+    font-size: 12px;
+    color: gray;
+    margin-top: 5px;
+    text-align: right;
+    width: 100%; // Aligns the small text to the full width
+  }
+
+  &.received small {
+    text-align: left; // Aligns small text for received messages
+  }
+}
+
+// Profile Image
+.profile-image {
+  width: 150px; // Adjust size as needed
+  height: 150px;
+  border-radius: 50%; // Makes the image circular
+  border: 3px solid #e5e6e4; // Adds a border
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); // Subtle shadow for depth
+  object-fit: cover; // Ensures the image fits within the circle
+  margin: 0 auto; // Centers the image horizontally
+  margin-top: 15px;
+  display: block; // Ensures proper centering
+}
+
+.tiny-profile-image {
+  width: 30px; // Set the width
+  height: 30px; // Set the height
+  border-radius: 50%; // Makes the image circular
+  object-fit: cover; // Ensures the image fits within the circle
+  margin-right: 0.5rem; // Adds spacing to the right
+  display: inline-block; // Ensures proper alignment
+}
+
+
+// Search bar styles
+
+.search-group {
+  width: 70%;
+  display: flex;
+
+  @media (min-width: 768px) {
+    width: 70%;
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+
+    .search-bar {
+      flex: 1;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      font-color: #5b6063;
+    }
+
+    .search-icon {
+      background-color: #eef3f9;
+      color: #fff;
+      border: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.62rem 0.75rem;
+    }
+  }
+}
+
+// Topbar styles
+
+.topbar {
+  width: 100%;
+  padding: 1em 1em; // Reduce padding to make the topbar less thick
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e6e4;
+  background-color: #ffffff; // Ensure navbar background is white
+
+  .navbar-brand {
+    margin-right: auto;
+    margin-left: 20px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    width: 100%;
+
+    .nav-item {
+      margin: 0 1em;
+    }
+  }
+
+  img {
+    height: 45px;
+    width: auto;
+  }
+}
+
+// Logout Button styles
+.logout-link {
+  text-decoration: none; // Remove underline
+  color: #575757; // Match the color of other nav routes
+  transition: color 0.3s, background-color 0.3s; // Smooth hover effect
+
+  &:hover {
+    color: #000000; // Darker text on hover
+  }
+}
+
+// Custom Accordion styles
+.custom-border {
+  border: 2px solid #e5eeef;
+  border-radius: 10px;
+
+}
+
+
+// Sidebar styles
+.sidebar {
+  position: fixed; // Fix the sidebar in place
+  top: 111px; // Align with the top margin
+  left: -21%; // Initially hidden
+  min-width: 250px;
+  max-width: 20%; // Ensure max width is 20%
+  width: 20%; // Set width to 20% for consistency
+  height: calc(100vh - 111px); // Full height minus top margin
+  transition: all 0.5s ease-in-out;
+  margin-left: 1%;
+  z-index: 1000; // Ensure it stays below the content
+
+  &.is-open {
+    left: 0; // Slide in when open
+  }
+
+
+  .nav-link {
+    color: #656565;
+    text-decoration: none;
+    transition: 0.3s;
+  }
+
+  .nav-link:hover {
+    color: #000000;
+    background: #f5f5f5;
+  }
+
+  .nav-link.active {
+    color: #000000;
+    background: #f5f5f5;
+  }
+
+  .nav-item {
+    padding: 4px 15px;
+    display: block;
+    text-decoration: none;
+    transition: 0.3s;
+  }
+
+  .nav-item:hover {
+    background: #ffffff;
+  }
+
+  .nav-item.active {
+    background: #ffffff;
+  }
+
+  &-header {
+    > span {
+      position: relative;
+      float: right;
+      margin: 0.5em;
+      font-size: 2rem;
+      cursor: pointer;
+      display: none;
+    }
+  }
+
+  .side-menu {
+    height: calc(100vh - 100px);
+    overflow-y: scroll;
+
+    &::-webkit-scrollbar {
+      width: 10px;
+    }
+  }
+}
+
+// Content styles
+.content {
+  flex: 1;
+  padding: 20px;
+  margin-top: 92px;
+  margin-left: 0; // Default margin when sidebar is hidden
+  height: calc(100vh - 100px);
+  transition: margin-left 0.5s ease-in-out;
+
+  &.is-open {
+    margin-left: 20%; // Adjust when sidebar is open
+  }
+}
+
+@media only screen and (max-width: 500px) {
+  .sidebar {
+    min-width: 100%;
+    max-width: 100%;
+    left: -100%; // Hide sidebar off-screen
+    &.is-open {
+      left: 0; // Slide in when open
+    }
+  }
+
+  .content {
+    &.is-open {
+      margin-left: 0; // No margin for smaller screens
+    }
+  }
+}
