@@ -33,7 +33,7 @@
   "scripts": {
     "start": "set PORT=3007 && react-scripts start",
     "build": "react-scripts build",
-    "test": "rjest --no-cache --config jest.config.js --watch",
+    "test": "jest --no-cache --config jest.config.js --watch",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
