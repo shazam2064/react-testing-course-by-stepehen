@@ -56,11 +56,16 @@ function Profile(props) {
     const [initialTab, setInitialTab] = useState('1');
     const [openExperience, setOpenExperience] = useState('');
     const [openEducation, setOpenEducation] = useState('');
-    const hasConnection = adminUser.connections.some(
-        connection => connection.sender._id === loggedUser.userId
+    // guard against undefined arrays during initial render/tests
+    const connections = adminUser.connections || [];
+    const followers = adminUser.followers || [];
+    const following = adminUser.following || [];
+
+    const hasConnection = connections.some(
+        connection => connection.sender && connection.sender._id === loggedUser.userId
     );
-    const isFollower = adminUser.followers.some(follower => follower._id === loggedUser.userId);
-    const isPending = hasConnection && adminUser.connections.some(connection => connection.status === 'pending');
+    const isFollower = followers.some(follower => follower && follower._id === loggedUser.userId);
+    const isPending = hasConnection && connections.some(connection => connection && connection.status === 'pending');
 
 
     const toggleExperience = (id) => {
@@ -249,7 +254,7 @@ function Profile(props) {
                                                 setInitialTab('1'); // Show Followers tab
                                             }}
                                         >
-                                            Followers: <strong>{adminUser.followers.length}</strong>
+                                            Followers: <strong>{followers.length}</strong>
                                         </button>
                                     </li>
                                     <span className="mx-2"></span>
@@ -261,7 +266,7 @@ function Profile(props) {
                                                 setInitialTab('2'); // Show Following tab
                                             }}
                                         >
-                                            Following: <strong>{adminUser.following.length}</strong>
+                                            Following: <strong>{following.length}</strong>
                                         </button>
                                     </li>
                                 </List>

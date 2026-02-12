@@ -12,13 +12,13 @@ jest.mock('../../rest/useRestAdminUsers', () => ({
 }));
 const {useFetchAdminUserById} = require('../../rest/useRestAdminUsers');
 
-jest.mock('../0commons/TweetItem', () => {
+jest.mock('../0commons/PostItem', () => {
     const React = require('react');
-    return ({ tweet }) => React.createElement('div', { 'data-testid': `tweet-${tweet?._id || 'noop'}` }, tweet?._id || 'tweet-noop');
+    return ({ post }) => React.createElement('div', { 'data-testid': `post-${post?._id || 'noop'}` }, post?._id || 'post-noop');
 });
 
-jest.mock('../../rest/useRestTweets', () => ({
-    useFetchTweets: jest.fn().mockReturnValue(() => Promise.resolve([]))
+jest.mock('../../rest/useRestPosts', () => ({
+    useFetchPosts: jest.fn().mockReturnValue(() => Promise.resolve([]))
 }));
 
 const sampleAdmin = {
@@ -93,4 +93,3 @@ describe('Profile component', () => {
         spy.mockRestore();
     });
 });
-
