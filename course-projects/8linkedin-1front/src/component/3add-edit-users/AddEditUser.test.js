@@ -39,7 +39,8 @@ describe('AddEditUser', () => {
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    // target the submit button by its visible text to avoid matching other buttons
+    expect(screen.getByRole('button', { name: /Add User/i })).toBeInTheDocument();
   });
 
   it('submits form and navigates', async () => {
@@ -48,7 +49,8 @@ describe('AddEditUser', () => {
     fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'John' } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button'));
+    // click the submit button by name to avoid ambiguous matches
+    fireEvent.click(screen.getByRole('button', { name: /Add User/i }));
 
     await waitFor(() => {
       expect(history.location.pathname).toBe('/profile/created-id');
