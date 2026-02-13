@@ -21,12 +21,15 @@ const SideBar = ({ isOpen, setSidebarOpen, history }) => {
     const fetchAdminUserById = useFetchAdminUserById();
 
     useEffect(() => {
-        if (loggedUser.isLogged && history.location.pathname !== `/profile/${loggedUser.userId}`) {
-            setSidebarOpen(true);
-        } else {
-            setSidebarOpen(false);
+        // Only call setSidebarOpen when a function was provided (tests may omit it)
+        if (typeof setSidebarOpen === 'function') {
+            if (loggedUser.isLogged && history.location.pathname !== `/profile/${loggedUser.userId}`) {
+                setSidebarOpen(true);
+            } else {
+                setSidebarOpen(false);
+            }
         }
-    }, [loggedUser.isLogged, loggedUser.userId, history.location.pathname ]);
+    }, [loggedUser.isLogged, loggedUser.userId, history.location.pathname, setSidebarOpen]);
 
     useEffect(() => {
         if (!loggedUser.userId) return; // Ensure userId exists before fetching
