@@ -78,11 +78,16 @@ describe('ViewPost', () => {
 
     renderWithRoute('p-1');
 
-    await waitFor(() => expect(screen.getByTestId('post-item')).toBeInTheDocument());
+    // wait for the effect to complete and the post to be rendered with its comments count
+    await waitFor(() => {
+      // PostItem should receive the post id in its rendered output
+      expect(screen.getByTestId('post-item')).toHaveTextContent(samplePost._id);
+      // and the comments header should reflect the number of comments
+      expect(screen.getByText(/2 Comments/i)).toBeInTheDocument();
+    });
 
-    expect(screen.getByText(/2 Comments/i)).toBeInTheDocument();
-
-    const comments = screen.getAllByTestId('comment-item');
+    // now the Comments components should be rendered
+    const comments = await screen.findAllByTestId('comment-item');
     expect(comments).toHaveLength(2);
 
     expect(screen.getByTestId('add-edit-comment')).toBeInTheDocument();
