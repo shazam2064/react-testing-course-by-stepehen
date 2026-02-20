@@ -1,28 +1,26 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
+import SideBar from './SideBar';
 import { UserContext, DispatchContext } from '../../../contexts/user.context';
 import { AdminUsersContext } from '../../../contexts/admin-users.context';
 
 jest.mock('../../../rest/useRestAdminUsers', () => ({
-  useFetchAdminUserById: () => (userId) => Promise.resolve({ _id: userId || 'u1', image: null })
+  useFetchAdminUserById: jest.fn(),
 }));
 
-import SideBar from './SideBar';
+afterEach(() => {
+  jest.resetAllMocks();
+});
 
-const sampleUserLoggedOut = { isLogged: false, userId: null };
-const sampleUserLoggedIn = { isLogged: true, userId: 'u1' };
-const sampleAdminUsers = [];
-
-function renderWithProviders({ isOpen = true, user = sampleUserLoggedOut, adminUsers = sampleAdminUsers, history = createMemoryHistory() } = {}) {
+function renderWithProviders({ isOpen = true, user = { isLogged: false }, history = createMemoryHistory(), setSidebarOpen = jest.fn(), adminUsers = [] } = {}) {
   return render(
     <Router history={history}>
       <UserContext.Provider value={user}>
         <DispatchContext.Provider value={jest.fn()}>
           <AdminUsersContext.Provider value={{ adminUsers, reloadFlag: false }}>
-            <SideBar isOpen={isOpen} toggle={jest.fn()} />
+            <SideBar isOpen={isOpen} setSidebarOpen={setSidebarOpen} history={history} />
           </AdminUsersContext.Provider>
         </DispatchContext.Provider>
       </UserContext.Provider>
@@ -30,52 +28,69 @@ function renderWithProviders({ isOpen = true, user = sampleUserLoggedOut, adminU
   );
 }
 
-afterEach(() => {
-  jest.resetAllMocks();
+test('renders no profile/connections when user is not logged in', () => {
+  renderWithProviders({ isOpen: true, user: { isLogged: false } });
+  // side-menu should be present but no profile card content
+  expect(screen.queryByText(/Connections/i)).toBeNull();
+  expect(screen.queryByText(/No connections available/i)).toBeNull();
 });
 
-describe('SideBar', () => {
-  it('renders Home, Explore and Users links with correct hrefs', () => {
-    const history = createMemoryHistory();
-    renderWithProviders({ history });
+test('shows profile card and connections when logged in', async () => {
+  const sampleAdmin = {
+    _id: 'admin-1',
+    name: 'Logged User',
+    about: 'About me',
+    location: 'City',
+    headline: 'Developer',
+    image: null,
+    following: [
+      { _id: 'f1', name: 'Friend One', image: null },
+      { _id: 'f2', name: 'Friend Two', image: null },
+    ],
+  };
 
-    const homeLink = screen.getByText(/Home/i).closest('a');
-    const exploreLink = screen.getByText(/Explore/i).closest('a');
-    const usersLink = screen.getByText(/Users/i).closest('a');
+  // configure mocked hook to return a fetch function that resolves to sampleAdmin
+  const rest = require('../../../rest/useRestAdminUsers');
+  rest.useFetchAdminUserById.mockReturnValue(() => Promise.resolve(sampleAdmin));
 
-    expect(homeLink).toHaveAttribute('href', '/');
-    expect(exploreLink).toHaveAttribute('href', '/tweets');
-    expect(usersLink).toHaveAttribute('href', '/users');
+  renderWithProviders({ isOpen: true, user: { isLogged: true, userId: 'admin-1' } });
 
-    const sidebar = document.querySelector('.sidebar');
-    expect(sidebar).toBeInTheDocument();
-  });
+  // wait for async fetch and DOM update
+  await waitFor(() => expect(screen.getByText('Logged User')).toBeInTheDocument());
+  expect(screen.getByText('About me')).toBeInTheDocument();
+  expect(screen.getByText(/Location:/)).toBeInTheDocument();
+  expect(screen.getByText(/Headline:/)).toBeInTheDocument();
 
-  it('applies "is-open" class when isOpen is true and not when false', () => {
-    const history = createMemoryHistory();
-    const { container: c1 } = renderWithProviders({ isOpen: true, history });
-    expect(c1.querySelector('.sidebar')).toHaveClass('is-open');
+  // connections heading and friend names should be present
+  expect(screen.getByText(/Connections/i)).toBeInTheDocument();
+  expect(screen.getByText('Friend One')).toBeInTheDocument();
+  expect(screen.getByText('Friend Two')).toBeInTheDocument();
+});
 
-    const { container: c2 } = renderWithProviders({ isOpen: false, history });
-    expect(c2.querySelector('.sidebar')).not.toHaveClass('is-open');
-  });
+test('clicking a connection link navigates to that profile', async () => {
+  const sampleAdmin = {
+    _id: 'admin-1',
+    name: 'Logged User',
+    about: 'About me',
+    location: 'City',
+    headline: 'Developer',
+    image: null,
+    following: [
+      { _id: 'f1', name: 'Friend One', image: null },
+    ],
+  };
 
-  it('navigates when a link is clicked', async () => {
-    const history = createMemoryHistory({ initialEntries: ['/'] });
-    renderWithProviders({ isOpen: true, history });
+  const rest = require('../../../rest/useRestAdminUsers');
+  rest.useFetchAdminUserById.mockReturnValue(() => Promise.resolve(sampleAdmin));
 
-    await userEvent.click(screen.getByText(/Explore/i));
-    expect(history.location.pathname).toBe('/tweets');
+  const history = createMemoryHistory({ initialEntries: ['/'] });
+  renderWithProviders({ isOpen: true, user: { isLogged: true, userId: 'admin-1' }, history });
 
-    await userEvent.click(screen.getByText(/Users/i));
-    expect(history.location.pathname).toBe('/users');
-  });
+  await waitFor(() => expect(screen.getByText('Friend One')).toBeInTheDocument());
 
-  it('shows profile link and tweet button when logged in', async () => {
-    const history = createMemoryHistory({ initialEntries: ['/'] });
-    renderWithProviders({ isOpen: true, user: sampleUserLoggedIn, history });
+  const link = screen.getByText('Friend One').closest('a');
+  expect(link).toBeInTheDocument();
 
-    expect(screen.getByText(/Profile/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Tweet/i })).toBeInTheDocument();
-  });
+  fireEvent.click(link);
+  expect(history.location.pathname).toBe('/profile/f1');
 });
