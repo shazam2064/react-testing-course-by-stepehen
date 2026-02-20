@@ -52,6 +52,7 @@ const SideBar = ({ isOpen, setSidebarOpen, history }) => {
                 // Fetch top followed users
                 if (fetchedAdminUser.following && fetchedAdminUser.following.length > 0) {
                     const topUsers = fetchedAdminUser.following.slice(0, 3).map(user => ({
+                        _id: user._id, // include id so Link targets are correct
                         name: user.name || "Unknown User",
                         imageUrl: user.image
                             ? `${API_URL}/${user.image}`
