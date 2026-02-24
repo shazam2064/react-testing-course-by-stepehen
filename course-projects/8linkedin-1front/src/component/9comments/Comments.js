@@ -110,6 +110,7 @@ function Comments({comment, history, triggerReload, setError, handleEditComment}
                             <CardText>
                                 {comment.text}
                                 <div
+                                    data-testid={`like-${comment._id}`}
                                     className={`mt-1 ${hasLiked ? 'text-danger' : ''}`}
                                     onClick={() => handleLikeComment(comment._id)}
                                     style={{cursor: 'pointer'}}
@@ -128,3 +129,4 @@ function Comments({comment, history, triggerReload, setError, handleEditComment}
 }
 
 export default Comments;
+

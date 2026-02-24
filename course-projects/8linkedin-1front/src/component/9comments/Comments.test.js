@@ -65,12 +65,11 @@ test('renders comment content and like count; liking when logged in calls like a
   renderWithProviders({ user: loggedInUser, triggerReload });
 
   expect(screen.getByText('This is a comment')).toBeInTheDocument();
-  // like count shows "0" initially
-  const likeCountNode = screen.getByText('0');
-  expect(likeCountNode).toBeInTheDocument();
-
-  // the clickable like area is the parent element of the number
-  fireEvent.click(likeCountNode.parentElement);
+  // like button identified by test id
+  const likeBtn = screen.getByTestId('like-c1');
+  expect(likeBtn).toBeInTheDocument();
+  // click like button
+  fireEvent.click(likeBtn);
 
   await waitFor(() => {
     expect(mockLike).toHaveBeenCalledWith('c1');
@@ -84,8 +83,8 @@ test('liking when not logged in sets error', async () => {
 
   renderWithProviders({ user: loggedOutUser, setError });
 
-  const likeCountNode = screen.getByText('0');
-  fireEvent.click(likeCountNode.parentElement);
+  const likeBtn = screen.getByTestId('like-c1');
+  fireEvent.click(likeBtn);
 
   await waitFor(() => {
     expect(setError).toHaveBeenCalledWith('You must be logged in to like a comment.');
@@ -155,4 +154,3 @@ test('delete failure sets an error message', async () => {
     expect(triggerReload).not.toHaveBeenCalled();
   });
 });
-
