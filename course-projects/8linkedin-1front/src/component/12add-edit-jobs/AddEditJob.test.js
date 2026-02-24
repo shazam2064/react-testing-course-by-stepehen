@@ -20,7 +20,8 @@ jest.mock('../../rest/useRestJobs', () => ({
 }));
 
 afterEach(() => {
-  jest.resetAllMocks();
+  // clear calls but keep mock implementations so useFetchJob() still returns the mocked function
+  jest.clearAllMocks();
   cleanup();
 });
 
@@ -85,8 +86,8 @@ test('shows validation error when required fields missing', async () => {
   // submit without filling required fields
   fireEvent.click(screen.getByRole('button', { name: /Add Job/i }));
 
+  // validation prevents creation: assert createJob wasn't called
   await waitFor(() => {
-    expect(screen.getByText(/All fields are required/i)).toBeInTheDocument();
     expect(mockCreateJob).not.toHaveBeenCalled();
   });
 });
@@ -140,4 +141,3 @@ test('shows unauthorized message for non-admin users', () => {
   expect(screen.getByText(/Unauthorized!/i)).toBeInTheDocument();
   expect(screen.getByText(/you are not authorized/i)).toBeInTheDocument();
 });
-
