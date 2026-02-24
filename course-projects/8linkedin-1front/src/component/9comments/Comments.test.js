@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import Comments from './Comments';
 import { CommentsContext, DispatchContext } from '../../contexts/comments.context';
 import { UserContext } from '../../contexts/user.context';
+import { MemoryRouter } from 'react-router-dom';
+
+// ensure API_URL is defined before components import it
+process.env.API_URL = process.env.API_URL || 'http://test';
 
 // Mock REST hooks
 const mockDelete = jest.fn();
@@ -35,19 +39,21 @@ function renderWithProviders({
   handleEditComment = jest.fn(),
 } = {}) {
   return render(
-    <CommentsContext.Provider value={comments}>
-      <DispatchContext.Provider value={jest.fn()}>
-        <UserContext.Provider value={user}>
-          <Comments
-            comment={comment}
-            triggerReload={triggerReload}
-            setError={setError}
-            handleEditComment={handleEditComment}
-            history={{}}
-          />
-        </UserContext.Provider>
-      </DispatchContext.Provider>
-    </CommentsContext.Provider>
+    <MemoryRouter>
+      <CommentsContext.Provider value={comments}>
+        <DispatchContext.Provider value={jest.fn()}>
+          <UserContext.Provider value={user}>
+            <Comments
+              comment={comment}
+              triggerReload={triggerReload}
+              setError={setError}
+              handleEditComment={handleEditComment}
+              history={{}}
+            />
+          </UserContext.Provider>
+        </DispatchContext.Provider>
+      </CommentsContext.Provider>
+    </MemoryRouter>
   );
 }
 
