@@ -104,10 +104,12 @@ describe('ViewJob component', () => {
 
     const { history } = renderWithRouter(sampleJob._id, { fetchImpl, deleteImpl, user, dispatch });
 
-    // wait for job to render and Delete button to appear
-    await waitFor(() => expect(screen.getByRole('button', { name: /Delete/i })).toBeInTheDocument());
+    // wait for the fetched job heading to appear (title may be combined with location in the heading)
+    await waitFor(() => expect(screen.getByRole('heading', { name: new RegExp(sampleJob.title, 'i') })).toBeInTheDocument());
 
-    userEvent.click(screen.getByRole('button', { name: /Delete/i }));
+    // now get and click the Delete button (safe — rendered for the fetched job)
+    const deleteButton = screen.getByRole('button', { name: /Delete/i });
+    userEvent.click(deleteButton);
 
     await waitFor(() => {
       // delete hook should be called with job id
