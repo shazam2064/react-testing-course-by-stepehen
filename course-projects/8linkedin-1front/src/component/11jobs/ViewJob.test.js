@@ -11,19 +11,11 @@ jest.mock('../../rest/useRestJobs', () => ({
   useDeleteJob: jest.fn(),
 }));
 
-// lightweight Card children don't need real implementation
-jest.mock('react-router-dom', () => {
-  const actual = jest.requireActual('react-router-dom');
-  return {
-    ...actual,
-  };
-});
-
 const { useFetchJob, useDeleteJob } = require('../../rest/useRestJobs');
 
 afterEach(() => {
+  // keep mock implementations but clear call history
   jest.resetAllMocks();
-  jest.resetModules();
 });
 
 function renderWithRouter(jobId, { fetchImpl, deleteImpl, user = { isAdmin: false, isLogged: true }, dispatch = jest.fn(), history } = {}) {
