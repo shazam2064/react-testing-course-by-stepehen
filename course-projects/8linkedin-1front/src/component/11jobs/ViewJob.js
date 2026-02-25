@@ -44,6 +44,10 @@ const ViewJob = memo(function ViewJob(props) {
                 setReload(false);
                 setError(null);
             } catch (err) {
+                // If Unauthorized, notify global state to logout
+                if (err && err.message === 'Unauthorized') {
+                    dispatch({ type: 'LOGOUT' });
+                }
                 setError(err.message || 'Job could not be retrieved.');
             }
         };
@@ -52,7 +56,7 @@ const ViewJob = memo(function ViewJob(props) {
             fetchJobById(jobId);
             setReload(false);
         }
-    }, [jobId, fetchJob]);
+    }, [jobId, fetchJob, dispatch, reload]);
 
     if (!job) {
         return <div className="container my-4">
@@ -146,3 +150,4 @@ const ViewJob = memo(function ViewJob(props) {
 });
 
 export default withRouter(ViewJob);
+

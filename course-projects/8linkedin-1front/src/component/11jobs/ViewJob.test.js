@@ -14,8 +14,8 @@ jest.mock('../../rest/useRestJobs', () => ({
 const { useFetchJob, useDeleteJob } = require('../../rest/useRestJobs');
 
 afterEach(() => {
-  // keep mock implementations but clear call history
-  jest.resetAllMocks();
+  // clear mock call history and implementations
+  jest.clearAllMocks();
 });
 
 function renderWithRouter(jobId, { fetchImpl, deleteImpl, user = { isAdmin: false, isLogged: true }, dispatch = jest.fn(), history } = {}) {
@@ -33,9 +33,8 @@ function renderWithRouter(jobId, { fetchImpl, deleteImpl, user = { isAdmin: fals
       <Router history={history}>
         <DispatchContext.Provider value={dispatch}>
           <UserContext.Provider value={user}>
-            <Route path="/view-job/:jobId">
-              <ViewJob />
-            </Route>
+            {/* use Route component prop so Route passes match/params to the component */}
+            <Route path="/view-job/:jobId" component={ViewJob} />
           </UserContext.Provider>
         </DispatchContext.Provider>
       </Router>
@@ -67,14 +66,11 @@ describe('ViewJob component', () => {
     expect(screen.getByText(sampleJob.company)).toBeInTheDocument();
     expect(screen.getByText(/About the job/i)).toBeInTheDocument();
     expect(screen.getByText(/Requirements/i)).toBeInTheDocument();
-    // applicants count text appears in the header
     expect(screen.getByText(/people clicked apply/i)).toBeInTheDocument();
 
-    // creator info and link
     expect(screen.getByText(sampleJob.creator.name)).toBeInTheDocument();
     expect(screen.getByText(`@${sampleJob.creator.email}`)).toBeInTheDocument();
 
-    // dispatch shouldn't be called with LOGOUT in success case
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'LOGOUT' });
   });
 
@@ -130,7 +126,6 @@ describe('ViewJob component', () => {
     await waitFor(() => {
       expect(screen.getByText(/An error occurred/i)).toBeInTheDocument();
       expect(screen.getByText(/DB fail/i)).toBeInTheDocument();
-      // ensure SET not called with data
       expect(dispatch.mock.calls.some(c => c[0] && c[0].type === 'DELETE_JOB')).toBeFalsy();
     });
   });
