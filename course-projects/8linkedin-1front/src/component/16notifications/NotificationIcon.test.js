@@ -72,7 +72,8 @@ describe('NotificationIcon', () => {
     userEvent.click(toggleButton);
 
     // header and mocked notification items should be present
-    expect(await screen.findByText(/Notifications/i)).toBeInTheDocument();
+    // target the dropdown header (h6) by its heading role to avoid ambiguous matches
+    expect(await screen.findByRole('heading', { name: /Notifications/i })).toBeInTheDocument();
     const items = await screen.findAllByTestId('notification-item');
     expect(items.length).toBeGreaterThan(0);
 
