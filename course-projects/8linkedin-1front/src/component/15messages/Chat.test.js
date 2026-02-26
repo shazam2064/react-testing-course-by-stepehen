@@ -159,24 +159,12 @@ describe('Chat', () => {
     userEvent.click(screen.getByTestId('messenger-c2'));
 
     // wait for conversation details to render
-    await waitFor(() => expect(screen.getByText(/Select a conversation/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Select a conversation to start chatting/i)).not.toBeInTheDocument());
 
-    // find delete button (styled .btn-outline-danger) in container and click
-    const container = screen.getByTestId('messenger-c2').closest('div').parentElement; // root container
-    const deleteButton = container.querySelector('button.btn-outline-danger') || container.querySelector('button.btn-danger');
-    // fallback: find any button with no name other than Send
-    if (!deleteButton) {
-      const buttons = container.querySelectorAll('button');
-      for (const b of buttons) {
-        if (!/Send/i.test(b.textContent || '')) {
-          // choose the first non-Send button
-          deleteButton = b;
-          break;
-        }
-      }
-    }
-    // click delete
-    deleteButton && userEvent.click(deleteButton);
+    // find delete button (styled .btn-danger) in DOM and click
+    const deleteButton = document.querySelector('button.btn-danger') || document.querySelector('button.btn-outline') || document.querySelector('button');
+    expect(deleteButton).toBeInTheDocument();
+    userEvent.click(deleteButton);
 
     // assert delete called and UI shows placeholder
     await waitFor(() => {
@@ -185,4 +173,3 @@ describe('Chat', () => {
     });
   });
 });
-
