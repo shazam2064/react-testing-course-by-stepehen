@@ -63,8 +63,12 @@ describe('CreateConvoModal', () => {
     );
 
     // modal should open and fetch users -> user item should appear
-    const modal = await screen.findByTestId('create-convo-modal');
-    expect(modal).toHaveAttribute('data-open', '1');
+    // reactstrap Modal may render via portal and not preserve custom data-* attrs;
+    // find the modal by its title and role instead
+    const modalTitle = await screen.findByText(/Start a New Conversation/i);
+    expect(modalTitle).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
 
     // user item for other user should be rendered
     const otherUserEl = await screen.findByTestId('user-u2');

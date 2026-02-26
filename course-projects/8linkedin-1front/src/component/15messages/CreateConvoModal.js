@@ -81,7 +81,13 @@ function CreateConvoModal({ isOpen, toggle, loggedUser, onConversationCreated })
     };
 
     return (
-        <Modal isOpen={isOpen} toggle={handleToggle}>
+        <Modal
+            // expose attributes so tests can locate and assert modal state
+            data-testid="create-convo-modal"
+            data-open={isOpen ? '1' : '0'}
+            isOpen={isOpen}
+            toggle={handleToggle}
+        >
             <ModalHeader toggle={handleToggle}>Start a New Conversation</ModalHeader>
             <ModalBody>
                 {error ?
