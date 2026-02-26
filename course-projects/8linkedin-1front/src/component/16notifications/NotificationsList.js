@@ -45,7 +45,7 @@ const NotificationsList = () => {
                             (conversation) =>
                                 conversation.lastMessage &&
                                 !conversation.lastMessage.read &&
-                                conversation.lastMessage.sender._id !== adminUser._id
+                                conversation.lastMessage.sender._id !== adminUserData._id
                         )
                         .forEach((conversation) => {
                             allNotifications.push({
